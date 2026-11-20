@@ -1,0 +1,222 @@
+/* Notch website: the nav and the hero (the message, then a MacBook's lid with the notch panel open on it).
+   Shared parts live in ../styles.css: the menu bar (.mbar), the camera (.ncam), a window's buttons (.tl), the pointer
+   (.mptr), the hint (.hint), and the app's own gauges and function bar (.gauge, .bar10, .bar, .cell). */
+
+/* ---------- nav ---------- */
+.nav { position: fixed; inset: 0 0 auto 0; z-index: 60; height: var(--nav); background: rgba(8, 8, 9, .72); -webkit-backdrop-filter: saturate(160%) blur(20px); backdrop-filter: saturate(160%) blur(20px); box-shadow: 0 1px 0 var(--line); }
+.nav__in { position: relative; height: 100%; max-width: calc(var(--wrap) + 2 * var(--gut)); margin: 0 auto; padding: 0 var(--gut); display: flex; align-items: center; gap: 16px; }
+.nav .brand { display: flex; align-items: center; gap: 9px; border-radius: 8px; font: 600 15px/1 var(--sans); letter-spacing: -.01em; color: #fff; }
+.nav .brand img { width: 24px; height: 24px; }   /* the icon carries its own shape and edge */
+.nav__links { position: absolute; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; }
+.nav__a { padding: 8px 12px; border-radius: 999px; font: 500 13px/1 var(--sans); color: var(--gray); transition: color .2s, background .2s; }
+.nav__a:focus-visible { color: #fff; background: rgba(255, 255, 255, .06); }
+.nav__a:active, .nav__sw:active { color: #fff; background: rgba(255, 255, 255, .1); }
+.nav__end { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+/* a switch, as the app draws one: a lamp (solid when on) and a word; Sound and Motion */
+.nav__sw { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 10px; border-radius: 999px; font: 500 13px/1 var(--sans); color: var(--gray); transition: color .2s, background .2s; }
+.nav__sw[aria-pressed="true"] { color: #fff; }
+.nav__sw[aria-pressed="true"] .lamp { background: currentColor; }
+@media (hover: hover) {
+  .nav__a:hover, .nav__sw:not([aria-disabled="true"]):hover { color: #fff; background: rgba(255, 255, 255, .06); }
+}
+.nav__sw + .btn { margin-left: 4px; }
+/* a finger gets 44 px of height on everything in the bar, and on the pill */
+.nav .brand, .nav__a, .nav__sw, .hero .pill { position: relative; }
+@media (pointer: coarse) {
+  .nav .brand::after, .nav__a::after, .nav__sw::after, .hero .pill::after { content: ""; position: absolute; inset: -7px -2px; }   /* (.btn has its own, in styles.css) */
+  .nav .brand::after { inset: -10px -4px; }
+}
+
+/* ==========================================================================
+   Hero: the message, then the lid. The light is fixed: nothing in the hero
+   pulses, floats or fades the light.
+   ========================================================================== */
+.hero { position: relative; padding-top: calc(var(--nav) + clamp(40px, 6.6vh, 84px)); text-align: center; overflow-x: clip; }
+.hero::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1180px; z-index: 0; pointer-events: none;
+  background: radial-gradient(38% 30% at 50% 66%, rgba(255, 255, 255, .055), transparent 100%), radial-gradient(30% 22% at 50% 16%, rgba(255, 255, 255, .04), transparent 100%); }
+.hero > * { position: relative; z-index: 1; }
+.hero .pill { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px 0 11px; border-radius: 999px; font: 500 13px/1 var(--sans); color: var(--text);
+  background: rgba(255, 255, 255, .045); box-shadow: inset 0 0 0 1px var(--line-2), inset 0 1px 0 rgba(255, 255, 255, .05); transition: background .2s, box-shadow .2s; }
+.hero .pill .glyph { width: 14px; height: 14px; color: var(--gray); }
+@media (hover: hover) { .hero .pill:hover { background: rgba(255, 255, 255, .08); box-shadow: inset 0 0 0 1px var(--line-3), inset 0 1px 0 rgba(255, 255, 255, .06); } }
+.hero .pill:active { background: rgba(255, 255, 255, .12); }
+.hero h1 { margin-top: 22px; font-size: clamp(40px, 4.6vw, 66px); line-height: 1.04; letter-spacing: -.03em; }
+.hero h1 span { color: var(--gray); }   /* the lead-in; the point, "in your notch", is the white line */
+.hero__lede { max-width: 33em; margin: 18px auto 0; font-size: clamp(16px, 1.25vw, 18px); line-height: 1.55; color: var(--gray); letter-spacing: -.005em; text-wrap: balance; }
+.hero__lede b { color: var(--text); font-weight: 500; }
+.hero__cta { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 28px; }
+.hero__fine { margin-top: 14px; }
+
+/* ---------- the lid ----------
+   Drawn 1 px to 1 pt and never larger, so the notch (180) and the panel (500) are their real sizes. Where the page's column
+   is wide enough the whole lid is as wide as it, which makes the notch 13 to 14.5% of it, as on a MacBook; narrower, the
+   stage shows a crop (below). The script sets --k (below 1 only where the panel itself would not fit: a phone), --sh, the
+   stage's height before scaling (room for the panel with the mirror open), and --sx, --sy and the lid's width in whole
+   pixels, so its lines are sharp on a 1x screen. */
+@property --hf0 { syntax: '<length>'; inherits: true; initial-value: 335px; }
+@property --hf1 { syntax: '<length>'; inherits: true; initial-value: 485px; }
+.hero .stage { --k: 1; --pz: var(--k); position: relative; margin-top: calc(clamp(36px, 5vh, 56px) + var(--sy, 0px)); height: calc(var(--sh, 528px) * var(--k)); overflow: hidden; }
+.hero .device { --bz: 14px; position: absolute; left: calc(50% + var(--sx, 0px)); top: 0; width: min(1360px, calc(100% - 2 * var(--gut))); transform: translateX(-50%) scale(var(--k)); transform-origin: 50% 0; }
+/* The lid fades out below the panel, and never over it: the fade is the lid's own, and the notch is not inside the lid.
+   With the mirror open the fade starts under the taller panel (--f0m, --f1m, from the script). A steady rim, brightest along the top edge. */
+.hero .lid { --hf0: var(--f0r, 335px); --hf1: var(--f1r, 485px); position: relative; padding: calc(var(--bz) - 1px) calc(var(--bz) - 1px) 0; border: 1px solid transparent; border-bottom: 0; border-radius: 26px 26px 0 0;
+  background: linear-gradient(#000, #000) padding-box, linear-gradient(180deg, rgba(255, 255, 255, .3), rgba(255, 255, 255, .12) 9%, rgba(255, 255, 255, .07) 40%, rgba(255, 255, 255, .03)) border-box;
+  -webkit-mask-image: linear-gradient(#000 var(--hf0), transparent var(--hf1)); mask-image: linear-gradient(#000 var(--hf0), transparent var(--hf1));
+  transition: --hf0 .45s ease-out, --hf1 .45s ease-out; }
+.hero .device.has-mirror .lid { --hf0: var(--f0m, 470px); --hf1: var(--f1m, 528px); }
+.hero .screen { position: relative; height: 580px; overflow: hidden; border-radius: 12px 12px 0 0; text-align: left; background: radial-gradient(110% 100% at 50% -12%, #303034 0, #1c1c1f 46%, #111113 100%); }
+.hero .screen::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: var(--grain); }
+/* the battery is full and on mains power (data-chg: the bolt), as the panel's CHG 100% says */
+.hero .mbar__dot { transition: background .12s; }
+.hero .mbar .is-off { visibility: hidden; }   /* in a crop, past the window's edge: out of the picture, and the rest stays in place */
+
+/* two windows of other apps on the desktop, neither in front (Finder is): grey buttons, no words */
+.hero .desk { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.hero .ghost { position: absolute; border-radius: 16px; overflow: hidden; background: #19191c; box-shadow: 0 0 0 1px #2d2d31, 0 16px 44px rgba(0, 0, 0, .34); }
+.hero .ghost::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 32px; background: #1f1f23; box-shadow: 0 1px 0 #29292d; }
+.hero .ghost::after { content: ""; position: absolute; left: max(88px, calc(50% - 32px)); top: 13px; width: 64px; height: 6px; border-radius: 3px; background: #2c2c30; }
+.hero .ghost .tl { position: absolute; left: 9px; top: 9px; }
+.hero .ghost b { position: absolute; left: 20px; top: var(--t); width: var(--w); height: 6px; border-radius: 3px; background: #29292d; }
+.hero .ghost--a { left: 4.4%; right: calc(50% + 296px); top: 76px; height: 330px; }
+.hero .ghost--b { left: calc(50% + 296px); right: 6.2%; top: 112px; height: 300px; }
+
+/* ---------- the notch and the app's panel (Console.swift) ----------
+   Closed, the notch is a hole in the screen: the bezel's own black, no rim, no shadow, and the screen curving out into the
+   bezel beside its top corners. The rim and the shadow are this page's device for the app's opened shape on a dark page. */
+.hero .notch { position: absolute; z-index: 5; top: calc(var(--bz) - 2px); left: 50%; transform: translateX(-50%); text-align: left; }
+.hero .notch::before { content: ""; position: absolute; inset: 2px -12px -10px; }   /* a little room around it: the pointer need not be exact */
+.hero .notch__shape { position: relative; width: 180px; padding-top: 2px; background: #000; border-radius: 0 0 10px 10px; overflow: hidden;   /* 2px up into the bezel: no seam between them at any scale */
+  transition: width var(--t) var(--spring), border-radius var(--t) var(--spring), box-shadow .3s ease-out; }
+.hero .notch.is-open .notch__shape { width: 500px; border-radius: 0 0 14px 14px; box-shadow: 0 30px 70px -20px rgba(0, 0, 0, .9); }
+.hero .notch__shape::after { content: ""; position: absolute; inset: 2px 0 0; z-index: 4; pointer-events: none; padding: 0 1px 1px; border-radius: inherit; opacity: 0; transition: opacity .3s ease-out;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .1));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+.hero .notch.is-open .notch__shape::after { opacity: 1; }
+/* The hole itself, behind the app's black shape: 180 by 32, the screen curving out into the bezel beside its top corners. The
+   shape springs open from it and back into it, and its overshoot never shows the hole any narrower than it is. */
+.hero .notch__hole { position: absolute; z-index: -1; left: 50%; top: 0; width: 180px; height: 34px; margin-left: -90px; border-radius: 0 0 10px 10px; background: #000; pointer-events: none; }
+.hero .notch__hole::before, .hero .notch__hole::after { content: ""; position: absolute; top: 2px; width: 6px; height: 6px; }
+.hero .notch__hole::before { right: 100%; background: radial-gradient(circle at 0 100%, transparent 5.5px, #000 6px); }
+.hero .notch__hole::after { left: 100%; background: radial-gradient(circle at 100% 100%, transparent 5.5px, #000 6px); }
+.hero .notch__cap { position: relative; display: block; width: 100%; height: 32px; border-radius: 0 0 6px 6px; }
+.hero .notch__cap:focus-visible { outline-offset: -5px; }   /* inside: the black shape around it hides anything drawn outside */
+.hero .notch__open { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t) var(--spring); }
+.hero .notch.is-open .notch__open { grid-template-rows: 1fr; }
+.hero .notch__inner { min-height: 0; overflow: hidden; }
+.hero .readouts { width: 498px; margin: 0 auto; padding-bottom: 1px; opacity: 0; transform: scale(.96); transform-origin: 50% 0; transition: opacity .22s ease-out, transform var(--t) var(--spring); }
+.hero .notch.is-open .readouts { opacity: 1; transform: none; }
+.hero .readouts__top { padding: 6px 17px 14px; }   /* the gauges start 18 from the panel's outer edge, the rim included */
+.hero .gauge__u { line-height: 1; }   /* the unit sits on the number's baseline inside the number's own 24 px line, as in the app: a gauge is 51 tall, not 55 */
+.hero .gauges { display: flex; gap: 16px; }
+.hero .mirror { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t) var(--spring); }
+.hero .mirror.is-on { grid-template-rows: 1fr; }
+.hero .mirror__in { min-height: 0; overflow: hidden; }
+.hero .mirror__pad { padding-top: 12px; }
+/* the picture unfolds black and comes up as the camera starts, a moment later (the script lights .ncam and the bar's dot with it) */
+.hero .cam { background: #000; }
+.hero .cam > svg, .hero .cam::after { opacity: 0; transition: opacity .2s ease-out; }
+.hero .mirror.is-live .cam > svg, .hero .mirror.is-live .cam::after { opacity: 1; transition-duration: .7s; }
+.hero .notch__alert { position: absolute; left: 50%; bottom: -6px; width: 44px; height: 2px; margin-left: -22px; background: var(--amber); opacity: 0; transition: opacity .2s, background .2s; pointer-events: none; }
+.hero .notch__alert[data-level="amber"], .hero .notch__alert[data-level="red"] { opacity: 1; }
+.hero .notch__alert[data-level="red"] { background: var(--red); }
+.hero .notch.is-open .notch__alert { opacity: 0; }
+
+/* The lid's scale is the panel's (--pz, styles.css): on a phone the small type of the gauges and the keys is set larger by as
+   much and reads at 10 px, and a finger gets keys 40 px tall. The prompt follows; a key's name is never under 10 px here. */
+.hero__hint, .hero .cell .name, .hero .cell .rest { font-size: max(11px, calc(10px / var(--k))); }
+.hero .cell .rest { letter-spacing: max(0px, calc((var(--k) - .7) * 3.3px)); }   /* an app's line (ten letters at most) still fits a fifth of the bar */
+/* a name too wide for its share of the bar gets the room it needs while its key is lit, and the others share the rest (Readouts.swift, Cell) */
+.hero .cell .name { padding: 0 4px 0 calc(4px + 2px * var(--k)); }
+.hero .cell.is-hot, .hero .cell:active, .hero .cell:focus-visible { min-width: min-content; }
+@media (hover: hover) { .hero .cell:hover { min-width: min-content; } }
+.hero .cell.is-gone { pointer-events: none; }
+.hero .cell.is-new { flex-grow: 0; opacity: 0; }
+.hero .cell.is-moving { overflow: hidden; }
+.hero #hero-free .cell { transition: flex-grow .4s var(--spring), opacity .25s ease-out; }
+
+/* The drawn pointer. As on a MacBook it is hidden where the notch itself is (there are no pixels there): its box is cut to
+   the screen less the notch. The script moves it; x is measured from the middle of the screen, y from its top. */
+.hero .notch__ptr { position: absolute; left: 50%; top: 2px; width: 1000px; height: 620px; margin-left: -500px; pointer-events: none;
+  -webkit-clip-path: path('M0 0H410V22A10 10 0 0 0 420 32H580A10 10 0 0 0 590 22V0H1000V620H0Z'); clip-path: path('M0 0H410V22A10 10 0 0 0 420 32H580A10 10 0 0 0 590 22V0H1000V620H0Z'); }
+.hero .notch__ptr .mptr { left: 500px; top: 0; opacity: 0; transition: opacity .25s ease-out; }
+.hero .notch__ptr .mptr.is-on { opacity: 1; }
+
+/* the prompt, under the notch or the panel: its words follow the state */
+.hero__hint { position: absolute; left: 50%; top: calc(100% + 18px / var(--k)); transform: translateX(-50%); white-space: nowrap; pointer-events: none; transition: opacity .3s ease-out; }
+.hero__hint > [data-when] { display: none; }
+.hero .notch:not(.is-open) .hero__hint > [data-when="closed"], .hero .notch.is-open:not(.is-armed) .hero__hint > [data-when="open"], .hero .notch.is-open.is-armed .hero__hint > [data-when="armed"] { display: inline; }
+.hero .notch.is-quiet .hero__hint, .js .hero .notch:not(.ready) .hero__hint { opacity: 0; }
+html:not(.js) .hero__hint { display: none; }
+
+/* what the script must put in place at once (with Motion off nothing springs anyway: styles.css) */
+.hero .device.is-instant, .hero .device.is-instant *, .hero .device.is-instant *::before, .hero .device.is-instant *::after { transition: none !important; }
+
+/* ---------- entrance: one calm staged arrival; then the drawn pointer comes up to the notch and the panel springs open ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .js .hero .wrap > * { animation: hr-rise .9s var(--spring) backwards; }
+  .js .hero .wrap > :nth-child(1) { animation-delay: .05s; } .js .hero .wrap > :nth-child(2) { animation-delay: .12s; }
+  .js .hero .wrap > :nth-child(3) { animation-delay: .2s; } .js .hero .wrap > :nth-child(4) { animation-delay: .28s; } .js .hero .wrap > :nth-child(5) { animation-delay: .34s; }
+  .js .hero .stage { animation: hr-lift 1.1s .2s var(--spring) backwards; }
+  .nav { animation: hr-fade .8s ease-out backwards; }
+}
+@keyframes hr-rise { from { opacity: 0; transform: translateY(14px); } }
+@keyframes hr-lift { from { opacity: 0; transform: translateY(40px); } }
+@keyframes hr-fade { from { opacity: 0; } }
+/* until the script is ready the panel is drawn closed, so it can spring open once; without script it stays open */
+.js .hero .notch:not(.ready) .notch__shape { width: 180px; border-radius: 0 0 10px 10px; box-shadow: none; transition: none; }
+.js .hero .notch:not(.ready) .notch__shape::after { opacity: 0; transition: none; }
+.js .hero .notch:not(.ready) .notch__open { grid-template-rows: 0fr; transition: none; }
+.js .hero .notch:not(.ready) .readouts { opacity: 0; transform: scale(.96); transition: none; }
+
+/* ---------- a finger: the closed notch is small, so a tap anywhere in 44 px of height around it opens it ---------- */
+@media (pointer: coarse) {
+  .hero .notch:not(.is-open)::before { inset: 2px calc(-24px / var(--k)) calc(-20px / var(--k)); }
+}
+
+/* ---------- narrower windows ---------- */
+@media (max-width: 1359px) {
+  /* Too narrow for a whole lid with its notch about 14% of it: the stage shows a crop of a 14-inch MacBook Pro's lid (its
+     screen 1512 points across), which runs off both edges and fades into the page at the sides. Its menu bar shows what
+     that Mac shows there; the script sets --vx, where the window cuts the lid, and --fw, the fade's width. */
+  .hero .device { --vx: calc((1540px - 100vw / var(--k)) / 2); --fw: 64px; width: 1540px; }
+  .hero .lid { --side: linear-gradient(90deg, transparent var(--vx), #000 calc(var(--vx) + var(--fw)), #000 calc(100% - var(--vx) - var(--fw)), transparent calc(100% - var(--vx)));
+    -webkit-mask-image: linear-gradient(#000 var(--hf0), transparent var(--hf1)), var(--side); -webkit-mask-composite: source-in;
+    mask-image: linear-gradient(#000 var(--hf0), transparent var(--hf1)), var(--side); mask-composite: intersect; }
+  .hero .ghost--a { left: auto; right: calc(50% + 296px); width: 360px; }
+  .hero .ghost--b { left: calc(50% + 296px); right: auto; width: 340px; }
+}
+@media (max-width: 1019px) {
+  /* less than a window's width beside the panel: the two windows sit below it, clear of it and of the prompt */
+  .hero .ghost--a { right: auto; left: calc(50% - 356px); top: 262px; width: 380px; height: 300px; }
+  .hero .ghost--b { left: calc(50% + 4px); top: 318px; width: 360px; height: 260px; }
+}
+@media (max-width: 960px) {
+  .nav__links { position: static; transform: none; margin-left: 4px; }
+}
+@media (max-width: 799px) {
+  .nav__links { display: none; }
+}
+@media (max-width: 620px) {
+  .hero__lede b { display: block; margin-top: 2px; }
+  .hero .ghost--a { left: calc(50% - 276px); width: 300px; }   /* a phone: the lid is scaled, and so are they */
+  .hero .ghost--b { left: calc(50% - 6px); width: 290px; }
+  .hero .stage { --k: .82; }   /* until the script fits it exactly */
+}
+@media (max-width: 520px) {
+  .nav__in { gap: 10px; padding: 0 16px; }
+  .nav__end { gap: 6px; }
+  .nav__sound { display: none; }              /* Sound stays down to here; Motion, Source and Download at every width */
+  .nav__sw { padding: 0 8px; gap: 7px; }
+  .nav__sw + .btn { margin-left: 0; }
+  .nav__end [data-repo] .glyph { display: none; }
+  .hero__lede { margin-top: 16px; }
+}
+@media (max-width: 460px) { .hero .stage { --k: .7; } }
+@media (max-width: 350px) {   /* narrower than any current phone: Motion keeps its lamp, and its word for a screen reader only */
+  .nav__sw span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@media (max-width: 380px) {
+  .hero .stage { --k: .64; }
+  .hero__cta { flex-direction: column; align-items: center; }
+  .hero__cta .btn { width: 100%; max-width: 280px; }   /* the two buttons, one width */
+}

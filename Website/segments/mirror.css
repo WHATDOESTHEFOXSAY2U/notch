@@ -1,0 +1,92 @@
+/* Notch website, segment 06 Mirror (Readouts.swift, Camera.swift, Console.swift).
+   One surface: the top of a Mac's screen at its real size, and the panel open from the notch as the app draws it, with
+   the camera's picture between the gauges and the function bar. MIRROR is a real key: it opens and closes the picture.
+   The camera runs only while the picture shows: the green light beside the lens (.ncam), the green dot in the menu bar
+   (.mbar__dot) and the lamp in the bay's foot all follow data-cam on the bay.
+   The picture is drawn (inline SVG), never a real camera; the hero's mirror shows the same drawing.
+   Everything here is scoped to #mirror. The Mac's parts (.mbar, .ncam, .mptr), the panel's (.gauge, .bar10, .bar, .cell,
+   .hairline), the picture's frame (.cam) and .bay, .hint live in ../styles.css. */
+
+/* ---------- the scene: the Mac at one scale (--mz, set by mirror.js: 1 wherever the panel fits, smaller only on a phone) ---------- */
+#mirror .mr-look { --h: 540px; }
+#mirror .mr-stage { overflow: hidden; }
+#mirror .mr-scene { position: absolute; inset: 0; zoom: var(--mz, 1); --pz: var(--mz, 1); }
+#mirror .mr-scene > .mbar { position: absolute; inset: 0 0 auto 0; }
+#mirror .mr-hint { position: absolute; inset: auto 0 21px 0; z-index: 6; pointer-events: none; }
+
+/* ---------- the panel (Console.swift) ----------
+   Closed it is the notch itself: 180 by 32, plain black, a hole in the screen. Open it is 500 wide; the rim and the
+   shadow are the site's device for an opened shape on a dark page, and come and go with it. */
+#mirror .mr-panel { position: absolute; left: 50%; top: 0; z-index: 5; width: 500px; margin-left: -250px; font-family: var(--mono); color: #fff; pointer-events: none; }
+/* only what is drawn answers the pointer: the notch (closed) or the panel (open), not the menu bar beside them */
+#mirror .mr-shape { position: relative; z-index: 1; width: 180px; margin: 0 auto; border-radius: 0 0 10px 10px; overflow: hidden; background: #000; pointer-events: auto;
+  transition: width var(--t) var(--spring), border-radius var(--t) var(--spring), box-shadow .3s ease-out; }
+#mirror .mr-shape::after { content: ""; position: absolute; inset: 0; z-index: 3; padding: 0 1px 1px; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s ease-out;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .09) 60%, rgba(255, 255, 255, .14));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude; }
+#mirror [data-panel="on"] .mr-shape { width: 500px; border-radius: 0 0 14px 14px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .45), 0 28px 56px -22px rgba(0, 0, 0, .95), 0 0 90px -30px rgba(255, 255, 255, .14); }
+#mirror [data-panel="on"] .mr-shape::after { opacity: 1; }
+#mirror .mr-cap { position: relative; height: 32px; }
+#mirror .mr-open { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t) var(--spring); }
+#mirror [data-panel="on"] .mr-open { grid-template-rows: 1fr; }
+#mirror .mr-open__in { min-height: 0; overflow: hidden; }
+#mirror .mr-readouts { position: relative; left: 50%; width: 500px; margin-left: -250px; opacity: 0; transform: scale(.96); transform-origin: 50% 0; pointer-events: none; transition: opacity .22s ease-out, transform var(--t) var(--spring); }
+#mirror [data-panel="on"] .mr-readouts { opacity: 1; transform: none; pointer-events: auto; }
+#mirror .mr-body { padding: 6px 18px 14px; }
+#mirror .mr-gauges { display: flex; gap: 16px; }
+/* in a panel drawn smaller (--pz), the key's name and the bar's pictures stay readable on screen, as the shared small type does */
+#mirror .mr-key .name { font-size: clamp(11px, calc(10px / var(--pz, 1)), 17px); }   /* 10 px on screen down to 360 */
+#mirror .mr-bar .glyph { width: clamp(16px, calc(12.5px / var(--pz, 1)), 21px); height: clamp(16px, calc(12.5px / var(--pz, 1)), 21px); }
+/* the mirror opens under the gauges with the app's one spring, and closes with it */
+#mirror .mr-fold { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t) var(--spring); }
+#mirror [data-mirror="on"] .mr-fold { grid-template-rows: 1fr; }
+#mirror .mr-fold__in { min-height: 0; overflow: hidden; }
+#mirror .mr-fold__pad { padding-top: 12px; }
+/* The picture is a press on MIRROR too; once it has folded away, so is the place where it and the key were (.mr-spot,
+   under the panel), so the key never runs away from a second press. */
+#mirror .mr-cam, #mirror .mr-spot { cursor: pointer; }
+#mirror .mr-spot { position: absolute; left: 18px; top: var(--cam-y, 101px); z-index: 0; width: 464px; height: var(--spot-h, 310px); pointer-events: none; }
+#mirror [data-panel="on"][data-mirror="off"] .mr-spot { pointer-events: auto; }
+
+/* The pointer (mirror.js moves it; --key-y and --up-y are where MIRROR is with the picture open and closed). It rests on
+   MIRROR, which is lit while it is there; a press sends the bar away from under it, as on a Mac. */
+#mirror .mr-ptr { left: var(--key-x, 346px); top: var(--key-y, 405px); transition: left .5s cubic-bezier(.4, 0, .2, 1), top .5s cubic-bezier(.4, 0, .2, 1), opacity .2s; }
+#mirror [data-ptr="up"] .mr-ptr { top: var(--up-y, 132px); }
+#mirror [data-ptr="notch"] .mr-ptr { left: 304px; top: 21px; transition-duration: .7s, .7s, .2s; }   /* the long way up */
+#mirror [data-ptr="off"] .mr-ptr { opacity: 0; }
+#mirror .is-placing .mr-ptr { transition: opacity .2s; }   /* back after a visitor's turn: it does not fly in */
+/* a state put in place at once (the still frame): nothing springs */
+#mirror .is-instant .mr-shape, #mirror .is-instant .mr-shape::after, #mirror .is-instant .mr-open, #mirror .is-instant .mr-readouts, #mirror .is-instant .mr-fold,
+#mirror .is-instant .mr-dark, #mirror .is-instant .ncam::after, #mirror .is-instant .mr-lamp, #mirror .is-instant .mr-ptr { transition: none; }
+
+/* ---------- the camera's picture (.cam): what this bay adds to it ---------- */
+#mirror .mr-cam { background: #000; will-change: filter; }
+#mirror .mr-me { overflow: visible; will-change: transform; }
+/* the camera is off: black. As it starts, the picture comes up out of the dark and settles, as a camera's exposure does. */
+#mirror .mr-dark { position: absolute; inset: 0; z-index: 4; pointer-events: none; background: #000; opacity: 1; transition: opacity .22s ease-out; }
+#mirror [data-cam="on"] .mr-dark { opacity: 0; }
+#mirror .mr-cam.is-waking .mr-dark { animation: mr-wake 1.25s cubic-bezier(.25, .6, .3, 1) both; }
+@keyframes mr-wake { 0% { opacity: 1; } 18% { opacity: .82; } 100% { opacity: 0; } }
+#mirror .mr-cam.is-waking { animation: mr-settle 1.5s ease-out both; }
+@keyframes mr-settle { 0% { filter: saturate(.35) brightness(.8); } 45% { filter: saturate(.85) brightness(1.18); } 100% { filter: none; } }
+/* while the camera runs, the picture is alive: a breath, now and then a blink */
+#mirror .mr-lid { opacity: 0; transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(.15); }
+#mirror [data-cam="on"] .mr-cam.is-live .mr-me { animation: mr-breathe 5.4s ease-in-out infinite; }
+#mirror [data-cam="on"] .mr-cam.is-live .mr-lid { animation: mr-blink 5.8s -3.2s linear infinite; }   /* first blink 2.3 s after the camera starts */
+@keyframes mr-breathe { 50% { transform: translateY(-1.1px); } }
+@keyframes mr-blink { 0%, 94.9%, 100% { opacity: 0; transform: scaleY(.15); } 95% { opacity: 1; transform: scaleY(.15); } 96.2%, 97.2% { opacity: 1; transform: scaleY(1); } 98.8% { opacity: 1; transform: scaleY(.15); } 98.9% { opacity: 0; } }
+
+/* ---------- the foot: the camera's light again, as the lamp beside its name ---------- */
+#mirror .mr-lamp { flex: none; width: 8px; height: 8px; margin: 0 2px 0 3px; border-radius: 50%; box-shadow: inset 0 0 0 1px var(--gray); transition: background .12s, box-shadow .12s; }
+#mirror [data-cam="on"] .mr-lamp { background: var(--sys-green); box-shadow: 0 0 7px rgba(48, 209, 88, .65); }
+
+/* ---------- a phone: the stage is as tall as the open panel needs (mirror.js measures it; these are the values before it runs) ---------- */
+@media (max-width: 720px) {
+  #mirror .mr-look { --mz: .64; height: auto; }
+  #mirror .mr-stage { flex: none; height: 330px; }
+  #mirror .mr-hint { bottom: 16px; }
+}
+@media (max-width: 380px) {
+  #mirror .mr-look { --mz: .56; }
+  #mirror .mr-stage { height: 296px; }
+}

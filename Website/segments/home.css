@@ -1,0 +1,227 @@
+/* Notch website: the rack (one module per segment, then the open slot), the download card and the footer.
+   Shared parts live in ../styles.css. Nothing here moves: the three are still pictures and words. */
+
+/* ==========================================================================
+   The rack: one module per segment, then the open slot. A module is a small
+   black display with a still of its segment, then the name and one line.
+   ========================================================================== */
+.rack-sec { margin-top: clamp(40px, 5vw, 80px); }
+.rack-sec .seg__lede { max-width: 40em; }   /* the count and the one thing to know, on one line where there is room */
+.rack { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
+.mod { --pad: 6px; container: mod / inline-size; position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: start; align-items: center; column-gap: 12px;
+  padding: var(--pad) var(--pad) 18px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--lift); transition: border-color .25s; }
+.mod::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; opacity: 0; transition: opacity .3s; pointer-events: none; background: radial-gradient(80% 70% at 30% 0%, rgba(255, 255, 255, .06), transparent 70%); }
+@media (hover: hover) {
+  .mod:hover { border-color: var(--line-3); }
+  .mod:hover::after { opacity: 1; }
+}
+.mod:active, .mod:focus-visible { border-color: var(--line-3); }
+.mod:focus-visible { outline-offset: 2px; }
+.mod:focus-visible::after { opacity: 1; }
+
+/* the display: plain black, as the app draws. It is set into the module: one faint line round it, and the lip under it catches the light */
+.mod__well { grid-column: 1 / -1; position: relative; display: block; height: 112px; overflow: hidden; border-radius: calc(var(--r) - var(--pad) - 1px); background: #000; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07), 0 1px 0 rgba(255, 255, 255, .06); }
+/* Every still is drawn in one frame, 176 by 72, at the app's own size (1 px to the point). Where a display is too narrow
+   for it the frame is scaled as one (--ps, set at the foot of this part). --ps is not the shared --pz: these are
+   pictures, so their small type shrinks with them and is not set larger. */
+.mod__pic { position: absolute; left: 50%; top: 50%; display: block; width: 176px; height: 72px; margin: -36px 0 0 -88px; transform: scale(var(--ps, 1)); font-family: var(--mono); color: #fff; }
+
+/* the name and the line are the shared pair (.pair__name over .pair__line); only their places are set here */
+.mod__name { grid-column: 1; position: relative; min-width: 0; margin: 16px 0 0 14px; padding-left: 23px; white-space: nowrap; }
+.mod__name .glyph { position: absolute; left: 0; top: 50%; width: 14px; height: 14px; margin-top: -7px; }
+.mod__n { grid-column: 2; margin: 16px 14px 0 0; font: 400 12px/1 var(--mono); letter-spacing: .04em; color: var(--dim); font-variant-numeric: tabular-nums; }
+.mod__line { grid-column: 1 / -1; margin: 5px 14px 0; text-wrap: balance; }
+
+/* 01 Numbers: two of the panel's gauges (the shared .gauge), 80 wide and 16 apart */
+.rack .pic-num { display: flex; gap: 16px; padding-top: 10px; }
+
+/* 02 Capture (Selection.swift): the region, 148 by 42; its outline 1 outside it; the brackets, 3 by 12, in the 3 outside it;
+   the size tag 4 above them; the crosshair (the shared .mcross) on the corner being dragged */
+.rack .pic-cap__sel { position: absolute; left: 14px; top: 27px; width: 148px; height: 42px; background: rgba(255, 255, 255, .055); box-shadow: 0 0 0 1px #fff; }
+.rack .pic-cap__sel i { position: absolute; width: 12px; height: 12px; border: 0 solid #fff; }
+.rack .pic-cap__sel i:nth-child(1) { left: -3px; top: -3px; border-width: 3px 0 0 3px; }
+.rack .pic-cap__sel i:nth-child(2) { right: -3px; top: -3px; border-width: 3px 3px 0 0; }
+.rack .pic-cap__sel i:nth-child(3) { left: -3px; bottom: -3px; border-width: 0 0 3px 3px; }
+.rack .pic-cap__sel i:nth-child(4) { right: -3px; bottom: -3px; border-width: 0 3px 3px 0; }
+.rack .pic-cap__tag { position: absolute; left: 11px; top: 0; height: 20px; padding: 0 5px 0 6px; font: 11px/20px var(--mono); letter-spacing: 1px; white-space: nowrap; background: #000; box-shadow: 0 0 0 1px rgba(255, 255, 255, .14); }
+.rack .pic-cap .mcross { left: 162px; top: 69px; }
+
+/* 03 Dictation (Wings.swift): the left 176 of the strip's 380, less 8 of its top band, built from the strip's own parts
+   (.wings, .vbody, .vline … in styles.css). The lines run on, and fade under the frame's edge. */
+.rack .pic-dic { overflow: hidden; }
+.rack .pic-dic__strip { position: absolute; left: 0; top: -8px; display: block; width: 380px; }
+.rack .pic-dic .vtrans { -webkit-mask-image: linear-gradient(90deg, #000 58px, transparent 99px); mask-image: linear-gradient(90deg, #000 58px, transparent 99px); }
+
+/* 04 Windows (Pointer.swift): 26 by 17 with a 1.5 edge, at twice its size: a white tile, and the right half of what is
+   inside its edge left black, so the left half is lit */
+.rack .pic-win { background: linear-gradient(#fff, #fff) 62px 19px / 52px 34px no-repeat; }
+.rack .pic-win i { position: absolute; left: 88px; top: 22px; width: 23px; height: 28px; background: #000; }
+
+/* 05 Keys: caps lock as #keys draws it, at a MacBook's size (1.75 keys of 64, 10 apart; 60 tall): its light, dark, and its sign alone */
+.rack .pic-key__cap { position: absolute; left: 28px; top: 6px; width: 120px; height: 60px; border-radius: 10px; color: var(--text); background: linear-gradient(180deg, #3a3a40 0%, #303035 52%, #28282d 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), inset 0 1px 0 rgba(255, 255, 255, .19), 0 1px 0 rgba(0, 0, 0, .9); }
+.rack .pic-key__cap i { position: absolute; left: 11px; top: 10px; width: 4px; height: 4px; border-radius: 50%; background: #111113; box-shadow: 0 0 0 .5px rgba(255, 255, 255, .1); }
+.rack .pic-key__cap .glyph { position: absolute; left: 9px; bottom: 8px; width: 15px; height: 15px; stroke-width: 1.3; }
+
+/* 06 Mirror: the camera's picture (the shared .cam, with the Mirror segment's own two drawings), 16 to 9 */
+.rack .pic-mir .cam { position: absolute; left: 24px; top: 0; width: 128px; height: 72px; }
+.rack .pic-mir .cam__me { filter: brightness(1.08) saturate(1.04); }   /* without the shared half-pixel blur, which is too much at this size */
+
+/* 07 Transcribe (Meter.swift): the left end of the strip the notch widens into while it works, built like one wide gauge
+   (420 wide beside a 180 notch), less 1 of its 32-point top band. In the band, what is being done: a caption (mono 11,
+   1 apart, grey), 15 in, where the segments start. Under the band, 4 down, the gauges' own segments edge to edge (49
+   of them); 8 under those, the recording's name in white. The segments run on, and fade under the frame's edge. */
+.rack .pic-scr { overflow: hidden; }
+.rack .pic-scr__stage, .rack .pic-scr__title { position: absolute; left: 15px; font-size: 11px; white-space: nowrap; }
+.rack .pic-scr__stage { top: -1px; line-height: 32px; letter-spacing: 1px; color: var(--gray); }
+.rack .pic-scr__segs { position: absolute; left: 15px; top: 35px; width: 390px; -webkit-mask-image: linear-gradient(90deg, #000 121px, transparent 161px); mask-image: linear-gradient(90deg, #000 121px, transparent 161px); }
+.rack .pic-scr__title { top: 51px; line-height: 13px; }
+
+/* an open slot: nothing in it yet. The module is an outline, its display an empty cell that says so, in #next's words. */
+.mod--slot { background: none; border-style: dashed; border-color: rgba(255, 255, 255, .16); box-shadow: none; }
+.mod--slot .mod__well { background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .07) 0 1px, transparent 1px 6px); box-shadow: none; }
+.mod--slot .mod__name .glyph { color: var(--gray); }
+.mod__tag { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 7px 10px 7px 11px; font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; color: var(--gray); background: var(--bg); }
+@media (hover: hover) { .mod--slot:hover { border-color: rgba(255, 255, 255, .36); } }
+.mod--slot:active, .mod--slot:focus-visible { border-color: rgba(255, 255, 255, .36); }
+
+/* A display narrower than 200 px (a module's inside width) cannot hold the 176-wide frame with room to spare: it is then
+   lower, and its still smaller, as one. That happens on phones, and for a few pixels after each change of columns. */
+@container mod (max-width: 199px) {
+  .mod__well { height: 100px; }
+  .mod__pic { --ps: .88; }
+}
+@container mod (max-width: 179px) {
+  .mod__well { height: 88px; }
+  .mod__pic { --ps: .8; }
+}
+@container mod (max-width: 157px) {
+  .mod__well { height: 80px; }
+  .mod__pic { --ps: .72; }
+  .rack .mod__name { padding-left: 0; }   /* the smallest phones: a name has the whole line, so the longest one fits */
+  .rack .mod__name .glyph { display: none; }
+}
+@container mod (max-width: 141px) {
+  .mod__well { height: 72px; }
+  .mod__pic { --ps: .64; }
+}
+/* the same steps by the window's width, for a browser without container queries (two modules to a row: a display is half the window, less 37) */
+@supports not (container-type: inline-size) {
+  @media (max-width: 473px) { .mod__well { height: 100px; } .mod__pic { --ps: .88; } }
+  @media (max-width: 433px) { .mod__well { height: 88px; } .mod__pic { --ps: .8; } }
+  @media (max-width: 389px) { .mod__well { height: 80px; } .mod__pic { --ps: .72; } .rack .mod__name { padding-left: 0; } .rack .mod__name .glyph { display: none; } }
+  @media (max-width: 357px) { .mod__well { height: 72px; } .mod__pic { --ps: .64; } }
+}
+
+/* ==========================================================================
+   Download: the icon, the line, the ways in, the facts and the one sentence
+   about the first open; then, along the foot, what macOS asks for, and when.
+   ========================================================================== */
+.get { position: relative; isolation: isolate; border-radius: calc(var(--r) + 8px); overflow: hidden;
+  background: radial-gradient(56% 420px at 50% 0%, rgba(255, 255, 255, .075), transparent 72%), var(--surface); border: 1px solid var(--line); box-shadow: var(--lift); }
+.get::before { content: ""; position: absolute; inset: 0 0 auto; height: 560px; z-index: -1; pointer-events: none; background: radial-gradient(rgba(255, 255, 255, .05) 1px, transparent 1.3px) 0 0 / 22px 22px;
+  -webkit-mask-image: radial-gradient(50% 60% at 50% 30%, #000 10%, transparent 80%); mask-image: radial-gradient(50% 60% at 50% 30%, #000 10%, transparent 80%); }
+.get__main { display: grid; justify-items: center; text-align: center; padding: clamp(56px, 7vw, 88px) 24px clamp(40px, 4.6vw, 60px); }
+/* the icon is a picture with its own shape: no frame, and a shadow that follows that shape */
+.appicon { width: 112px; height: 112px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .5)) drop-shadow(0 18px 28px rgba(0, 0, 0, .55)); }
+.get h2 { margin-top: 30px; }
+.get__lede { max-width: 30em; margin-top: 14px; font-size: 16px; line-height: 1.55; color: var(--gray); text-wrap: balance; }
+.get__cta { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 30px; }
+.get__sent { font: 400 13px/1.5 var(--sans); color: var(--text); overflow-wrap: anywhere; }   /* what Send the link did: empty until then */
+.get__sent:not(:empty) { margin-top: 12px; }
+.get__facts { list-style: none; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; row-gap: 4px; margin-top: 24px; }   /* its type is .micro */
+.get__facts li { white-space: nowrap; }
+.get__facts li + li::before { content: "·"; margin: 0 .85em; color: var(--dim); }
+.get__first { max-width: 37em; margin-top: 14px; font: 400 14px/1.55 var(--sans); color: var(--gray); text-wrap: balance; }
+.get__first b { font-weight: 500; color: var(--text); }
+
+/* The card's foot: the claim, then the four permissions and when each is asked, as one strip (a foot's own pair: 14 over
+   14). Five columns, each as wide as its words need, sharing what is left over; the list keeps to those columns (subgrid),
+   or, in a browser without it, to four of its own. */
+.get__foot { display: grid; grid-template-columns: repeat(5, auto); border-top: 1px solid var(--line); }
+.get__asks { grid-column: 2 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .95fr) minmax(0, .95fr) minmax(0, 1.3fr); grid-template-columns: subgrid; }
+.get__ask { padding: 20px 22px 22px; box-shadow: inset 1px 0 0 var(--line); }
+.get__ask--h { padding-left: clamp(22px, 2.4vw, 32px); box-shadow: none; }
+.get__ask h3, .get__ask dt { display: flex; align-items: center; gap: 9px; font: 600 14px/20px var(--sans); letter-spacing: -.005em; color: #fff; white-space: nowrap; }
+.get__ask dt .glyph { width: 14px; height: 14px; color: var(--gray); }
+.get__ask p, .get__ask dd { margin-top: 3px; font: 400 14px/1.45 var(--sans); color: var(--gray); text-wrap: balance; }
+
+/* ==========================================================================
+   Footer: the mark and the version, the small print centred under the card,
+   the two ways out.
+   ========================================================================== */
+.foot { position: relative; margin-top: clamp(56px, 6vw, 88px); }
+.foot__in { position: relative; display: grid; grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr); align-items: start; gap: 16px 32px; padding-top: 28px; padding-bottom: 44px; }
+.foot__in::before { content: ""; position: absolute; left: var(--gut); right: var(--gut); top: 0; height: 1px; background: var(--line); }   /* a rule as wide as the card above, not as the gutters */
+.foot__brand { display: flex; align-items: center; gap: 9px; font: 600 14px/20px var(--sans); letter-spacing: -.01em; color: #fff; white-space: nowrap; }
+.foot__brand img { width: 20px; height: 20px; }   /* the picture has its own shape: no ring, no radius */
+.foot__brand b { font-weight: 600; }
+.foot__ver { margin-left: 3px; padding-left: 12px; box-shadow: inset 1px 0 0 var(--line-2); font: 400 12px/14px var(--mono); letter-spacing: .04em; color: var(--gray); }
+.foot__note { display: grid; gap: 3px; max-width: 52em; text-align: center; font: 400 13px/20px var(--sans); color: var(--gray); text-wrap: balance; }
+.foot__links { justify-self: end; display: flex; gap: 22px; font: 400 13px/20px var(--sans); color: var(--gray); white-space: nowrap; }
+.foot__links a { position: relative; border-radius: 4px; transition: color .2s; }
+.foot__links a:active { color: #fff; }
+@media (hover: hover) { .foot__links a:hover { color: #fff; } }
+/* on a touch screen a link answers a finger on 44 px of height, whatever its drawn size (as the shared buttons do) */
+@media (pointer: coarse) { .foot__links a::after { content: ""; position: absolute; left: -8px; right: -8px; top: 50%; height: 44px; margin-top: -22px; } }
+
+/* ---------- narrower windows ---------- */
+@media (max-width: 1179px) {
+  /* the footer: the mark and the links on one row, the small print under them */
+  .foot__in { grid-template-columns: minmax(0, 1fr) auto; row-gap: 18px; }
+  .foot__note { grid-column: 1 / -1; grid-row: 2; justify-self: center; }
+  /* the card's strip becomes a small table: the claim on its own row, the four permissions under it */
+  .get__foot { grid-template-columns: minmax(0, 1fr); }
+  .get__ask--h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; padding: 16px clamp(20px, 2.4vw, 32px); }
+  .get__ask--h p { margin-top: 0; }
+  .get__asks { grid-column: auto; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+  .get__asks .get__ask { padding: 16px clamp(18px, 2vw, 22px) 20px; }
+  .get__asks .get__ask:first-child { padding-left: clamp(20px, 2.4vw, 32px); box-shadow: none; }
+}
+@media (max-width: 960px) {
+  .rack { grid-template-columns: repeat(3, minmax(0, 1fr)); }   /* the first six fill two rows; 07 and the open slot, the third */
+  .mod--slot { grid-column: span 2; }                           /* the open slot takes the rest of the row: room for more */
+}
+@media (max-width: 900px) {
+  /* the facts as a tidy grid, so no line starts or ends on a dot: what it needs over what you get, a column each; the
+     permissions two by two */
+  .get__facts { display: grid; grid-template-rows: repeat(3, auto); grid-auto-flow: column; gap: 5px 28px; justify-items: center; }
+  .get__facts li + li::before { content: none; }
+  .get__asks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .get__asks .get__ask:nth-child(3) { padding-left: clamp(20px, 2.4vw, 32px); box-shadow: inset 0 1px 0 var(--line); }
+  .get__asks .get__ask:nth-child(4) { box-shadow: inset 1px 0 0 var(--line), inset 0 1px 0 var(--line); }
+}
+@media (max-width: 720px) {
+  .rack { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .mod--slot { grid-column: auto; }   /* two to a row: 07 and the open slot share the last */
+  .mod { --pad: 5px; padding-bottom: 15px; }
+  .mod__name { margin: 13px 0 0 11px; padding-left: 21px; }
+  .mod__n { margin: 13px 11px 0 0; }
+  .mod__line { margin: 4px 11px 0; }
+  .get__main { padding-left: 20px; padding-right: 20px; }
+  .appicon { width: 96px; height: 96px; }
+  .get h2 { margin-top: 26px; }
+  .foot__in { row-gap: 16px; padding-top: 24px; padding-bottom: 36px; }
+  .foot__note { justify-self: start; max-width: none; text-align: left; text-wrap: pretty; gap: 6px; }
+}
+@media (max-width: 640px) {
+  /* three ways in: Send on a row of its own, the other two side by side under it */
+  .get__cta.has-send { width: 100%; max-width: 340px; }
+  .get__cta.has-send .get__send { flex: 1 1 100%; }
+  .get__cta.has-send .btn:not(.get__send) { flex: 1 1 auto; height: 40px; padding: 0 12px; font-size: 14px; }
+}
+@media (max-width: 520px) {
+  .get__cta { width: 100%; max-width: 340px; }
+  .get__cta .btn { flex: 1 1 100%; }
+  .get__facts { gap: 5px 22px; }
+  /* the permissions: one to a row, each name with its line beside it, like the claim above them */
+  .get__ask--h { padding: 14px 16px; }
+  .get__asks { grid-template-columns: minmax(0, 1fr); }
+  .get__asks .get__ask, .get__asks .get__ask:first-child, .get__asks .get__ask:nth-child(3), .get__asks .get__ask:nth-child(4) { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; padding: 12px 16px 13px; box-shadow: none; }
+  .get__asks .get__ask + .get__ask { box-shadow: inset 0 1px 0 var(--line); }
+  .get__ask dt .glyph { display: none; }
+  .get__ask dd { margin-top: 0; }
+}
+@media (max-width: 380px) {
+  .foot__ver span { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }   /* "Version": said, not shown, where the row is short of room */
+}

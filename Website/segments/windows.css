@@ -1,0 +1,206 @@
+/* Notch website, segment 04 Windows: two fingers on a title bar, swipe, lift.
+   Owned by this segment; every rule is scoped under #windows. Shared parts live in ../styles.css: the menu bar (.mbar),
+   a window's three buttons (.tl), the pointer (.mptr), the camera (.ncam), the steps (.steps), the prompt (.hint) and .vh.
+   The picture that stands in for the pointer, its colours and the places follow the app (Place.swift, Pointer.swift). */
+
+/* ---------- the stage: the screen first and largest, the gestures as the smaller control beside it ---------- */
+#windows .wn-stage { display: grid; grid-template-columns: minmax(0, 800px) clamp(316px, 34%, 400px); justify-content: center; align-items: center; gap: clamp(32px, 4.5%, 56px); padding: 34px clamp(24px, 2.75%, 36px) 38px; }   /* on a wide bay the two stay together, centred */
+#windows .wn-view { width: 100%; min-width: 0; }
+
+/* ---------- the picture of the screen: a black tile with a white edge, the place lit in white (Pointer.swift: 26 by 17, edge 1.5) ---------- */
+#windows .wn-pic { --c: #fff; position: relative; display: block; flex: none; width: 40px; height: 26px; background: #000; border: 2px solid #fff; }
+#windows .wn-pic i { position: absolute; left: calc(var(--x, 0) * 100%); top: calc(var(--y, 0) * 100%); width: calc(var(--w, 0) * 100%); height: calc(var(--h, 0) * 100%); background: var(--c); }
+#windows .wn-pic.is-whole { background: var(--c); border-color: var(--c); }        /* full screen and close take all of it, edge included */
+#windows .wn-pic.is-whole i, #windows .wn-pic.is-empty i { display: none; }
+
+/* ---------- the screen: a MacBook display, 1512 by 982 points ---------- */
+#windows .wn-mac { position: relative; padding: 8px 8px 11px; border-radius: 20px; background: #050506; border: 1px solid #2e2e33;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1), 0 1px 0 rgba(0, 0, 0, .6), 0 44px 80px -44px #000; }
+#windows .wn-screen { position: relative; aspect-ratio: 1512 / 982; overflow: hidden; border-radius: 10px 10px 3px 3px; container-type: inline-size;
+  /* the wallpaper: a light sweeping in from the right and a low dune, in greys */
+  background: radial-gradient(120% 150% at 128% 60%, rgba(150, 150, 166, .5) 0 38%, transparent 60%), radial-gradient(150% 110% at 30% 150%, rgba(108, 108, 120, .55) 0 46%, transparent 61%), linear-gradient(165deg, #404046 0%, #28282c 52%, #1b1b1e 100%); }
+#windows .wn-screen::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: var(--grain); opacity: .7; }
+/* The sheet everything on the screen is drawn on, in the Mac's own points, scaled as one (--k: the screen's width over 1512;
+   windows.js sets it, and the line below works it out where there is no script). --px is one pixel of the page, for hairlines. */
+#windows .wn-sheet { --k: tan(atan2(100cqw, 1512px)); --px: calc(1px / var(--k)); position: absolute; z-index: 1; left: 0; top: 0; width: 1512px; height: 982px; transform-origin: 0 0; transform: scale(var(--k)); }
+
+#windows .mbar { position: absolute; z-index: 6; left: 0; right: 0; top: 0; background: rgba(255, 255, 255, .04); transition: opacity .3s; }
+#windows .wn-band { position: absolute; z-index: 6; left: 0; right: 0; top: 0; height: 33px; background: #000; opacity: 0; transition: opacity .3s; }
+#windows .wn-notch { position: absolute; z-index: 7; left: 50%; top: 0; width: 180px; height: 32px; margin-left: -90px; border-radius: 0 0 10px 10px; background: #000; }
+
+/* The Dock: Finder first, a dot under what runs, a minimised window right of the line, the Trash last. Tiles are plain: no artwork. */
+#windows .wn-dock { position: absolute; z-index: 3; left: 0; right: 0; bottom: 4px; width: max-content; margin: 0 auto; display: flex; align-items: center; gap: 8px; height: 66px; padding: 0 10px; border-radius: 20px;
+  background: rgba(70, 70, 77, .46); box-shadow: inset 0 0 0 var(--px) rgba(255, 255, 255, .13), 0 18px 44px -14px rgba(0, 0, 0, .6); transition: transform .45s cubic-bezier(.3, .7, .3, 1), opacity .3s; }
+#windows .wn-dock > i { position: relative; flex: none; width: 48px; height: 48px; border-radius: 13px; background: linear-gradient(160deg, #505056, #2e2e33); box-shadow: inset 0 0 0 var(--px) rgba(255, 255, 255, .13); }
+#windows .wn-dock > i:nth-child(2) { background: linear-gradient(160deg, #626268, #3a3a3f); }
+#windows .wn-dock > i:nth-child(3) { background: linear-gradient(160deg, #424248, #27272b); }
+#windows .wn-dock > i:nth-child(5) { background: linear-gradient(160deg, #5a5a60, #333338); }
+#windows .wn-dock > i:nth-child(7) { background: linear-gradient(160deg, #47474d, #2a2a2e); }
+#windows .wn-dock > i:nth-child(8) { background: linear-gradient(160deg, #6a6a70, #404045); }
+#windows .wn-dock > i.is-app, #windows .wn-dock-min b i { background: linear-gradient(160deg, #f4f4f6, #b4b4ba); }   /* the app the window belongs to */
+#windows .wn-dock > i.is-run::after { content: ""; position: absolute; left: 50%; bottom: -6.5px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: rgba(255, 255, 255, .78); }
+#windows .wn-dock-sep { flex: none; width: var(--px); height: 44px; margin: 0 2px; background: rgba(255, 255, 255, .22); }
+#windows .wn-dock-min { flex: none; display: grid; place-items: center; width: 0; height: 48px; margin: 0 -4px; transition: width .32s cubic-bezier(.3, .7, .3, 1), margin .32s cubic-bezier(.3, .7, .3, 1); }
+#windows .wn-dock-min.is-on { width: 48px; margin: 0; }
+#windows .wn-dock-min b { position: relative; width: 48px; height: 34px; border-radius: 4px; background: linear-gradient(#37373b 0 5px, #1e1e20 5px); box-shadow: 0 0 0 var(--px) rgba(255, 255, 255, .3), 0 3px 10px rgba(0, 0, 0, .5); opacity: 0; transform: scale(.5); transition: opacity .2s, transform .3s cubic-bezier(.3, .7, .3, 1); }
+#windows .wn-dock-min b i { position: absolute; right: -4px; bottom: -6px; width: 18px; height: 18px; border-radius: 5px; box-shadow: 0 1px 4px rgba(0, 0, 0, .5); }   /* a minimised window carries its app's icon */
+#windows .wn-dock-min.is-on b { opacity: 1; transform: none; transition-delay: .26s; }
+#windows .wn-bin { flex: none; width: 48px; height: 48px; overflow: visible; fill: rgba(255, 255, 255, .08); stroke: rgba(236, 236, 242, .66); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* The window: a plain-text file open in TextEdit (a saved one: its red button closes it at once, as the pinch does here).
+   Its title bar is the handle. It is the window in front, so its three buttons are in colour (.tl.is-front), always; a
+   swipe draws nothing on it. Where it stands here is the still frame. */
+#windows .wn-win { --wt: 0ms; --we: cubic-bezier(.2, .9, .25, 1); position: absolute; z-index: 4; left: 0; top: 33px; width: 756px; height: 873px; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: #1e1e20;
+  box-shadow: 0 0 0 var(--px) rgba(0, 0, 0, .7), 0 40px 100px -8px rgba(0, 0, 0, .62), 0 6px 20px rgba(0, 0, 0, .36);
+  transition: left var(--wt) var(--we), top var(--wt) var(--we), width var(--wt) var(--we), height var(--wt) var(--we), border-radius .3s, box-shadow .3s, opacity .22s ease-out, transform .22s ease-out; }
+#windows .wn-win::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 var(--px) rgba(255, 255, 255, .14); pointer-events: none; transition: opacity .3s; }
+#windows .wn-win[data-ease="calm"] { --we: cubic-bezier(.45, 0, .25, 1); }
+#windows .wn-win[data-ease="in"] { --we: cubic-bezier(.5, 0, .7, .5); }
+#windows .wn-bar { position: relative; flex: none; height: 32px; overflow: hidden; background: #37373b; box-shadow: 0 var(--px) 0 #0e0e10; transition: height .3s; }
+#windows .wn-bar .tl { position: absolute; left: 9px; top: 9px; }
+#windows .wn-title { position: absolute; left: 50%; top: 0; transform: translateX(-50%); font: 700 13px/32px var(--sans); letter-spacing: -.005em; color: #dcdce0; white-space: nowrap; }
+#windows .wn-doc { flex: 1 1 auto; min-height: 0; padding: 4px 5px; overflow: hidden; font: 400 11px/14px Menlo, var(--mono); color: #d6d6da; white-space: nowrap; }   /* plain text in TextEdit's own default, Menlo 11 */
+#windows .wn-doc p + p { margin-top: 14px; }
+/* closed: it goes at once, as a window does; a new one arrives a little small and grows */
+#windows .wn-win.is-gone { opacity: 0; transform: scale(.96); transition: opacity .16s ease-out, transform 0s .16s; }
+#windows .wn-win.is-min { opacity: 0; transition: left var(--wt) var(--we), top var(--wt) var(--we), width var(--wt) var(--we), height var(--wt) var(--we), border-radius .3s, opacity .16s ease-in .2s, transform .2s; }
+
+/* full screen: the menu bar goes, the notch sits in a black band, the Dock leaves; the window takes the rest, with no title bar and no edge */
+#windows .is-full .mbar { opacity: 0; }
+#windows .is-full .wn-band { opacity: 1; }
+#windows .is-full .wn-dock { opacity: 0; transform: translateY(150%); }
+#windows .is-full .wn-win { border-radius: 0; box-shadow: none; }
+#windows .is-full .wn-win::after { opacity: 0; }
+#windows .is-full .wn-bar { height: 0; box-shadow: none; }
+
+/* The pointer (.mptr), and the picture that takes its place while two fingers are down (Pointer.swift: 26 by 17 with a 1.5
+   edge, centred on the pointer, the arrow hidden). Both sit at the pointer's place on the sheet and are drawn at the page's own
+   size, not the sheet's: at the screen's scale neither could be read. They keep the Mac's proportion to each other: the
+   picture is as tall as the arrow. --u makes both a little smaller on a smaller screen (1 at 1440 wide, 2/3 on a phone). */
+#windows .wn-ptr { --u: clamp(.66, calc(.4 + var(--k) * 1.2), 1); --wt: 0ms; position: absolute; z-index: 9; left: 0; top: 0; width: 0; height: 0; transform: translate(514px, 49px); transition: transform var(--wt) cubic-bezier(.45, 0, .2, 1); }
+#windows .wn-ptr .mptr { left: 0; top: 0; transform-origin: 1.3px 1.3px; transform: scale(calc(var(--u) / var(--k))); transition: opacity .1s; }
+#windows .wn-ptr .wn-pic { position: absolute; left: -14px; top: -9px; width: 28px; height: 18px; border-width: 1.5px; transform: scale(calc(var(--u) / var(--k))); opacity: 0; transition: opacity .1s; }
+#windows .wn-ptr.is-pic .mptr { opacity: 0; }
+#windows .wn-ptr.is-pic .wn-pic { opacity: 1; }
+
+/* named under the screen, where the control is below it and out of the eye's way (a phone) */
+#windows .wn-now { display: none; }
+
+/* ---------- the map: every gesture where its swipe points, the trackpad in the middle ----------
+   --z is the keys' size: 1 where the map has room (392 px and up: "Pinch. Not the app." then fits on its one line),
+   0 where it is narrow. Every measure of a key follows it, except its name: that is 11 px wherever "BOTTOM RIGHT" fits on
+   its line, and never under 10 (the pad is a container, so the names follow the width the pad really has). */
+#windows .wn-map { container-type: inline-size; width: 100%; min-width: 0; }
+#windows .wn-keys { --z: 1; --g: calc(6px + 2px * var(--z)); display: flex; flex-direction: column; gap: var(--g);
+  --lf: clamp(10px, calc(10px + (100cqw - 316px) / 76), 11px); --ls: clamp(.4px, calc(.4px + (100cqw - 316px) * .00487), .77px); }   /* a name's size and tracking: the cqw are the pad's for a key in it, the map's for the two more */
+#windows .wn-pad { container-type: inline-size; display: grid; grid-template-columns: minmax(0, 1fr) calc((100% - 2 * var(--g)) * (.385 + .044 * var(--z))) minmax(0, 1fr); grid-template-rows: calc(72px + 10px * var(--z)) auto calc(72px + 10px * var(--z)); gap: var(--g); }
+#windows .wn-more { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--g); }
+#windows .wn-key { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(9px + 2px * var(--z)); min-width: 0; padding: calc(6px + 2px * var(--z)) calc(4px + 2px * var(--z)); border-radius: calc(10px + 2px * var(--z));
+  border: 1px solid rgba(255, 255, 255, .06); background: linear-gradient(180deg, #1c1c20, #161619); color: var(--gray); font: 500 var(--lf)/1.2 var(--mono); letter-spacing: var(--ls); text-transform: uppercase; text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045), 0 1px 0 rgba(0, 0, 0, .5), 0 10px 18px -12px rgba(0, 0, 0, .9);
+  transition: color .2s, border-color .2s, background-color .2s, box-shadow .3s; }
+#windows .wn-key .wn-pic { width: calc(34px + 6px * var(--z)); height: calc(22px + 4px * var(--z)); opacity: .5; transition: opacity .2s; }
+#windows .wn-name { display: block; white-space: nowrap; }
+#windows .wn-name small { display: block; max-width: calc(84px + 200px * var(--z)); margin-top: 5px; font: 400 calc(11.5px + .5px * var(--z))/1.25 var(--sans); letter-spacing: 0; text-transform: none; white-space: normal; color: var(--gray); }   /* in a narrow key both how-to lines break in two, at the same place */
+#windows .wn-name small span { white-space: nowrap; }
+@media (hover: hover) {   /* a touch screen keeps :hover on the last key tapped: there only the chosen key is lit */
+  #windows .wn-key:hover { color: #fff; border-color: rgba(255, 255, 255, .2); }
+  #windows .wn-key:hover .wn-pic { opacity: 1; }
+}
+/* the chosen key: one look for all ten, white; the green, yellow and red stay in its picture, as in the app */
+#windows .wn-key.is-on .wn-pic { opacity: 1; }
+#windows .wn-key.is-on { color: #fff; border-color: rgba(255, 255, 255, .7); background: linear-gradient(180deg, #222226, #19191c); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 0 0 3px rgba(255, 255, 255, .05), 0 10px 28px -10px rgba(255, 255, 255, .22); }
+#windows .wn-more .wn-key { flex-direction: row; justify-content: flex-start; gap: calc(10px + 2px * var(--z)); min-height: 56px; padding: calc(9px + 1px * var(--z)) calc(10px + 2px * var(--z)); text-align: left; }
+#windows .wn-more .wn-name { min-width: 0; white-space: normal; }
+#windows .wn-keys .hint { margin-top: calc(8px + 2px * var(--z)); }
+#windows .hint br { display: none; }   /* the prompt is one line, except in the narrow column beside the pad */
+
+/* ---------- the trackpad, two fingers on it ---------- */
+#windows .wn-tp { --f: calc(13px + 3px * var(--z)); --cy: 42%; position: relative; aspect-ratio: 1.6; overflow: hidden; border-radius: calc(10px + 2px * var(--z)); border: 1px solid transparent;
+  background: radial-gradient(90% 70% at 30% 0%, rgba(255, 255, 255, .07), transparent 70%) padding-box, linear-gradient(165deg, #26262a, #161619 72%) padding-box, var(--rim) border-box;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 18px 32px -18px #000; }
+#windows .wn-tp::before, #windows .wn-tp::after { content: ""; position: absolute; top: var(--cy); width: var(--f); height: var(--f); margin: calc(var(--f) / -2) 0 0 calc(var(--f) / -2); border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18); transition: opacity .3s; }
+#windows .wn-tp::before { left: 41.5%; }
+#windows .wn-tp::after { left: 58.5%; }
+#windows .wn-tp.is-down::before, #windows .wn-tp.is-down::after { opacity: 0; }
+#windows .wn-tpname { position: absolute; left: 0; right: 0; bottom: calc(7px + 3px * var(--z)); font: 500 var(--lf)/1 var(--mono); letter-spacing: var(--ls); text-indent: var(--ls); text-transform: uppercase; text-align: center; color: var(--gray); transition: opacity .3s; }
+#windows .wn-tp.is-down .wn-tpname { opacity: 0; }   /* at rest the pad is named; in use it is all fingers */
+#windows .wn-finger { position: absolute; left: 50%; top: var(--cy); width: 0; height: 0; }
+#windows .wn-dot { --wt: 0ms; position: absolute; left: calc(var(--f) / -2); top: calc(var(--f) / -2); width: var(--f); height: var(--f); transition: transform var(--wt) cubic-bezier(.25, .8, .25, 1); }
+#windows .wn-dot::before { content: ""; position: absolute; inset: 0; border-radius: 50%; opacity: 0; transform: scale(1.35);
+  background: radial-gradient(circle at 40% 34%, #fff, #d6d6da 74%); box-shadow: 0 0 0 1px rgba(255, 255, 255, .3), 0 0 18px 3px rgba(255, 255, 255, .26); transition: opacity .2s ease-out, transform .24s ease-out; }
+#windows .wn-tp.is-down .wn-dot::before { opacity: 1; transform: none; }
+#windows .wn-trail { --wt: 0ms; position: absolute; left: calc(var(--f) / -2); top: calc(var(--f) / -2); width: var(--f); height: var(--f); border-radius: calc(var(--f) / 2); transform-origin: calc(var(--f) / 2) calc(var(--f) / 2); opacity: 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .2)); transition: width var(--wt) cubic-bezier(.25, .8, .25, 1), opacity .3s ease-out; }
+#windows .wn-tp.is-down .wn-trail { opacity: 1; }
+#windows .wn-ring { position: absolute; left: 50%; top: var(--cy); width: 60px; height: 60px; margin: -30px 0 0 -30px; border-radius: 50%; border: 1.5px solid rgba(255, 255, 255, .8); opacity: 0; pointer-events: none; }
+#windows .wn-ring.is-go { animation: wn-knock .62s cubic-bezier(.15, .7, .3, 1) both; }
+#windows .wn-ring + .wn-ring.is-go { animation-delay: .12s; }
+@keyframes wn-knock { from { opacity: .9; transform: scale(.3); } to { opacity: 0; transform: scale(1.5); } }
+/* a rest: the fingers hold still for a moment before pushing on */
+#windows .wn-hold { position: absolute; left: 50%; top: var(--cy); width: 60px; height: 60px; margin: -30px 0 0 -30px; overflow: visible; fill: none; stroke: rgba(255, 255, 255, .85); stroke-width: 1.5; stroke-linecap: round; opacity: 0; transform: rotate(-90deg); transition: opacity .2s; }
+#windows .wn-hold circle { --wt: 0ms; stroke-dasharray: 169.7; stroke-dashoffset: 169.7; transition: stroke-dashoffset var(--wt) linear; }
+#windows .wn-hold.is-on { opacity: 1; }
+#windows .wn-hold.is-on circle { stroke-dashoffset: 0; }
+
+/* ---------- the four steps (.steps), lit in turn as the demo goes; the lit one's line runs for as long as the step takes ---------- */
+#windows .steps { list-style: none; padding: 0; }
+#windows .step { transition: color .25s; }
+#windows .step::before { transition: transform var(--wd, 0ms) linear; }
+#windows .step__n { transition: background-color .25s, color .25s, box-shadow .25s; }
+#windows .step__t { min-width: 0; }
+#windows .step__t > span { white-space: nowrap; }   /* a step breaks only between its parts */
+
+/* a frame drawn at once, with nothing moving (the still frame) */
+#windows.is-now *, #windows.is-now *::before, #windows.is-now *::after { transition: none !important; }
+
+/* ---------- narrower ---------- */
+@media (max-width: 1240px) {
+  #windows .wn-mac { padding: 7px 7px 10px; border-radius: 17px; }
+  #windows .wn-screen { border-radius: 8px 8px 3px 3px; }
+}
+/* The screen above, the control below. From a small tablet up the two more sit beside the pad, so the bay stays inside an
+   upright tablet's screen; the steps go two by two. */
+@media (max-width: 959px) {
+  #windows .wn-stage { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 24px; padding: 28px 24px 26px; }
+  #windows .wn-view, #windows .wn-map { width: min(100%, 600px); max-width: none; }
+  #windows .wn-keys { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 196px); grid-template-rows: 1fr auto auto 1fr; gap: 0 12px; }
+  #windows .wn-pad { grid-column: 1; grid-row: 1 / -1; }
+  #windows .wn-more { grid-column: 2; grid-row: 2; grid-template-columns: minmax(0, 1fr); }
+  #windows .wn-keys .hint { grid-column: 2; grid-row: 3; margin-top: 16px; }
+  #windows .hint br { display: inline; }
+  #windows .steps { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #windows .step:nth-child(n) { box-shadow: none; }
+  #windows .step:nth-child(even) { box-shadow: inset 1px 0 0 var(--line); }
+  #windows .step:nth-child(3) { box-shadow: inset 0 1px 0 var(--line); }
+  #windows .step:nth-child(4) { box-shadow: inset 1px 0 0 var(--line), inset 0 1px 0 var(--line); }
+}
+@media (max-width: 720px) {
+  #windows .wn-stage { gap: 20px; padding: 22px 20px 22px; }
+  #windows .wn-keys { --z: 0; grid-template-columns: minmax(0, 1fr) clamp(150px, 33%, 216px); gap: 0 10px; }
+  #windows .wn-more { --lf: 10px; --ls: .4px; }   /* one narrow column: the two names at the pad's smallest size */
+  #windows .wn-mac { padding: 6px 6px 8px; border-radius: 15px; }
+  #windows .wn-screen { border-radius: 7px 7px 2px 2px; }
+}
+/* a phone: one column, the gesture named under the screen, the steps one under the other */
+@media (max-width: 559px) {
+  #windows .wn-stage { gap: 18px; padding: 18px 12px 20px; }
+  #windows .wn-mac { padding: 5px 5px 7px; border-radius: 13px; }
+  #windows .wn-now { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 20px; margin-top: 14px; font: 400 13px/1.2 var(--sans); color: var(--gray); white-space: nowrap; }
+  #windows .wn-now b { font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: #fff; }
+  #windows .wn-now .wn-pic { width: 26px; height: 17px; border-width: 1.5px; }   /* the picture at its real size */
+  #windows .wn-map { width: min(100%, 440px); }
+  #windows .wn-keys { --z: 1; display: flex; gap: var(--g); }
+  #windows .wn-more { --lf: inherit; --ls: inherit; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #windows .wn-keys .hint { margin-top: 8px; }
+  #windows .hint br { display: none; }
+}
+@media (max-width: 479px) {
+  #windows .steps { grid-template-columns: minmax(0, 1fr); }
+  #windows .step:nth-child(n) { box-shadow: none; }
+  #windows .step:nth-child(n + 2) { box-shadow: inset 0 1px 0 var(--line); }
+}
+@container (max-width: 391px) { #windows .wn-keys { --z: 0; } }   /* after the tiers above, so it has the last word: a narrow map is narrow keys */
+@media (max-width: 407px) {
+  #windows .seg__chips .chip:nth-child(2) { order: 1; }   /* the two short ones share a line, the long one takes the next */
+}

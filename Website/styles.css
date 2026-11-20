@@ -1,0 +1,430 @@
+/* ==========================================================================
+   Notch website: the shared base
+   A near-black page with one soft, still light at the top. Everything the page
+   shows sits on a surface one clear step lighter than the page: a hairline edge,
+   a faint lit top edge and a soft shadow, all at one radius (--r). Inside the
+   surfaces the app's own objects are drawn the way the app draws them: black
+   panels with a faint rim, white monospaced type, ten-segment bars; amber and
+   red only as signals.
+   In this file: the tokens, the base, type, the small parts, the app's own
+   vocabulary, the segment head, the bays, the voice strip, the camera in the
+   notch, and the Mac drawn once. The nav and the hero are in segments/hero.css,
+   the rack, the download card and the footer in segments/home.css, and each
+   segment's own rules in segments/<name>.css.
+   ========================================================================== */
+
+@property --lc { syntax: '<color>'; inherits: true; initial-value: rgba(255, 255, 255, .06); }
+@property --vr { syntax: '<number>'; inherits: true; initial-value: 0; }
+
+:root {
+  /* the page, and the surfaces on it */
+  --bg: #060607;
+  --surface: linear-gradient(180deg, #1c1c20, #151518 62%);   /* a bay, a module, the download card */
+  --lift: 0 0 0 1px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .09), 0 2px 4px -1px rgba(0, 0, 0, .5), 0 28px 56px -28px rgba(0, 0, 0, .9);
+  --line: rgba(255, 255, 255, .1);
+  --line-2: rgba(255, 255, 255, .13);
+  --line-3: rgba(255, 255, 255, .24);
+
+  /* type colours */
+  --text: #f1f1f3;
+  --gray: #8a8a8a;            /* the app's grey (Style.swift): labels, captions, a switch that is off. For any words a visitor needs. */
+  --dim: #5d5d62;             /* decoration only (a number beside a name, chrome): too faint for words anyone needs */
+  --unlit: #292929;           /* a gauge segment that is off (Style.swift) */
+  --amber: #ef9f27;           /* signal: look here */
+  --red: #e24b4a;             /* signal: look now */
+  --sys-green: #30d158;       /* the swipe picture's three colours (Place.color), and the camera's green */
+  --sys-yellow: #ffd60a;
+  --sys-red: #ff453a;
+  --tl-red: #ff5f57;          /* a window's own three buttons, on the window in front */
+  --tl-yellow: #febc2e;
+  --tl-green: #28c840;
+  --tl-off: #4c4c51;          /* and on every other window */
+  --mic: #ff9f0a;             /* the menu bar's dot while the microphone is in use */
+
+  /* size */
+  --hair: 1px;
+  --nav: 56px;
+  --wrap: 1360px;                         /* the content's widest */
+  --gut: clamp(20px, 4.4vw, 72px);        /* the side gutters grow with the window */
+  --r: 20px;                              /* the one radius for surfaces */
+  --gap: 16px;                            /* between surfaces */
+  --space: clamp(104px, 11vw, 168px);     /* between sections */
+
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "DejaVu Sans Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  --ui: var(--sans);
+
+  /* The app's one motion: .spring(response: 0.3, dampingFraction: 0.72), sampled. */
+  --spring: cubic-bezier(.2, 1.25, .4, 1);
+  --t: .5s;
+
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .08 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --rim: linear-gradient(180deg, rgba(255, 255, 255, .34), rgba(255, 255, 255, .1) 55%, rgba(255, 255, 255, .16));
+}
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --spring: linear(0, 0.0316, 0.1107, 0.2172, 0.3362, 0.4564, 0.5704, 0.6734, 0.7627, 0.8375, 0.898, 0.9452, 0.9804, 1.0056, 1.0223, 1.0324, 1.0373, 1.0384, 1.0369, 1.0336, 1.0294, 1.0248, 1.0202, 1.0159, 1.012, 1.0087, 1.0059, 1.0036, 1.0019, 1.0006, 0.9997, 0.9991, 0.9987, 0.9986, 0.9985, 0.9986, 0.9987, 0.9989, 0.9991, 1);
+  }
+}
+@media (min-resolution: 2dppx) { :root { --hair: .5px; } }
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; }
+html { color-scheme: dark; background: var(--bg); -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; scroll-padding-top: calc(var(--nav) + 36px); }
+body {
+  /* one still light at the top of the page, falling off into the near-black */
+  background: radial-gradient(70% 900px at 50% -240px, rgba(150, 150, 170, .1), transparent 70%) no-repeat, linear-gradient(180deg, #0a0a0c, var(--bg) 1100px) no-repeat, var(--bg);
+  color: var(--text);
+  font: 400 15px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: inherit; }
+img, svg { display: block; }
+b, strong { font-weight: 500; color: #fff; }
+dl, dd { margin: 0; }
+::selection { background: #fff; color: #000; }
+:focus-visible { outline: 2px solid rgba(255, 255, 255, .9); outline-offset: 3px; }
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+[hidden] { display: none !important; }
+/* Words for screen readers only. They are read as written, never in the capitals of a label they sit in. */
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; text-transform: none; letter-spacing: normal; }
+/* The keyboard's first stop: past the nav and the hero, to the segments. It shows only while it has the focus. */
+.skip { position: fixed; left: 12px; top: 10px; z-index: 100; display: flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 999px;
+  font: 500 14px/1 var(--sans); color: #0b0b0c; background: #f2f2f4; box-shadow: 0 0 0 1px rgba(0, 0, 0, .6), 0 10px 30px rgba(0, 0, 0, .6); transform: translateY(-72px); transition: transform .2s ease-out; }
+.skip:focus { transform: none; }
+/* Words that depend on the pointer come in pairs: .when-point ("Point at the notch") and .when-tap ("Tap the notch").
+   CSS picks one with (hover: none); app.js also marks <html> .is-touch from the same query, and on the first real touch. */
+.when-tap { display: none; }
+@media (hover: none) { .when-point { display: none; } .when-tap { display: inline; } }
+.is-touch .when-point { display: none; }
+.is-touch .when-tap { display: inline; }
+.wrap { width: 100%; max-width: calc(var(--wrap) + 2 * var(--gut)); margin: 0 auto; padding: 0 var(--gut); }
+
+/* ---------- type ---------- */
+h1, h2, h3 { font-family: var(--sans); font-weight: 600; color: #fff; text-wrap: balance; }
+h2 { font-size: clamp(30px, 3.1vw, 44px); line-height: 1.08; letter-spacing: -.025em; }
+h2 span { color: var(--gray); }
+.micro { font: 400 11px/1.5 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--gray); }
+/* A name over a line that describes it, inside a bay. (Along a bay's foot the pair is .bay__name with .bay__line.) */
+.pair__name { font: 600 15px/1.3 var(--sans); letter-spacing: -.01em; color: #fff; }
+.pair__line { font: 400 14px/1.45 var(--sans); color: var(--gray); }
+
+/* ---------- small parts ---------- */
+.glyph { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: square; stroke-linejoin: miter; overflow: visible; }
+/* a glyph set in a small lit tile, like a key: the segment heads and the rack */
+.glyph--tile, .seg__kicker > .glyph { width: 32px; height: 32px; padding: 8px; border-radius: 9px; color: #fff; overflow: hidden;
+  background: linear-gradient(180deg, #26262b, #18181c); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .09), inset 0 1px 0 rgba(255, 255, 255, .1), 0 0 0 1px rgba(0, 0, 0, .6), 0 6px 14px -6px #000; }
+.lamp { display: inline-block; flex: none; width: 7px; height: 7px; border: 1px solid currentColor; border-radius: 2px; }
+.on > .lamp, .lamp.on { background: currentColor; }
+[data-motion][aria-disabled="true"] { opacity: .5; cursor: default; }   /* the Motion switch while the device's own Reduce Motion decides */
+html:not(.js) [data-motion], html:not(.js) #sound { display: none; }     /* without script nothing plays or sounds: the two switches would switch nothing */
+/* A tag of a few words ("Needs a trackpad"). A shortcut is drawn key by key with .keys (the Mac, drawn once, below). */
+.chip { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px; border-radius: 7px; white-space: nowrap;
+  font: 500 12px/1 var(--mono); letter-spacing: .04em; color: var(--text); background: rgba(255, 255, 255, .045); border: 1px solid var(--line-2); }
+
+/* ---------- buttons ---------- */
+.btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: 999px; white-space: nowrap;
+  font: 500 14px/1 var(--sans); letter-spacing: -.005em; color: #0b0b0c; background: #f2f2f4;
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0, 0, 0, .14), 0 1px 2px rgba(0, 0, 0, .5); transition: background .2s, box-shadow .2s, color .2s, transform .12s ease-out; }
+.btn--ghost { color: var(--text); background: rgba(255, 255, 255, .055); box-shadow: inset 0 0 0 1px var(--line-2), inset 0 1px 0 rgba(255, 255, 255, .05); }
+.btn--lg { height: 44px; padding: 0 20px; font-size: 15px; }
+.btn--sm { height: 30px; padding: 0 12px; font-size: 13px; gap: 7px; }
+.btn .glyph { width: 14px; height: 14px; }
+.btn--sm .glyph { width: 13px; height: 13px; }
+@media (hover: hover) {
+  .btn:hover { background: #fff; }
+  .btn--ghost:hover { background: rgba(255, 255, 255, .09); box-shadow: inset 0 0 0 1px var(--line-3), inset 0 1px 0 rgba(255, 255, 255, .06); }
+}
+.btn:active { background: #dcdce0; transform: scale(.98); }
+.btn--ghost:active { background: rgba(255, 255, 255, .13); }
+/* On a touch screen a button answers a finger on 44 px of height, whatever its drawn size. */
+@media (pointer: coarse) {
+  .btn::after { content: ""; position: absolute; left: 0; right: 0; top: min(0px, calc((100% - 44px) / 2)); bottom: min(0px, calc((100% - 44px) / 2)); }
+}
+
+/* ---------- the app's small vocabulary, inside the objects ----------
+   A panel drawn smaller than 1x says so: --pz, its scale, on the scaled element. The small type of the gauges and the
+   function bar is then set larger, so that on screen it stays about 10 px, and on a touch screen a bar whose cells are
+   controls is at least 40 px tall on screen. */
+.hairline { position: relative; height: 1px; }
+.hairline::before { content: ""; position: absolute; inset: 0 0 auto 0; height: var(--hair); background: #292929; }
+/* One ten-segment bar. --lit is how many segments are on; --c is their colour. */
+.bar10 {
+  --lit: 0; --c: #fff; --sw: 6px; --sg: 2px; --sh: 8px;
+  position: relative; display: block; flex: none; height: var(--sh);
+  width: calc(10 * var(--sw) + 9 * var(--sg));
+  background: repeating-linear-gradient(90deg, var(--unlit) 0 var(--sw), transparent var(--sw) calc(var(--sw) + var(--sg)));
+}
+.bar10::after {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+  width: max(0px, calc(var(--lit) * (var(--sw) + var(--sg)) - var(--sg)));
+  background: repeating-linear-gradient(90deg, var(--c) 0 var(--sw), transparent var(--sw) calc(var(--sw) + var(--sg)));
+}
+.bar10[data-level="amber"] { --c: var(--amber); }
+.bar10[data-level="red"] { --c: var(--red); }
+.gauge { min-width: 0; flex: 1 1 0; font-family: var(--mono); color: #fff; }
+.gauge__h { display: block; font: 11px/1.182 var(--mono); font-size: clamp(11px, calc(10px / var(--pz, 1)), 16px); letter-spacing: calc(2px * var(--pz, 1)); color: var(--gray); text-transform: uppercase; }
+.gauge__row { display: flex; align-items: baseline; gap: 5px; line-height: 24px; }
+.gauge__n { font-size: 20px; font-variant-numeric: tabular-nums; }
+.gauge__u { font-size: clamp(11px, calc(10px / var(--pz, 1)), 16px); color: var(--gray); }
+.gauge .bar10 { margin-top: 6px; }
+
+/* The function bar: one cell per tool, edge to edge. A cell that is a control (a link or a button) fills white and gives
+   way to its name under the pointer, while it is pressed and with keyboard focus, as in the app; a demo lights any cell
+   the same way with .is-hot. A cell that is only drawn (a span) does not answer the pointer. */
+.bar { display: flex; font-family: var(--mono); }
+.cell { position: relative; flex: 1 1 0; min-width: 0; height: 34px; display: grid; place-items: center; color: #fff; }
+.cell:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: var(--hair); background: #292929; }
+.cell .name { display: none; font-size: clamp(11px, calc(10px / var(--pz, 1)), 14px); letter-spacing: calc(2px * var(--pz, 1) * var(--pz, 1)); padding-left: calc(2px * var(--pz, 1) * var(--pz, 1)); text-transform: uppercase; white-space: nowrap; }
+.cell .rest { font-size: clamp(11px, calc(10px / var(--pz, 1)), 14px); letter-spacing: calc(1px * var(--pz, 1)); white-space: nowrap; text-transform: uppercase; }
+.cell.is-hot, a.cell:active, button.cell:active, .cell:focus-visible { background: #fff; color: #000; }
+.cell.is-hot .glyph, a.cell:active .glyph, button.cell:active .glyph, .cell:focus-visible .glyph,
+.cell.is-hot .rest, a.cell:active .rest, button.cell:active .rest, .cell:focus-visible .rest { display: none; }
+.cell.is-hot .name, a.cell:active .name, button.cell:active .name, .cell:focus-visible .name { display: block; }
+@media (hover: hover) {
+  a.cell:hover, button.cell:hover { background: #fff; color: #000; }
+  a.cell:hover .glyph, button.cell:hover .glyph, a.cell:hover .rest, button.cell:hover .rest { display: none; }
+  a.cell:hover .name, button.cell:hover .name { display: block; }
+}
+.cell:focus-visible { outline: 2px solid #000; outline-offset: -5px; }   /* the keyboard's own mark, inside the white key: the fill alone is also what the pointer leaves */
+.cell.is-gone { flex-grow: 0; opacity: 0; overflow: hidden; transition: flex-grow .4s var(--spring), opacity .2s; }
+@media (pointer: coarse) {
+  .bar:has(a.cell, button.cell) .cell { height: max(34px, calc(40px / var(--pz, 1))); }
+}
+
+/* The camera, as the mirror shows it: the very picture the Mirror segment draws (a person in lamplight, a room out of focus),
+   reused from there (#mr-room-art, #mr-me-art in index.html). Drawn, never a real camera. */
+.cam { position: relative; aspect-ratio: 16 / 9; overflow: hidden; isolation: isolate; background: #100d0b; }
+.cam > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cam__me { filter: blur(.35px) brightness(1.08) saturate(1.04); }
+.cam::after { content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; background: radial-gradient(125% 120% at 50% 42%, transparent 52%, rgba(0, 0, 0, .42)), var(--grain); }
+
+/* ==========================================================================
+   Sections: space between them, no rules. A segment opens with its head
+   (a lit tile and its name, the title, an optional line, at most two facts,
+   optional tags), then its body of surfaces.
+   ========================================================================== */
+.sec, .seg { position: relative; margin-top: var(--space); }
+.js .rv { opacity: 0; transform: translateY(14px); transition: opacity .7s ease-out, transform .8s var(--spring); }
+.js .rv.in { opacity: 1; transform: none; }
+
+/* ---------- the segment head (contract: .seg__kicker, .seg__title, optional .seg__lede, .seg__facts, .seg__chips) ---------- */
+.seg__head { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: clamp(40px, 6vw, 96px); align-items: end; margin-bottom: clamp(32px, 3.2vw, 44px); }
+.seg__head > * { grid-column: 1; min-width: 0; }
+.seg__kicker { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; font: 500 15px/1 var(--sans); letter-spacing: -.01em; color: var(--text); }
+.seg__name { white-space: nowrap; }
+.seg__no { order: 3; margin-left: 2px; padding-left: 12px; box-shadow: inset 1px 0 0 var(--line-2); font: 400 12px/1 var(--mono); letter-spacing: .04em; color: var(--dim); font-variant-numeric: tabular-nums; }
+.seg__title { max-width: 20em; }
+.seg__lede { max-width: 36em; margin-top: 14px; font-size: 16px; line-height: 1.55; color: var(--gray); text-wrap: pretty; }
+.seg__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 20px; }
+/* Facts read like the notch's own gauges: a grey label over a white number, the number on the baseline of the line beside
+   it (the lede; the tags, if any, go on below). A sign that belongs to the number (78%) goes in a <span>: the number's
+   size, in grey. A unit in words (0.19 s, 51 ms) goes in a <small>, set apart from the number. */
+.seg__facts { grid-column: 2; grid-row: 1 / 4; align-self: end; display: flex; gap: clamp(28px, 3.4vw, 48px); padding-bottom: 2px; }
+.seg__facts > div { display: flex; flex-direction: column; justify-content: space-between; gap: 10px; min-width: 0; }
+.seg__facts dt { font: 500 11px/1.25 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--gray); white-space: nowrap; }
+.seg__facts dd { font: 400 30px/1 var(--mono); letter-spacing: -.04em; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.seg__facts dd span { margin-left: 2px; color: var(--gray); }
+.seg__facts dd small { margin-left: 8px; font-size: 14px; letter-spacing: 0; color: var(--gray); }
+.seg__body { position: relative; }
+
+/* ---------- bays: the surfaces a segment's demos sit on ---------- */
+.bays { display: grid; gap: var(--gap); }
+.bays--22 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.bays--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.bay { --lc: rgba(255, 255, 255, .06); position: relative; isolation: isolate; display: flex; flex-direction: column; height: var(--h, 440px); border-radius: var(--r); overflow: hidden; scroll-margin-top: 90px;
+  background: var(--surface); border: 1px solid var(--line); box-shadow: var(--lift); }
+.bay::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(rgba(255, 255, 255, .05) 1px, transparent 1.3px) 0 0 / 22px 22px;
+  -webkit-mask-image: radial-gradient(76% 66% at 50% 44%, #000 20%, transparent 86%); mask-image: radial-gradient(76% 66% at 50% 44%, #000 20%, transparent 86%); }
+/* the bay's light, from its top edge; a segment may tint it (data-level amber or red) */
+.bay::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; transition: --lc .7s ease-out; background: radial-gradient(64% 54% at 50% -8%, var(--lc), transparent 74%); }
+.bay[data-level="amber"] { --lc: rgba(239, 159, 39, .2); --c: var(--amber); }
+.bay[data-level="red"] { --lc: rgba(226, 75, 74, .22); --c: var(--red); }
+.bay--auto { height: auto; }
+.bay__stage { position: relative; flex: 1 1 auto; min-height: 0; }
+/* A bay's foot: its name (an <h3>, which the bay points to with aria-labelledby) and one line. */
+.bay__foot { position: relative; z-index: 6; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-height: 58px; padding: 14px 16px 14px 20px; border-top: 1px solid var(--line); }
+.bay__name { display: flex; align-items: center; gap: 9px; font: 600 14px/1.25 var(--sans); letter-spacing: -.005em; color: #fff; white-space: nowrap; }
+.bay__name .glyph { width: 14px; height: 14px; }
+.bay__line { font: 400 14px/1.4 var(--sans); color: var(--gray); }
+.bay__foot > .chip { margin-left: auto; }
+
+/* a group of parts drawn at its own size and shown at 1; on a stage too small for it, app.js sets --z and it shrinks as one */
+.grp { position: absolute; left: 50%; width: var(--gw); font-family: var(--mono); transform: translateX(-50%) scale(var(--z, 1)); transform-origin: 50% 0; }
+.grp--top { top: 0; }
+
+/* ---------- dictation (Wings.swift): the notch widens into a strip ----------
+   Closed, the notch is a hole in the screen: plain black, no rim, no shadow. The rim and the shadow are the site's device
+   for the app's opened shapes on a dark page, so they come with the strip and the band (--vr, 0 to 1) and go with them. */
+.vn { position: absolute; z-index: 5; top: 0; left: 50%; transform: translateX(-50%); font-family: var(--mono); color: #fff; }
+.vn__shape { --vr: 0; position: relative; width: 180px; height: 32px; border: 1px solid transparent; border-top-width: 0; border-radius: 0 0 10px 10px; overflow: hidden;
+  background: linear-gradient(#000, #000) padding-box, linear-gradient(180deg, rgba(255, 255, 255, calc(.3 * var(--vr))), rgba(255, 255, 255, calc(.12 * var(--vr)))) border-box, #000;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, var(--vr)); transition: width var(--t) var(--spring), height var(--t) var(--spring), border-radius var(--t) var(--spring), --vr .3s ease-out; }
+.vn[data-state="voice"] .vn__shape, .vn[data-state="copied"] .vn__shape { --vr: 1; }
+.vn[data-state="voice"] .vn__shape { width: 380px; height: 88px; border-radius: 0 0 11px 11px; }
+.vn[data-state="copied"] .vn__shape { width: 360px; height: 33px; border-radius: 0 0 11px 11px; }
+.vn__voice, .vn__copied { position: absolute; left: 50%; top: 0; opacity: 0; transform: translateX(-50%); transition: opacity .25s; pointer-events: none; }
+.vn__voice { width: 380px; } .vn__copied { width: 360px; }
+.vn[data-state="voice"] .vn__voice, .vn[data-state="copied"] .vn__copied { opacity: 1; }
+.wings { display: flex; height: 32px; align-items: center; }
+.wing { display: flex; width: 100px; gap: 2px; padding: 0 8px; }
+.wing--l { justify-content: flex-end; }
+.wing i { width: 5px; height: 10px; background: var(--unlit); }
+.wing i.on { background: #fff; }
+.wings__gap { width: 180px; flex: none; }
+.vbody { display: flex; height: 48px; margin-bottom: 7px; }
+.vread { width: 76px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+.vtime { font-size: 17px; font-weight: 400; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.vwords { font-size: 11px; color: var(--gray); line-height: 1.2; }
+.vsep { width: var(--hair); background: #292929; flex: none; }
+.vtrans { flex: 1; min-width: 0; padding: 0 11px; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+.vline { display: flex; height: 16px; align-items: center; font-size: 11px; white-space: nowrap; }
+.vline.full { justify-content: space-between; }
+.vword { position: relative; opacity: 0; }
+.vword.on { opacity: 1; }
+.vword.cur::after { content: ""; position: absolute; left: calc(100% + 3px); top: 50%; width: 5px; height: 11px; margin-top: -5.5px; background: #fff; }
+.vline.start::before { content: ""; width: 5px; height: 11px; background: #fff; }
+.vcopied { display: flex; height: 32px; align-items: center; font-size: 12px; }
+.vc-l { width: 90px; text-align: center; letter-spacing: 2px; padding-left: 2px; }
+.vc-gap { width: 180px; flex: none; }
+.vc-r { width: 90px; text-align: center; letter-spacing: 1px; padding-left: 1px; }
+
+/* ---------- responsive (shared parts; each segment's own rules are in segments/<name>.css) ---------- */
+@media (max-width: 1100px) {
+  .seg__head { grid-template-columns: minmax(0, 1fr); }
+  .seg__facts { grid-column: 1; grid-row: auto; margin-top: 28px; padding-bottom: 0; }
+}
+@media (max-width: 860px) {
+  .bays--3 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .bays--22 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  :root { --nav: 52px; --r: 16px; --gap: 12px; --space: 88px; }
+  .seg__kicker { margin-bottom: 16px; font-size: 14px; }
+  .glyph--tile, .seg__kicker > .glyph { width: 30px; height: 30px; padding: 7px; border-radius: 8px; }
+  .seg__lede { font-size: 15px; }
+  .seg__facts { flex-wrap: wrap; gap: 16px 28px; margin-top: 24px; }
+  .seg__facts dt { letter-spacing: .06em; white-space: normal; }
+  .seg__facts dd { font-size: 24px; }
+  .seg__facts dd small { font-size: 13px; margin-left: 6px; }
+  .bay { height: var(--hs, var(--h, 420px)); }
+  .bay--auto { height: auto; }
+  .bay__foot { min-height: 54px; padding: 12px 14px 12px 16px; }
+}
+@media (max-width: 520px) {
+  .bay__foot > .chip { display: none; }
+}
+
+/* ---------- motion off ----------
+   With Reduce Motion set on the device, or the page's Motion switch off (app.js marks <html> .is-still for both), nothing
+   eases: every state is simply there. Scripts ask Kit.reduced(), the same gate. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .001ms !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; }
+  .js .rv { opacity: 1; transform: none; }
+}
+.is-still { scroll-behavior: auto; }
+.is-still *, .is-still *::before, .is-still *::after { transition-duration: .001ms !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; }
+.is-still .rv { opacity: 1; transform: none; }
+
+/* ---------- forced colours (Windows High Contrast): the keyboard's mark must survive without the page's own colours ---------- */
+@media (forced-colors: active) {
+  :focus-visible { outline: 2px solid Highlight; }
+  .cell:focus-visible { outline: 2px solid Highlight; outline-offset: -3px; }
+  .bar10, .bar10::after { forced-color-adjust: none; }   /* a gauge's bar is a reading, not decoration: it keeps its segments, in the system's own colours */
+  .bar10, .bar10[data-level] { --unlit: GrayText; --c: CanvasText; }
+}
+
+/* ---------- the camera in the notch ----------
+   A MacBook's notch is there for its camera, so every notch on the page shows it: the lens, dark neutral glass with one
+   cold glint, and beside it the light the Mac turns green while the camera runs, the only colour a notch ever has. Put
+   <i class="ncam"></i> in the notch's own 32-point band (any positioned box of that height); --d is the lens's width,
+   for a notch drawn smaller. .is-on, or an ancestor with data-cam="on", lights the light. The voice strip draws its own,
+   so Dictation and Keys need no markup. */
+.ncam, .vn__shape::before { --d: 9px; content: ""; position: absolute; left: 50%; top: 50%; z-index: 2; width: var(--d); height: var(--d); margin: calc(var(--d) / -2) 0 0 calc(var(--d) / -2); border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 34% 30%, rgba(236, 241, 250, .62) 0 6%, transparent 17%), radial-gradient(circle at 64% 68%, rgba(196, 200, 208, .1) 0 9%, transparent 26%),
+    radial-gradient(circle, #171718 0 28%, #09090a 50%, #141415 58%, #070708 100%);
+  box-shadow: 0 0 0 1px #0d0d0e, 0 0 0 1.5px rgba(255, 255, 255, .07); }
+.ncam::after, .vn__shape::after { content: ""; position: absolute; left: calc(100% + var(--d) * .8); top: 50%; width: calc(var(--d) / 3); height: calc(var(--d) / 3); margin-top: calc(var(--d) / -6); border-radius: 50%; background: #151516; transition: background .12s, box-shadow .12s; }
+.ncam.is-on::after, [data-cam="on"] .ncam::after { background: #7dffa0; box-shadow: 0 0 2px 1px rgba(60, 230, 100, .9), 0 0 8px 2px rgba(60, 230, 100, .4); }
+.vn__shape::before { top: 16px; z-index: 0; }                                     /* the strip grows taller than the notch: the lens stays in the notch's band */
+.vn__shape::after { --d: 9px; left: calc(50% + 11.7px); top: 16px; }
+
+/* ==========================================================================
+   The Mac, drawn once. Wherever a section shows a piece of the Mac it uses
+   these parts at these sizes, so every section draws the same Mac. 1 px is
+   1 pt, measured on a 14-inch MacBook Pro (macOS 27) and against the system's
+   own glyphs: menu bar 33 where the notch is 32; a window's buttons 14 across
+   and 23 apart; the arrow 10 by 17. A scene drawn smaller scales the whole
+   part (zoom or transform), never one measure of it.
+   ========================================================================== */
+
+/* The menu bar, in one ink. Left: the Apple menu, the front app's name in bold, its menus in their real order. Right: the
+   battery (--b is its charge, 0 to 1; data-chg adds the bolt it wears on mains power), Control Centre, the privacy dot
+   (data-on="mic" orange, "cam" green), the clock (Kit.tickClocks fills every .mbar__clock, so the page's Macs all tell
+   one time). Kit.fitBar(bar, notch) leaves out, whole, whatever would run under the notch: macOS never draws there. */
+.mbar { position: relative; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 33px; padding: 0 16px 0 20px; white-space: nowrap;
+  font: 400 13px/1 var(--sans); letter-spacing: -.005em; color: #d0d0d4; }
+.mbar__l, .mbar__r { display: flex; align-items: center; min-width: 0; }
+.mbar__l { gap: 20px; }
+.mbar__r { gap: 16px; }
+.mbar__l b { font-weight: 700; color: inherit; }
+.mbar .is-cut { display: none; }
+.mbar__apple { display: none; width: 14px; font: 400 19px/1 -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif; font-style: normal; text-align: center; transform: translateY(-1px); }
+.mbar__apple::before { content: "\F8FF"; }                  /* the Apple menu: this sign exists only in Apple's own fonts */
+.is-apple .mbar__apple { display: block; }                  /* so it is shown only on Apple devices (app.js) */
+/* The battery as macOS 26 and 27 draw it: the charge a solid block from the left, flush with the outline; the rest hollow.
+   ::before is the body, ::after the terminal and, on mains power (data-chg), the bolt, with a clear edge round it cut out of the body. */
+.mbar__batt { --b: 1; position: relative; flex: none; width: 21px; height: 11px; margin-right: 2.5px; }
+.mbar__batt::before { content: ""; position: absolute; inset: 0; border-radius: 3.5px; background: linear-gradient(currentColor, currentColor) no-repeat 0 0 / calc(1px + 19px * var(--b)) 100%; box-shadow: inset 0 0 0 1px currentColor; }
+.mbar__batt::after { content: ""; position: absolute; left: 0; top: 0; width: 23.5px; height: 11px; background: currentColor; clip-path: path("M22 3.5h.2a1.3 2 0 0 1 0 4H22z"); }
+.mbar__batt[data-chg]::before { --cut: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 21 11'%3E%3Cmask id='m'%3E%3Cpath fill='%23fff' d='M0 0h21v11H0z'/%3E%3Cpath stroke='%23000' stroke-width='2.2' stroke-linejoin='round' d='M11.65.1h.72L10.73 4.7h2.97L9.5 10.9h-.8l1.52-4.4H6.75z'/%3E%3C/mask%3E%3Cpath mask='url(%23m)' d='M0 0h21v11H0z'/%3E%3C/svg%3E");
+  -webkit-mask: var(--cut) 0 0 / 21px 11px no-repeat; mask: var(--cut) 0 0 / 21px 11px no-repeat; }
+.mbar__batt[data-chg]::after { clip-path: path("M22 3.5h.2a1.3 2 0 0 1 0 4H22zM11.65.1h.72L10.73 4.7h2.97L9.5 10.9h-.8l1.52-4.4H6.75z"); }
+.mbar__cc { flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.05; }
+.mbar__dot { flex: none; width: 6px; height: 6px; margin: 0 -10px 0 -12px; border-radius: 50%; }   /* in the gap after Control Centre: it moves nothing when it lights */
+.mbar__dot[data-on="mic"] { background: var(--mic); }
+.mbar__dot[data-on="cam"] { background: var(--sys-green); }
+.mbar__clock { font-variant-numeric: tabular-nums; }
+
+/* A window's three buttons: in colour on the window in front (.is-front), grey on every other; nothing lights them.
+   A scene drawn smaller sets --s (their size) and --p (centre to centre) by its scale. */
+.tl { --s: 14px; --p: 23px; display: inline-flex; flex: none; gap: calc(var(--p) - var(--s)); }
+.tl i { width: var(--s); height: var(--s); border-radius: 50%; background: var(--tl-off); box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .28); }
+.tl.is-front i:nth-child(1) { background: var(--tl-red); }
+.tl.is-front i:nth-child(2) { background: var(--tl-yellow); }
+.tl.is-front i:nth-child(3) { background: var(--tl-green); }
+
+/* The pointer: the Mac's black arrow with its white edge (<svg class="mptr" viewBox="0 0 14 20"><use href="#g-pointer"/></svg>).
+   Its tip is at left, top. It never changes size on a press. .mcross is the crosshair a selection is drawn with. */
+.mptr { position: absolute; z-index: 20; width: 12.25px; height: 17.5px; margin: -1.3px 0 0 -1.3px; overflow: visible; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .4)); }
+.mcross { position: absolute; z-index: 20; width: 15px; height: 15px; margin: -7.5px 0 0 -7.5px; overflow: visible; pointer-events: none; filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, .35)); }
+
+/* A key in a shortcut: one cap per key (<span class="keys"><kbd class="kc">…</kbd>…</span>), with the modifier signs
+   drawn (#g-ctrl #g-opt #g-shift #g-cmd, and #g-key for Caps Lock) so they read at this size on any device. */
+.keys { display: inline-flex; gap: 3px; vertical-align: middle; }
+.kc { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 6px; font: 500 12px/1 var(--mono); font-style: normal; color: var(--text);
+  background: linear-gradient(180deg, #2a2a2f, #1c1c20); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), inset 0 1px 0 rgba(255, 255, 255, .1), 0 1px 0 rgba(0, 0, 0, .7); }
+.kc .glyph { width: 12px; height: 12px; stroke-width: 1.6; }
+
+/* The steps of a demo, along the foot of its bay: the one playing is lit, and a line on its top edge shows how far along it is (--p, 0 to 1). */
+.steps { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border-top: 1px solid var(--line); }
+.step { position: relative; display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 12px 20px; font: 500 14px/1.3 var(--sans); color: var(--gray); text-align: left; }
+.step + .step { box-shadow: inset 1px 0 0 var(--line); }
+.step::before { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 1px; background: #fff; transform: scaleX(var(--p, 0)); transform-origin: 0 50%; }
+.step__n { display: grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 6px; font: 500 11px/1 var(--mono); color: var(--gray); box-shadow: inset 0 0 0 1px var(--line-2); }
+.step.is-on { color: #fff; }
+.step.is-on .step__n { color: #000; background: #fff; box-shadow: none; }
+@media (max-width: 720px) {
+  .steps { grid-auto-flow: row; }
+  .step { min-height: 46px; padding: 10px 16px; }
+  .step + .step { box-shadow: inset 0 1px 0 var(--line); }
+}
+
+/* A prompt to try a demo, centred under it. */
+.hint { font: 500 11px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--gray); text-align: center; }

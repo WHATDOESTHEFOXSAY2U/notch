@@ -1,0 +1,1695 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notch · Useful tools in your MacBook notch</title>
+<meta name="description" content="Notch is a free, open-source Mac app that puts useful tools in the MacBook notch: live system numbers, screen capture, dictation, window snapping, a hyper key, a mirror and transcripts of any video. Anyone can propose and build a new segment.">
+<meta name="theme-color" content="#0a0a0b">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Notch">
+<meta property="og:title" content="Notch · Useful tools in your MacBook notch">
+<meta property="og:description" content="A free, open-source Mac app: live system numbers, screen capture, dictation, window snapping, a hyper key, a mirror and transcripts of any video, in the notch.">
+<meta property="og:url" content="https://whatdoesthefoxsay2u.github.io/notch/">
+<link rel="canonical" href="https://whatdoesthefoxsay2u.github.io/notch/">
+<meta property="og:image" content="https://whatdoesthefoxsay2u.github.io/notch/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Useful tools, right in your notch: a MacBook screen with the Notch panel open under the notch, five live readings above a row of tools.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<script>(function(d){d.classList.add('js');try{if(sessionStorage.getItem('notch-motion')==='off')d.classList.add('is-still')}catch(e){}addEventListener('load',function(){setTimeout(function(){if(!window.Kit)d.classList.remove('js')},1500)})})(document.documentElement)</script>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="segments/hero.css">
+<link rel="stylesheet" href="segments/home.css">
+<link rel="stylesheet" href="segments/numbers.css">
+<link rel="stylesheet" href="segments/capture.css">
+<link rel="stylesheet" href="segments/dictation.css">
+<link rel="stylesheet" href="segments/windows.css">
+<link rel="stylesheet" href="segments/keys.css">
+<link rel="stylesheet" href="segments/mirror.css">
+<link rel="stylesheet" href="segments/more.css">
+<link rel="stylesheet" href="segments/transcribe.css">
+</head>
+<body id="top">
+<a class="skip" href="#segments">Skip to the segments</a>
+
+<!-- The app's own pictures (Glyphs.swift), drawn on a 16-point grid from straight lines and solid blocks; a few more for the site. -->
+<svg class="sprite" aria-hidden="true" focusable="false"><defs>
+  <symbol id="g-shot" viewBox="0 0 16 16"><path d="M1.5 5V1.5H5M11 1.5H14.5V5M14.5 11V14.5H11M5 14.5H1.5V11"/></symbol>
+  <symbol id="g-text" viewBox="0 0 16 16"><path d="M2 3.5H14M2 8H14M2 12.5H9"/></symbol>
+  <symbol id="g-rec" viewBox="0 0 16 16"><circle cx="8" cy="8" r="4.75" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="g-dict" viewBox="0 0 16 16"><path d="M5.5 1.5H10.5V8.5H5.5ZM3 6.5V11H13V6.5M8 11V14.5M5 14.5H11"/></symbol>
+  <symbol id="g-scribe" viewBox="0 0 16 16"><path d="M3.5 1.5H9.5L12.5 4.5V14.5H3.5ZM6 7.5H10M6 10.5H10"/></symbol>
+  <symbol id="g-cam" viewBox="0 0 16 16"><path d="M8 1.5V14.5M2 5.5H5.5V10.5H2Z"/><path d="M9.75 4.75H14.75V11.25H9.75Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="g-top" viewBox="0 0 16 16"><path d="M8 2.5L13.5 10H2.5ZM2.5 13.5H13.5"/></symbol>
+  <symbol id="g-set" viewBox="0 0 16 16"><path d="M1.5 4H14.5M1.5 8H14.5M1.5 12H14.5"/><path d="M3.25 1.75H6.75V6.25H3.25ZM9.25 5.75H12.75V10.25H9.25ZM5.25 9.75H8.75V14.25H5.25Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="g-x" viewBox="0 0 16 16"><path d="M4 4L12 12M12 4L4 12"/></symbol>
+  <symbol id="g-film" viewBox="0 0 16 16"><path d="M2 4.5H10V11.5H2ZM10 8L14 5.5V10.5Z"/></symbol>
+  <symbol id="g-sound" viewBox="0 0 16 16"><path d="M2 6H5L9 2.5V13.5L5 10H2Z" fill="currentColor" stroke="none"/><path d="M11.5 6V10M14 4V12"/></symbol>
+  <symbol id="g-clicks" viewBox="0 0 16 16"><path d="M3.5 2V13L6.5 10.4L8.5 14.6L10.4 13.7L8.4 9.6H12.5Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="g-pause" viewBox="0 0 16 16"><path d="M4.5 4H7V12H4.5ZM9 4H11.5V12H9Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="g-stop" viewBox="0 0 16 16"><path d="M4 4H12V12H4Z" fill="currentColor" stroke="none"/></symbol>
+  <!-- site only -->
+  <symbol id="g-num" viewBox="0 0 16 16"><path d="M1.5 9H4.5V14.5H1.5ZM6.5 2H9.5V14.5H6.5ZM11.5 5.5H14.5V14.5H11.5Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="g-win" viewBox="0 0 16 16"><path d="M1.5 2.5H14.5V13.5H1.5Z"/><path d="M1.5 2.5H8V13.5H1.5Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="g-key" viewBox="0 0 16 16"><path d="M8 1.75L13.75 7.75H10.5V10.75H5.5V7.75H2.25ZM5.5 13.75H10.5"/></symbol>
+  <symbol id="g-zip" viewBox="0 0 16 16"><path d="M1.5 1.5L6 6M6 2.25V6H2.25M14.5 14.5L10 10M10 13.75V10H13.75"/></symbol>
+  <symbol id="g-plus" viewBox="0 0 16 16"><path d="M8 2V14M2 8H14"/></symbol>
+  <symbol id="g-wave" viewBox="0 0 16 16"><path d="M1.5 7V9M4 5V11M6.5 2V14M9 4.5V11.5M11.5 6V10M14 7.25V8.75"/></symbol>
+  <symbol id="g-out" viewBox="0 0 16 16"><path d="M4.5 11.5L11.5 4.5M5.5 4.5H11.5V10.5"/></symbol>
+  <symbol id="g-code" viewBox="0 0 16 16"><path d="M5.5 4L1.75 8L5.5 12M10.5 4L14.25 8L10.5 12"/></symbol>
+  <!-- the Mac, drawn once (styles.css, "The Mac, drawn once") -->
+  <symbol id="g-pointer" viewBox="0 0 14 20"><path d="M2.41 2.01L11.51 11.11A.55 .55 0 0 1 11.12 12.05H7.39L9.66 17.13A.95 .95 0 0 1 9.18 18.39L9 18.47A.95 .95 0 0 1 7.75 18L5.4 12.96L3.11 15.14A.6 .6 0 0 1 2.1 14.7V2.13A.18 .18 0 0 1 2.41 2.01Z" fill="#fff" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/><path d="M2.41 2.01L11.51 11.11A.55 .55 0 0 1 11.12 12.05H7.39L9.66 17.13A.95 .95 0 0 1 9.18 18.39L9 18.47A.95 .95 0 0 1 7.75 18L5.4 12.96L3.11 15.14A.6 .6 0 0 1 2.1 14.7V2.13A.18 .18 0 0 1 2.41 2.01Z" fill="#000"/></symbol>
+  <symbol id="g-cross" viewBox="0 0 15 15"><path d="M7.5 1.5V13.5M1.5 7.5H13.5" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M7.5 1.5V13.5M1.5 7.5H13.5" fill="none" stroke="#000" stroke-width="1" stroke-linecap="round"/></symbol>
+  <symbol id="g-cc" viewBox="0 0 16 16"><rect x=".85" y=".9" width="14.3" height="6.35" rx="3.175" fill="none" stroke="currentColor" stroke-width="1.05"/><rect x="2.03" y="1.98" width="6.55" height="4.2" rx="2.1" fill="currentColor" stroke="none"/><path fill-rule="evenodd" d="M3.65 8.98h8.7a3.325 3.325 0 0 1 0 6.65h-8.7a3.325 3.325 0 0 1 0-6.65ZM9.73 10.2a2.1 2.1 0 0 0 0 4.2h2.75a2.1 2.1 0 0 0 0-4.2Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="g-ctrl" viewBox="0 0 16 16"><path d="M4 8.5L8 4.5L12 8.5"/></symbol>
+  <symbol id="g-opt" viewBox="0 0 16 16"><path d="M2.5 4.5H6L10 11.5H13.5M9.5 4.5H13.5"/></symbol>
+  <symbol id="g-shift" viewBox="0 0 16 16"><path d="M8 2.5L13.5 8.5H10.5V13H5.5V8.5H2.5Z"/></symbol>
+  <symbol id="g-cmd" viewBox="0 0 16 16"><path d="M6 6H10V10H6ZM6 6V4.25A1.75 1.75 0 1 0 4.25 6ZM10 6H11.75A1.75 1.75 0 1 0 10 4.25ZM10 10V11.75A1.75 1.75 0 1 0 11.75 10ZM6 10H4.25A1.75 1.75 0 1 0 6 11.75Z"/></symbol>
+</defs></svg>
+
+<!-- @seg nav -->
+<header class="nav">
+  <div class="nav__in">
+    <a class="brand" href="#top" aria-label="Notch, back to the top"><img src="assets/icon-64.png" alt="" width="24" height="24"><span>Notch</span></a>
+    <nav class="nav__links" aria-label="Sections">
+      <a class="nav__a" href="#segments">Segments</a>
+      <a class="nav__a" href="#next">Build</a>
+    </nav>
+    <div class="nav__end">
+      <button class="nav__sw nav__sound" id="sound" type="button" aria-pressed="false" title="Play the app’s own sounds on this page"><i class="lamp"></i><span>Sound</span></button>
+      <button class="nav__sw" type="button" data-motion aria-pressed="true" title="Play or pause every demo on this page"><i class="lamp"></i><span>Motion</span></button>
+      <a class="btn btn--ghost btn--sm" href="https://github.com/WHATDOESTHEFOXSAY2U/notch" data-repo><svg class="glyph" aria-hidden="true"><use href="#g-code"/></svg>Source</a>
+      <a class="btn btn--sm" href="#download" data-download>Download</a>
+    </div>
+  </div>
+</header>
+<!-- /@seg nav -->
+
+<main>
+
+<!-- ============================ HERO ============================ -->
+<!-- @seg hero -->
+<section class="hero" aria-labelledby="hero-t">
+  <div class="wrap">
+    <a class="pill" href="#source"><svg class="glyph" aria-hidden="true"><use href="#g-code"/></svg>Open source</a>
+    <h1 id="hero-t"><span>Useful tools,</span><br>right in your notch.</h1>
+    <p class="hero__lede">Live system numbers, screen capture, dictation, transcripts, window&nbsp;snapping and more. <b>Free, and open for anyone to build on.</b></p>
+    <div class="hero__cta">
+      <a class="btn btn--lg" href="#download" data-download>Download for Mac</a>
+      <a class="btn btn--ghost btn--lg" href="https://github.com/WHATDOESTHEFOXSAY2U/notch" data-repo><svg class="glyph" aria-hidden="true"><use href="#g-code"/></svg>View source</a>
+    </div>
+    <p class="micro hero__fine">Apple silicon · macOS 26 or later</p>
+  </div>
+
+  <!-- A MacBook's lid, drawn 1 px to 1 pt: the menu bar, the notch with its camera, and the app's panel open from it. A window too
+       narrow for the whole lid shows a crop of it that runs off both edges. -->
+  <div class="stage" id="hero-stage">
+    <div class="device" id="hero-device">
+      <div class="lid" aria-hidden="true">
+        <div class="screen">
+          <div class="mbar" id="hero-bar">
+            <span class="mbar__l"><i class="mbar__apple"></i><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span></span>
+            <span class="mbar__r"><i class="mbar__batt" style="--b:1" data-chg></i><svg class="mbar__cc"><use href="#g-cc"/></svg><i class="mbar__dot" id="hero-dot"></i><span class="mbar__clock">Tue 17 Nov 9:41</span></span>
+          </div>
+          <div class="desk">
+            <div class="ghost ghost--a"><span class="tl"><i></i><i></i><i></i></span><b style="--t:56px;--w:44%"></b><b style="--t:76px;--w:70%"></b><b style="--t:96px;--w:58%"></b><b style="--t:132px;--w:66%"></b><b style="--t:152px;--w:36%"></b><b style="--t:188px;--w:62%"></b><b style="--t:208px;--w:74%"></b><b style="--t:228px;--w:48%"></b></div>
+            <div class="ghost ghost--b"><span class="tl"><i></i><i></i><i></i></span><b style="--t:56px;--w:62%"></b><b style="--t:76px;--w:40%"></b><b style="--t:112px;--w:72%"></b><b style="--t:132px;--w:54%"></b><b style="--t:152px;--w:66%"></b><b style="--t:188px;--w:46%"></b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notch is-open" id="hero-notch" role="group" aria-label="Notch panel, interactive demo">
+        <div class="notch__shape">
+          <button class="notch__cap" id="hero-cap" type="button" aria-expanded="true" aria-controls="hero-panel" aria-label="Open or close the demo panel"><i class="ncam" aria-hidden="true"></i></button>
+          <div class="notch__open" id="hero-panel">
+            <div class="notch__inner">
+              <div class="readouts">
+                <div class="readouts__top">
+                  <div class="gauges" id="hero-gauges" role="img" aria-label="Live readings: memory, CPU, temperature, swap and battery">
+                    <span class="gauge" data-part="MEM" data-of="100"><span class="gauge__h">MEM</span><span class="gauge__row"><span class="gauge__n">63</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:6"></i></span>
+                    <span class="gauge" data-part="CPU" data-of="100"><span class="gauge__h">CPU</span><span class="gauge__row"><span class="gauge__n">27</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:3"></i></span>
+                    <span class="gauge" data-part="TEMP" data-of="100"><span class="gauge__h">TEMP</span><span class="gauge__row"><span class="gauge__n">48</span><span class="gauge__u">°C</span></span><i class="bar10" style="--lit:5"></i></span>
+                    <span class="gauge" data-part="FAN" data-of="8" data-dec="1"><span class="gauge__h">SWAP</span><span class="gauge__row"><span class="gauge__n">1.3</span><span class="gauge__u">GB</span></span><i class="bar10" style="--lit:2"></i></span>
+                    <span class="gauge" data-part="BAT" data-of="100"><span class="gauge__h">CHG</span><span class="gauge__row"><span class="gauge__n">100</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:10"></i></span>
+                  </div>
+                  <div class="mirror" id="hero-mirror"><div class="mirror__in"><div class="mirror__pad"><div class="cam" aria-hidden="true"><svg class="cam__room" viewBox="0 0 464 261" preserveAspectRatio="xMidYMid slice" focusable="false"><use href="#mr-room-art"/></svg><svg class="cam__me" viewBox="0 0 464 261" preserveAspectRatio="xMidYMid slice" focusable="false"><use href="#mr-me-art"/></svg></div></div></div></div>
+                </div>
+                <div class="hairline"></div>
+                <nav class="bar" id="hero-tools" aria-label="Tools">
+                  <a class="cell" href="#capture" aria-label="Screenshot, in Capture"><svg class="glyph" aria-hidden="true"><use href="#g-shot"/></svg><span class="name">SHOT</span></a>
+                  <a class="cell" href="#capture" aria-label="Copy text, in Capture"><svg class="glyph" aria-hidden="true"><use href="#g-text"/></svg><span class="name">TEXT</span></a>
+                  <a class="cell" href="#capture" aria-label="Record the screen, in Capture"><svg class="glyph" aria-hidden="true"><use href="#g-rec"/></svg><span class="name">REC</span></a>
+                  <a class="cell" href="#dictation" aria-label="Dictate, in Dictation"><svg class="glyph" aria-hidden="true"><use href="#g-dict"/></svg><span class="name">DICTATE</span></a>
+                  <button class="cell" data-act="mirror" type="button" aria-label="Mirror" aria-pressed="false"><svg class="glyph" aria-hidden="true"><use href="#g-cam"/></svg><span class="name">MIRROR</span></button>
+                  <button class="cell" data-act="free" type="button" aria-label="Free memory: list the heaviest apps"><svg class="glyph" aria-hidden="true"><use href="#g-top"/></svg><span class="name">FREE</span></button>
+                  <a class="cell" href="#segments" aria-label="Settings: every segment"><svg class="glyph" aria-hidden="true"><use href="#g-set"/></svg><span class="name">SET</span></a>
+                </nav>
+                <div class="bar" id="hero-free" role="group" aria-label="Heaviest apps" hidden></div>
+                <p class="vh" id="hero-said" aria-live="polite"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <i class="notch__hole" aria-hidden="true"></i>
+        <i class="notch__alert" aria-hidden="true"></i>
+        <span class="notch__ptr" aria-hidden="true"><svg class="mptr" id="hero-ptr" viewBox="0 0 14 20" focusable="false"><use href="#g-pointer"/></svg></span>
+        <p class="hint hero__hint" id="hero-hint" aria-hidden="true"><span data-when="closed"><span class="when-point">Point at the notch</span><span class="when-tap">Tap the notch</span></span><span data-when="open">Try <b>MIRROR</b> or <b>FREE</b></span><span data-when="armed">Tap again to see it</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- /@seg hero -->
+
+<!-- ============================ THE RACK: every segment at a glance ============================ -->
+<!-- @seg rack -->
+<section class="sec rack-sec" id="segments" aria-labelledby="segments-t">
+  <div class="wrap">
+    <header class="seg__head rv">
+      <p class="seg__kicker"><svg class="glyph" aria-hidden="true"><use href="#g-set"/></svg><span class="seg__name">Segments</span></p>
+      <h2 class="seg__title" id="segments-t">It already does a lot. <span>Anyone can add more.</span></h2>
+      <p class="seg__lede">Seven segments, built in. Windows and Keys start&nbsp;off; switch them on in&nbsp;Settings.</p>
+    </header>
+
+    <!-- One module per segment: a still of the segment in the app's own drawing, in one frame of 176 by 72 (each at its own
+         size, 1 px to the point; only the swipe picture is enlarged, and the mirror's reduced), then the name and one line of
+         six words at most. Nothing here moves. Adding a segment to the page adds a module here: see ../README.md. -->
+    <nav class="rack" aria-label="Every segment">
+
+      <!-- 01: two of the panel's gauges, with the hero's sample readings (Readouts.swift: 63% lights 6 of 10, 27% lights 3) -->
+      <a class="mod rv" href="#numbers">
+        <span class="mod__well" aria-hidden="true"><span class="mod__pic pic-num">
+          <span class="gauge"><span class="gauge__h">MEM</span><span class="gauge__row"><span class="gauge__n">63</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:6"></i></span>
+          <span class="gauge"><span class="gauge__h">CPU</span><span class="gauge__row"><span class="gauge__n">27</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:3"></i></span>
+        </span></span>
+        <span class="mod__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-num"/></svg>Numbers</span><span class="mod__n" aria-hidden="true">01</span>
+        <span class="mod__line pair__line">Memory, CPU and more, live.</span>
+      </a>
+
+      <!-- 02: a selection being dragged (Selection.swift): the outline, four 3 by 12 brackets, the size tag 4 above the corner
+           (it reads the size the region is drawn at), and the crosshair at the corner being dragged -->
+      <a class="mod rv" href="#capture">
+        <span class="mod__well" aria-hidden="true"><span class="mod__pic pic-cap">
+          <span class="pic-cap__tag">148 × 42</span>
+          <span class="pic-cap__sel"><i></i><i></i><i></i><i></i></span>
+          <svg class="mcross" viewBox="0 0 15 15"><use href="#g-cross"/></svg>
+        </span></span>
+        <span class="mod__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-shot"/></svg>Capture</span><span class="mod__n" aria-hidden="true">02</span>
+        <span class="mod__line pair__line">Screenshots, text and recordings.</span>
+      </a>
+
+      <!-- 03: the left end of the voice strip (Wings.swift), drawn with the strip's own shared parts, as the page's sentence ends:
+           the level lit from the notch outward, the time (Kit.makeVoice's clock: 0.4 s a word, so 0:13 at 33 words), the word
+           count, the last three lines at 40, 75 and 100% (a full line runs edge to edge), the cursor 3 after the last word -->
+      <a class="mod rv" href="#dictation">
+        <span class="mod__well" aria-hidden="true"><span class="mod__pic pic-dic"><span class="pic-dic__strip">
+          <span class="wings"><span class="wing wing--l"><i></i><i></i><i></i><i></i><i></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></span>
+          <span class="vbody">
+            <span class="vread"><span class="vtime">0:13</span><span class="vwords">33 WORDS</span></span>
+            <i class="vsep"></i>
+            <span class="vtrans">
+              <span class="vline full" style="opacity:.4"><span class="vword on">the</span><span class="vword on">benchmarks.</span><span class="vword on">After</span><span class="vword on">that</span><span class="vword on">I</span><span class="vword on">want</span><span class="vword on">to</span><span class="vword on">send</span></span>
+              <span class="vline full" style="opacity:.75"><span class="vword on">the</span><span class="vword on">summary</span><span class="vword on">to</span><span class="vword on">the</span><span class="vword on">team</span><span class="vword on">before</span><span class="vword on">lunch.</span></span>
+              <span class="vline"><span class="vword on cur">Thanks.</span></span>
+            </span>
+          </span>
+        </span></span></span>
+        <span class="mod__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-dict"/></svg>Dictation</span><span class="mod__n" aria-hidden="true">03</span>
+        <span class="mod__line pair__line">Talk. It types. Nothing is sent.</span>
+      </a>
+
+      <!-- 04: the picture that stands in for the pointer during a swipe (Pointer.swift: 26 by 17, a 1.5 white edge), twice its
+           size, with the left half lit -->
+      <a class="mod rv" href="#windows">
+        <span class="mod__well" aria-hidden="true"><span class="mod__pic pic-win"><i></i></span></span>
+        <span class="mod__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-win"/></svg>Windows</span><span class="mod__n" aria-hidden="true">04</span>
+        <span class="mod__line pair__line">Swipe a title bar to snap.</span>
+      </a>
+
+      <!-- 05: a Caps Lock key at a MacBook's size (1.75 keys wide), as #keys draws it: its light, dark, and its sign alone -->
+      <a class="mod rv" href="#keys">
+        <span class="mod__well" aria-hidden="true"><span class="mod__pic pic-key"><span class="pic-key__cap"><i></i><svg class="glyph"><use href="#g-key"/></svg></span></span></span>
+        <span class="mod__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-key"/></svg>Keys</span><span class="mod__n" aria-hidden="true">05</span>
+        <span class="mod__line pair__line">Caps Lock, for your shortcuts.</span>
+      </a>
+
+      <!-- 06: the Mirror segment's own picture, small (its two drawings live in #mirror, as the hero's mirror uses them) -->
+      <a class="mod rv" href="#mirror">
+        <span class="mod__well" aria-hidden="true"><span class="mod__pic pic-mir"><span class="cam"><svg class="cam__room" viewBox="0 0 464 261" preserveAspectRatio="xMidYMid slice" focusable="false"><use href="#mr-room-art"/></svg><svg class="cam__me" viewBox="0 0 464 261" preserveAspectRatio="xMidYMid slice" focusable="false"><use href="#mr-me-art"/></svg></span></span></span>
+        <span class="mod__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-cam"/></svg>Mirror</span><span class="mod__n" aria-hidden="true">06</span>
+        <span class="mod__line pair__line">See yourself before a call.</span>
+      </a>
+
+      <!-- 07: the notch at work on a recording (Meter.swift), its left end: what is being done, in grey; under it the gauges'
+           own 6 by 8 segments, 2 apart, edge to edge (49 beside a 180 notch; 13 lit), which run on under the frame's edge;
+           then the recording's name -->
+      <a class="mod rv" href="#transcribe">
+        <span class="mod__well" aria-hidden="true"><span class="mod__pic pic-scr">
+          <span class="pic-scr__stage">TRANSCRIBING</span>
+          <i class="bar10 pic-scr__segs" style="--lit:13"></i>
+          <span class="pic-scr__title">Interview</span>
+        </span></span>
+        <span class="mod__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-scribe"/></svg>Transcribe</span><span class="mod__n" aria-hidden="true">07</span>
+        <span class="mod__line pair__line">Videos and sound files, as text.</span>
+      </a>
+
+      <!-- the open slot: an empty cell, tagged in the words #next uses (OPEN) -->
+      <a class="mod mod--slot rv" href="#next">
+        <span class="mod__well" aria-hidden="true"><span class="mod__tag">Open</span></span>
+        <span class="mod__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-plus"/></svg>Your segment</span>
+        <span class="mod__line pair__line">Propose it, then build it.<span class="vh"> An open slot.</span></span>
+      </a>
+    </nav>
+  </div>
+</section>
+<!-- /@seg rack -->
+
+<!-- ============================ 01 NUMBERS ============================ -->
+<!-- @seg numbers -->
+<section class="seg" id="numbers" aria-labelledby="numbers-t">
+  <div class="wrap">
+    <header class="seg__head rv">
+      <p class="seg__kicker"><span class="seg__no">01</span><svg class="glyph" aria-hidden="true"><use href="#g-num"/></svg><span class="seg__name">Numbers</span></p>
+      <h2 class="seg__title" id="numbers-t">Your&nbsp;Mac at&nbsp;a&nbsp;glance. <span>Free&nbsp;it&nbsp;up.</span></h2>
+      <p class="seg__lede">Memory, CPU, temperature, swap and battery, one&nbsp;hover&nbsp;away.</p>
+      <dl class="seg__facts">
+        <div><dt>Updated while open</dt><dd>4<span>×</span><small>a second</small></dd></div>
+        <div><dt>To free memory</dt><dd>2<small>presses</small></dd></div>
+      </dl>
+    </header>
+    <div class="seg__body">
+
+      <!-- 1. Free: the open panel. FREE lists the four apps using the most memory; a press on one force-quits it, and
+           memory comes back (Readouts.swift: bar; Stats.swift: topApps, quit). The markup is the scene's still frame: Xcode quit. -->
+      <article class="bay bay--auto rv nx nx--free" data-nx="free" aria-labelledby="numbers-free">
+        <div class="bay__stage nx__stage" role="group" aria-label="Demo of Free: press FREE, then an app, to force-quit it and get its memory back">
+          <div class="mbar" aria-hidden="true">
+            <span class="mbar__l"><i class="mbar__apple"></i><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span></span>
+            <span class="mbar__r"><i class="mbar__batt" style="--b:.76"></i><svg class="mbar__cc"><use href="#g-cc"/></svg><i class="mbar__dot"></i><span class="mbar__clock">Tue 17 Nov 9:41</span></span>
+          </div>
+          <div class="nx__hang">
+            <div class="np">
+              <div class="np__shape">
+                <div class="np__cap"><i class="ncam" aria-hidden="true"></i></div>
+                <div class="np__gauges" aria-hidden="true">
+                  <div class="gauge" data-g="MEM"><span class="gauge__h">MEM</span><span class="gauge__row"><span class="gauge__n">70</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:7"></i></div>
+                  <div class="gauge" data-g="CPU"><span class="gauge__h">CPU</span><span class="gauge__row"><span class="gauge__n">22</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:2"></i></div>
+                  <div class="gauge" data-g="TEMP"><span class="gauge__h">TEMP</span><span class="gauge__row"><span class="gauge__n">51</span><span class="gauge__u">°C</span></span><i class="bar10" style="--lit:5"></i></div>
+                  <div class="gauge" data-g="SWAP" data-of="8" data-dec="1"><span class="gauge__h">SWAP</span><span class="gauge__row"><span class="gauge__n">2.6</span><span class="gauge__u">GB</span></span><i class="bar10" style="--lit:3"></i></div>
+                  <div class="gauge" data-g="BAT"><span class="gauge__h">BAT</span><span class="gauge__row"><span class="gauge__n">76</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:8"></i></div>
+                </div>
+                <i class="np__hr"></i>
+                <div class="bar np__bar" data-tools hidden>
+                  <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-shot"/></svg><span class="name">SHOT</span></span>
+                  <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-text"/></svg><span class="name">TEXT</span></span>
+                  <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-rec"/></svg><span class="name">REC</span></span>
+                  <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-dict"/></svg><span class="name">DICTATE</span></span>
+                  <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-cam"/></svg><span class="name">MIRROR</span></span>
+                  <button class="cell" type="button" data-free aria-label="Free: list the apps using the most memory"><svg class="glyph" aria-hidden="true"><use href="#g-top"/></svg><span class="name">FREE</span></button>
+                  <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-set"/></svg><span class="name">SET</span></span>
+                </div>
+                <div class="bar np__bar" data-apps>
+                  <button class="cell" type="button" data-app="SAFARI" aria-label="Force-quit Safari, 2.4 GB"><span class="rest">SAFARI 2.4</span><span class="name">SAFARI 2.4</span></button>
+                  <button class="cell" type="button" data-app="PHOTOS" aria-label="Force-quit Photos, 1.6 GB"><span class="rest">PHOTOS 1.6</span><span class="name">PHOTOS 1.6</span></button>
+                  <button class="cell" type="button" data-app="MUSIC" aria-label="Force-quit Music, 0.9 GB"><span class="rest">MUSIC 0.9</span><span class="name">MUSIC 0.9</span></button>
+                  <button class="cell" type="button" data-app="NOTES" aria-label="Force-quit Notes, 0.7 GB"><span class="rest">NOTES 0.7</span><span class="name">NOTES 0.7</span></button>
+                  <button class="cell" type="button" data-back aria-label="Back to the tools"><svg class="glyph" aria-hidden="true"><use href="#g-top"/></svg><span class="name">BACK</span></button>
+                </div>
+              </div>
+              <svg class="mptr is-on" viewBox="0 0 14 20" aria-hidden="true" data-ptr><use href="#g-pointer"/></svg>
+            </div>
+          </div>
+          <p class="nx__say" data-say><span><b>Xcode</b> force-quit. 3.4&nbsp;GB freed.</span><small>Memory 91% → 70%</small></p>
+          <p class="hint nx__try">Try it: <span class="when-point">press</span><span class="when-tap">tap</span> <span data-try>an app</span></p>
+          <p class="vh" aria-live="polite" data-live></p>
+        </div>
+        <footer class="bay__foot"><h3 class="bay__name" id="numbers-free"><svg class="glyph" aria-hidden="true"><use href="#g-top"/></svg>Free</h3><span class="bay__line">The four apps using the most memory. A&nbsp;press quits one at once, with no chance to&nbsp;save.</span></footer>
+      </article>
+
+      <!-- 2. The warning line, and the five readings by name: a reading past its mark lights a line under the closed notch
+           (Console.swift: colors, alert; Readouts.swift: GaugeView). The line watches MEM, CPU, TEMP and BAT; SWAP only takes memory's colour. -->
+      <article class="bay bay--auto rv nx nx--warn" data-nx="warn" aria-labelledby="numbers-warn">
+        <div class="bay__stage nx__stage">
+          <div class="mbar" aria-hidden="true">
+            <span class="mbar__l"><i class="mbar__apple"></i><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span>Help</span></span>
+            <span class="mbar__r"><i class="mbar__batt" style="--b:.64"></i><svg class="mbar__cc"><use href="#g-cc"/></svg><i class="mbar__dot"></i><span class="mbar__clock">Tue 17 Nov 9:41</span></span>
+          </div>
+          <div class="nx__hang" aria-hidden="true"><div class="nn"><i class="ncam" aria-hidden="true"></i><i class="nn__line" data-line data-level="amber"></i></div></div>
+          <svg class="nx__wires" aria-hidden="true" data-wires></svg>
+          <ul class="nx__marks" role="list">
+            <li class="nx__col">
+              <div class="gauge" data-g="MEM" aria-hidden="true"><span class="gauge__h">MEM</span><span class="gauge__row"><span class="gauge__n">63</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:6"></i></div>
+              <b class="nx__name"><span class="vh">MEM: </span>Memory</b>
+              <p class="nx__rule"><span class="vh">Amber, then red, as macOS reports memory pressure.</span><span aria-hidden="true"><i class="nx__dot nx__dot--a"></i><i class="nx__dot nx__dot--r"></i>Pressure</span></p>
+            </li>
+            <li class="nx__col">
+              <div class="gauge" data-g="CPU" aria-hidden="true"><span class="gauge__h">CPU</span><span class="gauge__row"><span class="gauge__n">76</span><span class="gauge__u">%</span></span><i class="bar10" data-level="amber" style="--lit:8"></i></div>
+              <b class="nx__name"><span class="vh">CPU: </span>Processor</b>
+              <p class="nx__rule"><span class="vh">Amber at 70%, red at 90%.</span><span aria-hidden="true"><i class="nx__dot nx__dot--a"></i>70%</span><span aria-hidden="true"><i class="nx__dot nx__dot--r"></i>90%</span></p>
+            </li>
+            <li class="nx__col">
+              <div class="gauge" data-g="TEMP" aria-hidden="true"><span class="gauge__h">TEMP</span><span class="gauge__row"><span class="gauge__n">52</span><span class="gauge__u">°C</span></span><i class="bar10" style="--lit:5"></i></div>
+              <b class="nx__name"><span class="vh">TEMP: </span>Temperature</b>
+              <p class="nx__rule"><span class="vh">Amber at 80 °C, red at 95 °C.</span><span aria-hidden="true"><i class="nx__dot nx__dot--a"></i>80°</span><span aria-hidden="true"><i class="nx__dot nx__dot--r"></i>95°</span></p>
+            </li>
+            <li class="nx__col">
+              <div class="gauge" data-g="SWAP" data-of="8" data-dec="1" aria-hidden="true"><span class="gauge__h">SWAP</span><span class="gauge__row"><span class="gauge__n">1.3</span><span class="gauge__u">GB</span></span><i class="bar10" style="--lit:2"></i></div>
+              <b class="nx__name"><span class="vh">SWAP: </span>Swap</b>
+              <p class="nx__rule"><span class="vh">Takes memory’s colour. The warning line does not watch it.</span></p>
+            </li>
+            <li class="nx__col">
+              <div class="gauge" data-g="BAT" aria-hidden="true"><span class="gauge__h">BAT</span><span class="gauge__row"><span class="gauge__n">64</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:6"></i></div>
+              <b class="nx__name"><span class="vh">BAT: </span>Battery</b>
+              <p class="nx__rule"><span class="vh">Amber at 20%, red at 10%, while unplugged.</span><span aria-hidden="true"><i class="nx__dot nx__dot--a"></i>20%</span><span aria-hidden="true"><i class="nx__dot nx__dot--r"></i>10%</span></p>
+            </li>
+          </ul>
+        </div>
+        <footer class="bay__foot"><h3 class="bay__name" id="numbers-warn"><i class="nx__glyph-line" aria-hidden="true"></i>Warning line</h3><span class="bay__line">Lit when a reading crosses its&nbsp;mark. Checked every 2&nbsp;s while&nbsp;closed.</span><span class="bay__line nx__alt">SWAP becomes FAN while a fan spins, BAT becomes CHG while plugged&nbsp;in.</span></footer>
+      </article>
+
+    </div>
+  </div>
+</section>
+<!-- /@seg numbers -->
+
+<!-- ============================ 02 CAPTURE ============================ -->
+<!-- @seg capture -->
+<section class="seg" id="capture" aria-labelledby="capture-t">
+  <!-- The people on the call (Weekly sync), drawn the way the Mirror segment draws its picture: soft warm light, a room out of
+       focus, the framing of a laptop camera (the same 464 x 261 space as the Mirror). Shared parts, so the tiles, the result
+       card and the Desktop's thumbnails (copies of the call window) all reuse one drawing of each person. -->
+  <svg class="sprite" aria-hidden="true" focusable="false"><defs>
+    <filter id="cp-far" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur stdDeviation="9"/></filter>
+    <filter id="cp-soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.2"/></filter>
+    <filter id="cp-edge" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation=".9"/></filter>
+    <!-- light on a shape from its right; flipped people are lit from their left -->
+    <linearGradient id="cp-lit" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000" stop-opacity=".46"/><stop offset=".38" stop-color="#000" stop-opacity=".1"/><stop offset=".66" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".2"/>
+    </linearGradient>
+    <linearGradient id="cp-jaw" x1="0" y1="0" x2="0" y2="1"><stop offset=".56" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>
+    <linearGradient id="cp-under" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".5"/><stop offset=".55" stop-color="#000" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".05"/></linearGradient>
+    <linearGradient id="cp-fall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></linearGradient>
+    <radialGradient id="cp-bloom"><stop offset="0" stop-color="#ffe2b4" stop-opacity=".62"/><stop offset=".4" stop-color="#ffbd76" stop-opacity=".18"/><stop offset="1" stop-color="#ffbd76" stop-opacity="0"/></radialGradient>
+    <radialGradient id="cp-shade" cx=".5" cy=".62" r=".7"><stop offset="0" stop-color="#fff7e6"/><stop offset=".5" stop-color="#ffd69a"/><stop offset="1" stop-color="#e68e48"/></radialGradient>
+
+    <!-- one head, neck and pair of shoulders (the Mirror's), and the face's features, worn by everyone -->
+    <path id="cp-face" d="M228 57C248 57 263 72 264.2 96C265 112 261 127 253.5 138C246 147.6 237.8 152 229 152C220.2 152 212 147.6 204.5 138C197 127 192.4 112 192.6 96C193.4 72 208.5 57 228 57Z"/>
+    <path id="cp-neck" d="M205 126C206 148 205 163 201 179C213 194 245 194 257 179C252 163 251 148 252 126Z"/>
+    <path id="cp-body" d="M96 270C98 245 104 225 120 212C142 201 178 190 200 176C212 192 246 192 258 176C280 190 316 201 338 211C354 224 360 245 362 270Z"/>
+    <path id="cp-ears" d="M196 100C191.4 99 189.4 103 190 108.6C190.6 114 193 118.4 197.6 119.4ZM261 100C265.6 99 267.6 103 267 108.6C266.4 114 264 118.4 259.4 119.4Z"/>
+    <g id="cp-feat">
+      <ellipse cx="215.5" cy="99" rx="10.5" ry="6.5" fill="#000" opacity=".17" filter="url(#cp-soft)"/>
+      <ellipse cx="245" cy="99" rx="10" ry="6" fill="#000" opacity=".1" filter="url(#cp-soft)"/>
+      <g filter="url(#cp-edge)">
+        <path d="M209.2 100.2Q215.3 96.2 221.8 99.8Q215.6 102.6 209.2 100.2Z" fill="#efe2d8" opacity=".5"/>
+        <path d="M238.8 99.8Q245.3 96.2 251.4 100.2Q245 102.6 238.8 99.8Z" fill="#efe2d8" opacity=".62"/>
+        <circle cx="215.8" cy="100" r="2.5" fill="#1b110c"/>
+        <circle cx="245.3" cy="100" r="2.5" fill="#1b110c"/>
+        <path d="M208.8 100.3Q215.3 95.6 222.2 99.7M238.4 99.7Q245.3 95.6 251.9 100.3" fill="none" stroke="#120a06" stroke-width="1.4" stroke-linecap="round"/>
+      </g>
+      <circle cx="246.2" cy="99.2" r=".75" fill="#fff6ea" opacity=".85"/>
+      <g fill="currentColor" opacity=".82" filter="url(#cp-edge)">
+        <path d="M223.4 92.4C219.6 89.6 214 88.4 206.4 91.8C205.6 92.2 205.8 93.1 206.8 92.9C213.4 90.8 218.8 91.2 223.4 93.7Z"/>
+        <path d="M237 92.4C240.8 89.6 246.6 88.2 253.8 91.6C254.6 92 254.4 92.9 253.4 92.7C247 90.6 241.6 91.2 237 93.7Z"/>
+      </g>
+      <path d="M226.4 101.5C225.4 108 224.4 113.5 224 118" fill="none" stroke="#000" stroke-width="3.2" opacity=".16" filter="url(#cp-soft)"/>
+      <path d="M233 103C233.6 109 233.8 113.5 233.2 117" fill="none" stroke="#fff" stroke-width="1.6" opacity=".14" filter="url(#cp-edge)"/>
+      <ellipse cx="231.6" cy="121.4" rx="6.4" ry="2" fill="#000" opacity=".16" filter="url(#cp-edge)"/>
+      <ellipse cx="226.8" cy="122.3" rx="1.9" ry="1" fill="#000" opacity=".42" transform="rotate(-14 226.8 122.3)"/>
+      <ellipse cx="236.6" cy="122.2" rx="1.7" ry=".9" fill="#000" opacity=".3" transform="rotate(14 236.6 122.2)"/>
+      <g filter="url(#cp-edge)">
+        <path d="M219.6 132.7C223.2 132 226.5 131.1 229.2 131.7C230.4 131.2 231.6 131.2 232.8 131.6C235.8 131 239 131.9 242.4 132.4C238.2 134 234.6 134.5 231.2 134.5C227.6 134.5 223.6 134 219.6 132.7Z" fill="#4a1d18" opacity=".5"/>
+        <path d="M220.2 133.1C224 134.4 227.6 134.8 231.2 134.8C235 134.8 238.6 134.4 241.8 132.9C239.6 137.4 235.8 139.4 231.2 139.5C226.6 139.4 222.6 137.4 220.2 133.1Z" fill="#6e2f28" opacity=".42"/>
+        <path d="M219.2 132.4C223.4 134.3 227.6 134.8 231.2 134.6C235 134.8 238.8 134.2 242.8 132.2" fill="none" stroke="#24100c" stroke-width="1.1" opacity=".55"/>
+      </g>
+      <ellipse cx="231.4" cy="142" rx="7" ry="2" fill="#000" opacity=".12" filter="url(#cp-edge)"/>
+    </g>
+    <!-- light on a face: the lit cheek and brow, the jaw in shade -->
+    <g id="cp-light">
+      <use href="#cp-face" fill="url(#cp-lit)"/>
+      <use href="#cp-face" fill="url(#cp-jaw)"/>
+      <ellipse cx="251" cy="110" rx="9" ry="10" fill="#fff" opacity=".13" filter="url(#cp-soft)"/>
+      <ellipse cx="232" cy="78" rx="13" ry="7" fill="#fff" opacity=".08" filter="url(#cp-soft)"/>
+      <ellipse cx="248" cy="119" rx="7" ry="5" fill="#c8644c" opacity=".14" filter="url(#cp-soft)"/>
+      <ellipse cx="212" cy="118" rx="6" ry="5" fill="#b85a44" opacity=".1" filter="url(#cp-soft)"/>
+    </g>
+    <g id="cp-shoulders">
+      <use href="#cp-body" fill="url(#cp-lit)"/>
+      <ellipse cx="312" cy="212" rx="30" ry="8" fill="#fff" opacity=".06" filter="url(#cp-soft)"/>
+      <use href="#cp-neck" fill="url(#cp-under)"/>
+    </g>
+
+    <!-- ===== Maya: a sage room, daylight through a sheer curtain on the right; auburn hair tied up, a cream knit ===== -->
+    <linearGradient id="cp-wall-maya" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#171b18"/><stop offset=".55" stop-color="#29302a"/><stop offset="1" stop-color="#434b40"/></linearGradient>
+    <radialGradient id="cp-day-r" gradientUnits="userSpaceOnUse" cx="452" cy="70" r="330"><stop offset="0" stop-color="#fff4df" stop-opacity=".3"/><stop offset=".4" stop-color="#f3e6c8" stop-opacity=".08"/><stop offset="1" stop-color="#f3e6c8" stop-opacity="0"/></radialGradient>
+    <g id="cp-maya">
+      <rect width="464" height="261" fill="url(#cp-wall-maya)"/>
+      <g filter="url(#cp-far)">
+        <rect x="392" y="-24" width="100" height="250" fill="#ebe5d3" opacity=".5"/>
+        <rect x="402" y="-24" width="9" height="250" fill="#b7b09e" opacity=".35"/>
+        <rect x="430" y="-24" width="8" height="250" fill="#b7b09e" opacity=".3"/>
+        <rect x="30" y="34" width="80" height="62" fill="#c9c1ad" opacity=".3"/>
+        <rect x="39" y="43" width="62" height="44" fill="#4b5a52" opacity=".75"/>
+        <rect x="-20" y="200" width="150" height="80" fill="#121411"/>
+        <rect x="74" y="160" width="17" height="40" rx="7" fill="#9b7a58" opacity=".7"/>
+        <ellipse cx="82" cy="150" rx="16" ry="9" fill="#55663f" opacity=".6"/>
+      </g>
+      <rect width="464" height="261" fill="url(#cp-day-r)"/>
+      <g transform="translate(-6 6) scale(.98)">
+        <!-- the bun, and the hair drawn back from the face -->
+        <ellipse cx="238" cy="44" rx="19" ry="15" fill="#6a321b"/>
+        <path d="M222 40C230 33 246 33 254 41" fill="none" stroke="#c07a48" stroke-width="2" opacity=".4" filter="url(#cp-edge)"/>
+        <use href="#cp-ears" fill="#c99272"/>
+        <use href="#cp-neck" fill="#dfb293"/>
+        <use href="#cp-body" fill="#c4b5a0"/>
+        <use href="#cp-shoulders"/>
+        <path d="M200 176C212 192 246 192 258 176L252.6 173C242 186.6 216 186.6 205.4 173Z" fill="#a89a86"/>
+        <use href="#cp-face" fill="#e4b898"/>
+        <use href="#cp-light"/>
+        <g color="#5b2a16"><use href="#cp-feat"/></g>
+        <g filter="url(#cp-edge)">
+          <path d="M190 106C186 76 200 46 229 45C258 44 272 76 268 106C265 94 260 84 252 77C244 70 236 66 228 66C219 66 210 70 204 77C197 85 193 95 190 106Z" fill="#6f351c"/>
+          <path d="M213 54C226 49 246 51 258 62" fill="none" stroke="#c98552" stroke-width="2.4" opacity=".42"/>
+          <path d="M262 78C266 88 268 98 267 108" fill="none" stroke="#d29560" stroke-width="1.4" opacity=".4"/>
+          <path d="M197 84C192 96 191 108 193 118" fill="none" stroke="#7a3d20" stroke-width="1.2" opacity=".8"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- ===== Leo: a pale wall, a big window on his left, a plant; short dark hair and a beard, a denim shirt ===== -->
+    <linearGradient id="cp-wall-leo" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4f565e"/><stop offset=".45" stop-color="#363b42"/><stop offset="1" stop-color="#202328"/></linearGradient>
+    <radialGradient id="cp-day-l" gradientUnits="userSpaceOnUse" cx="20" cy="70" r="340"><stop offset="0" stop-color="#eef4ff" stop-opacity=".3"/><stop offset=".45" stop-color="#dfe8f5" stop-opacity=".07"/><stop offset="1" stop-color="#dfe8f5" stop-opacity="0"/></radialGradient>
+    <g id="cp-leo">
+      <rect width="464" height="261" fill="url(#cp-wall-leo)"/>
+      <g filter="url(#cp-far)">
+        <rect x="-24" y="-16" width="146" height="222" fill="#e6edf5" opacity=".86"/>
+        <rect x="46" y="-16" width="7" height="222" fill="#5c6670" opacity=".75"/>
+        <rect x="-24" y="90" width="146" height="7" fill="#5c6670" opacity=".6"/>
+        <rect x="-24" y="200" width="160" height="12" fill="#b9c3cd" opacity=".35"/>
+        <ellipse cx="420" cy="118" rx="34" ry="13" fill="#3e5a32" transform="rotate(-40 420 118)"/>
+        <ellipse cx="446" cy="150" rx="30" ry="12" fill="#2f4a28" transform="rotate(28 446 150)"/>
+        <ellipse cx="400" cy="160" rx="26" ry="11" fill="#4a6a39" transform="rotate(-64 400 160)"/>
+        <ellipse cx="438" cy="96" rx="20" ry="9" fill="#58773f" transform="rotate(-76 438 96)"/>
+        <rect x="396" y="196" width="50" height="80" fill="#2b2622"/>
+      </g>
+      <rect width="464" height="261" fill="url(#cp-day-l)"/>
+      <!-- drawn lit from the right, then turned round to face the window -->
+      <g transform="translate(470 -4) scale(-1.02 1.02)">
+        <use href="#cp-ears" fill="#9c6646"/>
+        <use href="#cp-neck" fill="#bb8259"/>
+        <use href="#cp-body" fill="#344761"/>
+        <use href="#cp-shoulders"/>
+        <path d="M201 176L216 200L229 186ZM257 176L242 200L229 186Z" fill="#3d5273"/>
+        <path d="M229 186V270" stroke="#22324a" stroke-width="2"/>
+        <use href="#cp-face" fill="#c48a60"/>
+        <use href="#cp-light"/>
+        <path d="M196 108C198 128 209 147 229 152C249 147 260 128 262 108C259 120 254 127 246 130C240 127 219 127 212 130C204 127 199 120 196 108Z" fill="#2a1d15" opacity=".34" filter="url(#cp-soft)"/>
+        <path d="M206 136C212 146 220 150 229 151C238 150 246 146 252 136C246 142 238 144 229 144C220 144 212 142 206 136Z" fill="#2a1d15" opacity=".3" filter="url(#cp-edge)"/>
+        <path d="M219 128.4C223 126.2 235 126.2 239 128.4" fill="none" stroke="#2a1d15" stroke-width="3" opacity=".36" filter="url(#cp-edge)"/>
+        <g color="#1f1610"><use href="#cp-feat"/></g>
+        <g filter="url(#cp-edge)">
+          <path d="M191 102C188 72 202 46 230 45C259 44 271 70 267 100C265 90 262 82 257 76C249 72 236 70 228 71C219 72 209 74 202 80C197 86 193 94 191 102Z" fill="#241a13"/>
+          <path d="M208 52C222 46 244 47 258 58" fill="none" stroke="#6b5442" stroke-width="2.4" opacity=".4"/>
+        </g>
+      </g>
+    </g>
+
+    <!-- ===== Ines: an evening kitchen, two pendant lights out of focus; curly black hair, a rust top ===== -->
+    <linearGradient id="cp-wall-ines" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#252a29"/><stop offset=".5" stop-color="#181d1d"/><stop offset="1" stop-color="#0e1112"/></linearGradient>
+    <radialGradient id="cp-warm-tl" gradientUnits="userSpaceOnUse" cx="90" cy="20" r="330"><stop offset="0" stop-color="#ffcf8f" stop-opacity=".26"/><stop offset=".45" stop-color="#e9a25d" stop-opacity=".07"/><stop offset="1" stop-color="#e9a25d" stop-opacity="0"/></radialGradient>
+    <g id="cp-ines">
+      <rect width="464" height="261" fill="url(#cp-wall-ines)"/>
+      <g filter="url(#cp-far)">
+        <rect x="322" y="72" width="160" height="6" fill="#4a3a2a"/>
+        <rect x="322" y="146" width="160" height="6" fill="#4a3a2a"/>
+        <rect x="338" y="44" width="15" height="28" rx="4" fill="#b9a789" opacity=".55"/>
+        <rect x="360" y="52" width="12" height="20" rx="3" fill="#6f8d86" opacity=".55"/>
+        <rect x="396" y="40" width="19" height="32" rx="5" fill="#c99a5c" opacity=".45"/>
+        <rect x="346" y="116" width="21" height="30" rx="5" fill="#d9d2c4" opacity=".35"/>
+        <rect x="384" y="122" width="15" height="24" rx="4" fill="#8c5a3c" opacity=".55"/>
+        <rect x="-20" y="214" width="170" height="60" fill="#2c2520"/>
+      </g>
+      <circle cx="70" cy="30" r="62" fill="url(#cp-bloom)"/>
+      <circle cx="70" cy="30" r="13" fill="#ffdcaa" opacity=".75" filter="url(#cp-soft)"/>
+      <circle cx="152" cy="18" r="44" fill="url(#cp-bloom)" opacity=".75"/>
+      <circle cx="152" cy="18" r="9" fill="#ffdcaa" opacity=".6" filter="url(#cp-soft)"/>
+      <rect width="464" height="261" fill="url(#cp-warm-tl)"/>
+      <g transform="translate(466 8) scale(-1 1)">
+        <!-- the curls, behind and around the face -->
+        <g fill="#16100d" filter="url(#cp-edge)">
+          <ellipse cx="228" cy="94" rx="58" ry="54"/>
+          <circle cx="185" cy="126" r="16"/><circle cx="174" cy="105" r="16"/><circle cx="173" cy="83" r="16"/><circle cx="182" cy="63" r="16"/>
+          <circle cx="200" cy="49" r="16"/><circle cx="228" cy="42" r="17"/><circle cx="256" cy="49" r="16"/><circle cx="274" cy="63" r="16"/>
+          <circle cx="283" cy="83" r="16"/><circle cx="282" cy="105" r="16"/><circle cx="271" cy="126" r="16"/>
+          <circle cx="192" cy="146" r="13"/><circle cx="265" cy="146" r="13"/>
+        </g>
+        <g fill="none" stroke="#5e4334" stroke-width="1.6" opacity=".45" filter="url(#cp-edge)">
+          <path d="M262 46C270 50 276 56 280 64M276 72C282 78 286 86 287 94M281 104C286 110 286 118 284 124M246 38C252 39 258 42 262 46"/>
+        </g>
+        <use href="#cp-neck" fill="#744631"/>
+        <use href="#cp-body" fill="#8c4a31"/>
+        <use href="#cp-shoulders"/>
+        <path d="M200 176C212 192 246 192 258 176L252.6 173C242 186.6 216 186.6 205.4 173Z" fill="#6f3824"/>
+        <use href="#cp-face" fill="#7c4c34"/>
+        <use href="#cp-light"/>
+        <ellipse cx="249" cy="108" rx="8" ry="9" fill="#ffd2a8" opacity=".1" filter="url(#cp-soft)"/>
+        <g color="#120c09"><use href="#cp-feat"/></g>
+        <g fill="#16100d" filter="url(#cp-edge)">
+          <circle cx="204" cy="66" r="10"/><circle cx="217" cy="59" r="10"/><circle cx="232" cy="57" r="10"/><circle cx="247" cy="60" r="10"/><circle cx="258" cy="68" r="9"/>
+        </g>
+      </g>
+    </g>
+
+  </defs></svg>
+  <div class="wrap">
+    <header class="seg__head rv">
+      <p class="seg__kicker"><span class="seg__no">02</span><svg class="glyph" aria-hidden="true"><use href="#g-shot"/></svg><span class="seg__name">Capture</span></p>
+      <h2 class="seg__title" id="capture-t">Screenshots, text,&nbsp;recordings. <span>One&nbsp;shortcut&nbsp;each.</span></h2>
+      <p class="seg__lede">Then make a recording smaller, for sending.</p>
+      <dl class="seg__facts">
+        <div><dt>One 31-min call</dt><dd>−78<span>%</span></dd></div>
+        <div><dt>Uploads</dt><dd>0</dd></div>
+      </dl>
+    </header>
+    <div class="seg__body">
+      <article class="cap bay bay--auto rv" aria-labelledby="cp-demo">
+        <h3 class="bay__name vh" id="cp-demo">The four tools, played in turn</h3>
+
+        <!-- The stage: a Mac's screen, drawn at 1 px to the point. The four tools play on it one after another (capture.js).
+             The Mac's own parts are the shared ones (styles.css, "The Mac, drawn once"); Notch's are drawn as the app draws them. -->
+        <div class="cap__stage bay__stage" aria-hidden="true">
+          <div class="scr" data-win="report">
+            <!-- the menu bar: the front app's name and menus (capture.js changes them with the window in front), and a clock the scene runs itself -->
+            <div class="mbar">
+              <span class="mbar__l"><i class="mbar__apple"></i><b>Preview</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Tools</span><span>Window</span><span>Help</span></span>
+              <span class="mbar__r"><i class="mbar__batt" style="--b:.82"></i><svg class="mbar__cc"><use href="#g-cc"/></svg><i class="mbar__dot"></i><span class="mbar__clock" data-own><span class="mbar__date" data-date>Tue 17 Nov&ensp;</span><span data-time>9:41</span></span></span>
+            </div>
+
+            <!-- what Notch leaves on the Desktop: Finder puts new files at the top right, one under the other, and writes nothing under a name -->
+            <div class="files">
+              <div class="file" data-file="shot"><span class="file__pic" data-snap="file-shot"></span><span class="file__name"><span>Shot <span data-day="shot">2026-11-17</span></span><span><span data-hms="shot">09.41.03</span>.png</span></span></div>
+              <div class="file" data-file="rec"><span class="file__pic" data-snap="file-rec"></span><span class="file__name"><span>Rec <span data-day="rec">2026-11-17</span></span><span><span data-hms="rec">09.07.12</span>.mp4</span></span></div>
+              <div class="file" data-file="small"><span class="file__pic" data-snap="file-small"></span><span class="file__name"><span>Rec <span data-day="rec">2026-11-17</span></span><span><span data-hms="rec">09.07.12</span> small.mp4</span></span></div>
+            </div>
+
+            <!-- the window in front: a picture of a report, with a chart (for SHOT) and a table (for TEXT) -->
+            <div class="win win--report">
+              <div class="win__bar"><span class="tl is-front"><i></i><i></i><i></i></span><b>Q3 report.png</b></div>
+              <div class="doc">
+                <div class="doc__head"><p class="doc__t">Sales by region</p><p class="doc__key"><span><i></i>Q2</span><span><i></i>Q3</span></p></div>
+                <div class="doc__cols">
+                  <div class="chart" data-chart>
+                    <div class="chart__g"><i style="--v:.879"></i><i style="--v:1"></i><span>North</span></div>
+                    <div class="chart__g"><i style="--v:.695"></i><i style="--v:.855"></i><span>South</span></div>
+                    <div class="chart__g"><i style="--v:.784"></i><i style="--v:.943"></i><span>West</span></div>
+                  </div>
+                  <div class="tbl" data-table>
+                    <div class="tbl__r tbl__h"><span>Region</span><span>Q2</span><span>Q3</span></div>
+                    <div class="tbl__r"><span>North</span><span>1,240</span><span>1,410</span></div>
+                    <div class="tbl__r"><span>South</span><span>980</span><span>1,205</span></div>
+                    <div class="tbl__r"><span>West</span><span>1,105</span><span>1,330</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- or a video call (for REC): your own picture is in it, so a camera is running while it shows -->
+            <div class="win win--call">
+              <div class="win__bar"><span class="tl is-front"><i></i><i></i><i></i></span><b>Weekly sync</b></div>
+              <div class="call" data-call>
+                <div class="tile"><svg class="tile__cam" viewBox="0 0 464 261" preserveAspectRatio="xMidYMid slice" focusable="false"><use href="#cp-maya"/></svg><span>Maya</span></div>
+                <div class="tile is-on"><svg class="tile__cam" viewBox="0 0 464 261" preserveAspectRatio="xMidYMid slice" focusable="false"><use href="#cp-leo"/></svg><span>Leo</span></div>
+                <div class="tile"><svg class="tile__cam" viewBox="0 0 464 261" preserveAspectRatio="xMidYMid slice" focusable="false"><use href="#cp-ines"/></svg><span>Ines</span></div>
+                <div class="tile"><svg class="tile__cam" viewBox="0 0 464 261" preserveAspectRatio="xMidYMid slice" focusable="false"><use href="#mr-room-art"/><use href="#mr-me-art"/></svg><span>You</span></div>
+              </div>
+            </div>
+
+            <!-- what is on the clipboard: Finder's own window for it, behind the others -->
+            <div class="clip" data-kind="">
+              <div class="win__bar"><span class="tl"><i></i><i></i><i></i></span><b>Clipboard</b></div>
+              <div class="clip__body">
+                <div class="clip__img" data-snap="clip"></div>
+<pre class="clip__txt" data-clip-text>Region    Q2     Q3
+North  1,240  1,410
+South    980  1,205
+West   1,105  1,330</pre>
+              </div>
+              <p class="clip__foot"><span class="clip__f clip__f--img">PNG image</span><span class="clip__f clip__f--txt">Text</span></p>
+            </div>
+
+            <!-- Notch's own parts: the result card (Card.swift), the recording strip (Strip.swift), the selection (Selection.swift), the notch -->
+            <div class="card" data-kind="shot" data-phase="ready">
+              <div class="card__head"><i class="card__lamp"></i><span class="card__title">684 × 372</span><i class="card__sp"></i><span class="card__cut">−78%</span><span class="card__size">68 KB</span></div>
+              <div class="card__pic" data-snap="card"></div>
+              <div class="card__foot">
+                <div class="card__keys"><span class="ckey ckey--z">COMPRESS</span><span class="ckey">COPY</span><span class="ckey">SHOW</span><span class="cross"><svg class="glyph"><use href="#g-x"/></svg></span></div>
+                <div class="card__work"><div class="card__left"><span class="card__eta">&nbsp;</span><span class="cross"><svg class="glyph"><use href="#g-x"/></svg></span></div><div class="card__cells"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+              </div>
+              <i class="card__line"></i>
+            </div>
+
+            <div class="strip" data-state="pick">
+              <div class="strip__l">
+                <span class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+                <span class="opts"><span class="k"><svg class="glyph"><use href="#g-film"/></svg></span><span class="k on"><svg class="glyph"><use href="#g-dict"/></svg></span><span class="k on"><svg class="glyph"><use href="#g-sound"/></svg></span><span class="k"><svg class="glyph"><use href="#g-clicks"/></svg></span></span>
+                <i class="sdiv"></i>
+                <span class="k k--pause"><svg class="glyph"><use href="#g-pause"/></svg></span>
+              </div>
+              <div class="strip__r">
+                <span class="main"><i class="main__fill"></i><svg class="glyph main__rec"><use href="#g-rec"/></svg><svg class="glyph main__stop"><use href="#g-stop"/></svg><span class="main__t">0:00</span></span>
+                <span class="k k--x"><svg class="glyph"><use href="#g-x"/></svg></span>
+              </div>
+            </div>
+
+            <div class="ov" data-state="">
+              <i class="ov__dim"></i>
+              <span class="tag ov__hint">DRAG TO SELECT · ESC TO CANCEL</span>
+              <div class="sel"><i class="br br--tl"></i><i class="br br--tr"></i><i class="br br--bl"></i><i class="br br--br"></i><span class="tag sel__size">0 × 0</span></div>
+            </div>
+
+            <div class="nn" data-state=""><div class="nn__cap"><i class="ncam" aria-hidden="true"></i></div><div class="nn__line"><div><span data-say>COPIED 79 CHARS</span></div></div></div>
+
+            <!-- the shortcut being pressed, shown the way a screen recording shows keys: the page's own caption, not the Mac's -->
+            <div class="hud"><span class="keys"><kbd class="kc"><svg class="glyph"><use href="#g-ctrl"/></svg></kbd><kbd class="kc"><svg class="glyph"><use href="#g-opt"/></svg></kbd><kbd class="kc" data-hud-key>S</kbd></span></div>
+
+            <i class="ptr" data-shape=""><svg class="mptr" viewBox="0 0 14 20"><use href="#g-pointer"/></svg><svg class="mcross" viewBox="0 0 15 15"><use href="#g-cross"/></svg></i>
+          </div>
+        </div>
+
+        <!-- The four tools, in the order they play: the bay's foot (the shared .steps). Each button shows its part of the story.
+             Text is lit here because the stage above, as written, is Text's result (what shows without script). -->
+        <div class="cap__nav">
+          <ol class="cap__steps steps" aria-label="The demo’s four steps">
+            <li>
+              <button class="cap__step step" type="button" data-go="0" aria-describedby="cp-step-0"><span class="cap__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-shot"/></svg>Shot</span><span class="vh">, Control Option S</span></button>
+              <p class="cap__more" id="cp-step-0"><span class="keys" aria-hidden="true"><kbd class="kc"><svg class="glyph"><use href="#g-ctrl"/></svg></kbd><kbd class="kc"><svg class="glyph"><use href="#g-opt"/></svg></kbd><kbd class="kc">S</kbd></span><span class="cap__line pair__line">A picture of any part of the screen, on your Desktop and clipboard.</span></p>
+            </li>
+            <li>
+              <button class="cap__step step is-on" type="button" data-go="1" aria-describedby="cp-step-1"><span class="cap__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-text"/></svg>Text</span><span class="vh">, Control Option T</span></button>
+              <p class="cap__more" id="cp-step-1"><span class="keys" aria-hidden="true"><kbd class="kc"><svg class="glyph"><use href="#g-ctrl"/></svg></kbd><kbd class="kc"><svg class="glyph"><use href="#g-opt"/></svg></kbd><kbd class="kc">T</kbd></span><span class="cap__line pair__line">The words in anything, even a picture, copied with their layout.</span></p>
+            </li>
+            <li>
+              <button class="cap__step step" type="button" data-go="2" aria-describedby="cp-step-2"><span class="cap__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-rec"/></svg>Rec</span><span class="vh">, Control Option R</span></button>
+              <p class="cap__more" id="cp-step-2"><span class="keys" aria-hidden="true"><kbd class="kc"><svg class="glyph"><use href="#g-ctrl"/></svg></kbd><kbd class="kc"><svg class="glyph"><use href="#g-opt"/></svg></kbd><kbd class="kc">R</kbd></span><span class="cap__line pair__line">Any part of the screen as a video, with your voice and the Mac’s sound.</span></p>
+            </li>
+            <li>
+              <button class="cap__step step" type="button" data-go="3" aria-describedby="cp-step-3"><span class="cap__name pair__name"><svg class="glyph" aria-hidden="true"><use href="#g-zip"/></svg>Compress</span><span class="vh">, in this demo 454 MB to 99 MB</span></button>
+              <p class="cap__more" id="cp-step-3"><span class="cap__fig" aria-hidden="true">454 MB <i>→</i> <b>99 MB</b></span><span class="cap__line pair__line">One press on the recording’s card: a smaller copy, saved next to it.</span></p>
+            </li>
+          </ol>
+          <button class="cap__play" type="button" aria-label="Pause the demo" hidden><svg class="glyph cap__g-pause" aria-hidden="true"><use href="#g-pause"/></svg><svg class="glyph cap__g-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5L12.5 8L5 12.5Z"/></svg></button>
+        </div>
+
+      </article>
+    </div>
+  </div>
+</section>
+<!-- /@seg capture -->
+
+<!-- ============================ 03 DICTATION ============================ -->
+<!-- @seg dictation -->
+<section class="seg" id="dictation" aria-labelledby="dictation-t">
+  <!-- Dictation's own drawings: the Mac's speaker struck through with a slash (its sound is off), and an eye struck through (text kept out of sight). -->
+  <svg class="sprite" aria-hidden="true" focusable="false"><defs>
+    <mask id="dc-vol-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="14"><path d="M0 0H16V14H0Z" fill="#fff"/><path d="M2.6 1.3L13.4 12.7" fill="none" stroke="#000" stroke-width="3.3" stroke-linecap="round"/></mask>
+    <mask id="dc-hid-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="16" height="16"><path d="M0 0H16V16H0Z" fill="#fff"/><path d="M3 2.5L13 13.5" fill="none" stroke="#000" stroke-width="3.6" stroke-linecap="round"/></mask>
+    <symbol id="dc-vol-off" viewBox="0 0 16 14"><path d="M1.6 4.9H4.5L8.6 1.6V12.4L4.5 9.1H1.6Z" fill="currentColor" stroke="currentColor" stroke-width="1" stroke-linejoin="round" mask="url(#dc-vol-cut)"/><path d="M2.6 1.3L13.4 12.7" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/></symbol>
+    <symbol id="dc-hid" viewBox="0 0 16 16"><g mask="url(#dc-hid-cut)"><path d="M1.25 8C3.2 4.9 5.4 3.4 8 3.4S12.8 4.9 14.75 8C12.8 11.1 10.6 12.6 8 12.6S3.2 11.1 1.25 8Z" stroke-linejoin="round"/><circle cx="8" cy="8" r="2.1" fill="currentColor" stroke="none"/></g><path d="M3 2.5L13 13.5" stroke-linecap="round"/></symbol>
+  </defs></svg>
+  <div class="wrap">
+    <header class="seg__head rv">
+      <p class="seg__kicker"><span class="seg__no">03</span><svg class="glyph" aria-hidden="true"><use href="#g-dict"/></svg><span class="seg__name">Dictation</span></p>
+      <h2 class="seg__title" id="dictation-t">Talk. <span>It types.</span></h2>
+      <p class="seg__lede">Apple’s speech recognition, running on your Mac. Nothing is sent.</p>
+      <dl class="seg__facts">
+        <div><dt>Words right on clean read speech</dt><dd>98.6<span>%</span></dd></div>
+        <div><dt>Text ready after you stop</dt><dd>0.19<small>s</small></dd></div>
+      </dl>
+      <p class="seg__chips dc-how">Press <span class="dc-cell"><svg class="glyph" aria-hidden="true"><use href="#g-dict"/></svg>DICTATE</span> in the panel, or <span class="keys"><kbd class="kc dc-caps"><svg class="glyph" aria-hidden="true"><use href="#g-key"/></svg>caps lock</kbd><kbd class="kc">D</kbd></span> <span class="dc-how__when">once the <a href="#keys">hyper key</a> is on.</span></p>
+    </header>
+    <div class="seg__body">
+      <!-- The top of a Mac's screen: Mail in front, a message being written, and the notch. The frame in the markup is the result, which is also the still frame. -->
+      <article class="bay dc-live rv" aria-labelledby="dc-live-t">
+        <h3 class="bay__name vh" id="dc-live-t">Dictating a message</h3>
+        <div class="bay__stage" aria-hidden="true">
+          <div class="mbar">
+            <span class="mbar__l"><i class="mbar__apple"></i><b>Mail</b><span>File</span><span>Edit</span><span>View</span><span>Mailbox</span><span>Message</span><span>Format</span><span>Window</span><span>Help</span></span>
+            <span class="mbar__r"><svg class="dc-vol" viewBox="0 0 16 14"><use href="#dc-vol-off"/></svg><i class="mbar__batt" style="--b:.82"></i><svg class="mbar__cc"><use href="#g-cc"/></svg><i class="mbar__dot"></i><span class="mbar__clock"><span class="dc-date">Tue 17 Nov </span><span>9:41</span></span></span>
+          </div>
+          <div class="dc-back">
+            <span class="tl"><i></i><i></i><i></i></span>
+            <div class="dc-back__side"><b class="is-at" style="--w:64%"></b><b style="--w:46%"></b><b style="--w:58%"></b><b style="--w:40%"></b><b style="--w:52%"></b></div>
+            <div class="dc-back__list"><b class="dc-back__t">Inbox</b><p><b style="--w:44%"></b><i style="--w:82%"></i><i style="--w:60%"></i></p><p><b style="--w:52%"></b><i style="--w:70%"></i><i style="--w:88%"></i></p><p><b style="--w:36%"></b><i style="--w:86%"></i><i style="--w:54%"></i></p><p><b style="--w:48%"></b><i style="--w:66%"></i><i style="--w:78%"></i></p><p><b style="--w:40%"></b><i style="--w:74%"></i><i style="--w:58%"></i></p></div>
+            <div class="dc-back__read"><u></u><u></u><u></u><i style="--w:97%"></i><i style="--w:89%"></i><i style="--w:94%"></i><i style="--w:38%"></i><b></b><i style="--w:92%"></i><i style="--w:99%"></i><i style="--w:86%"></i><i style="--w:95%"></i><i style="--w:52%"></i><b></b><i style="--w:96%"></i><i style="--w:88%"></i><i style="--w:93%"></i><i style="--w:44%"></i></div>
+          </div>
+          <div class="dc-win dc-mail">
+            <div class="dc-win__bar"><span class="tl is-front"><i></i><i></i><i></i></span><span class="dc-win__t">Plan for tomorrow</span></div>
+            <p class="dc-win__f"><span>To:</span> Team</p>
+            <p class="dc-win__f"><span>Subject:</span> Plan for tomorrow</p>
+            <div class="dc-win__body"><p>Hi team,</p><p class="dc-win__in"><span class="dc-paste">Okay, so the plan for tomorrow is to ship the recording flow first and then write up the benchmarks. After that I want to send the summary to the team before lunch. Thanks.</span><i class="dc-caret"></i></p></div>
+          </div>
+          <div class="grp grp--top" data-ow="380" data-oh="88" style="--gw:380px;height:88px">
+            <div class="vn" data-state="copied">
+              <div class="vn__shape">
+                <div class="vn__voice">
+                  <div class="wings"><div class="wing wing--l"></div><div class="wings__gap"></div><div class="wing wing--r"></div></div>
+                  <div class="vbody"><div class="vread"><span class="vtime">0:00</span><span class="vwords">0 WORDS</span></div><i class="vsep"></i><div class="vtrans"></div></div>
+                </div>
+                <div class="vn__copied"><div class="vcopied"><span class="vc-l">PASTED</span><i class="vc-gap"></i><span class="vc-r">33 WORDS</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ol class="steps dc-steps">
+          <li class="step"><span class="keys" aria-hidden="true"><kbd class="kc"><svg class="glyph"><use href="#g-key"/></svg></kbd><kbd class="kc">D</kbd></span><span class="vh">Caps Lock and D: </span>Start</li>
+          <li class="step"><svg class="glyph" aria-hidden="true"><use href="#g-wave"/></svg>Talk</li>
+          <li class="step"><span class="keys" aria-hidden="true"><kbd class="kc"><svg class="glyph"><use href="#g-key"/></svg></kbd><kbd class="kc">D</kbd></span><span class="vh">Caps Lock and D again: </span><span class="dc-step__t">Stop<span class="vh">:</span>&ensp;<small>text ready in 0.19&nbsp;s</small></span></li>
+          <li class="step is-on" style="--p:1"><svg class="glyph" aria-hidden="true"><use href="#g-text"/></svg><span class="dc-step__t">Pasted<span class="vh">:</span>&ensp;<small>needs Accessibility, or it’s only copied</small></span></li>
+        </ol>
+      </article>
+      <div class="bays dc-opts">
+        <!-- A call on the Mac, and the strip writing down what it plays. -->
+        <article class="bay dc-opt dc-hear is-heard rv" aria-labelledby="dc-hear-t">
+          <div class="bay__stage" aria-hidden="true">
+            <div class="grp grp--top" data-ow="380" data-oh="88" style="--gw:380px;height:88px">
+              <div class="vn" data-state="voice">
+                <div class="vn__shape">
+                  <div class="vn__voice">
+                    <div class="wings"><div class="wing wing--l"><i></i><i></i><i></i><i></i><i></i><i></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div><div class="wings__gap"></div><div class="wing wing--r"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+                    <div class="vbody"><div class="vread"><span class="vtime">0:05</span><span class="vwords">14 WORDS</span></div><i class="vsep"></i><div class="vtrans"><div class="vline" style="opacity:.4">Got your summary. The benchmarks look</div><div class="vline" style="opacity:.75">great. Let’s ship the recording flow on</div><div class="vline">Thursday.</div></div></div>
+                  </div>
+                  <div class="vn__copied"><div class="vcopied"><span class="vc-l">COPIED</span><i class="vc-gap"></i><span class="vc-r">14 WORDS</span></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="dc-win dc-call">
+              <div class="dc-win__bar"><span class="tl is-front"><i></i><i></i><i></i></span><span class="dc-win__t">Maya Chen</span></div>
+              <div class="dc-call__row"><b class="dc-call__who">MC</b><svg class="dc-call__wave" viewBox="0 0 292 24" preserveAspectRatio="xMidYMid slice"><path d="M3.5 6v12M18.5 5v14M33.5 7v10M48.5 10v4M63.5 10v4M78.5 7.5v9.5M93.5 6.5v11.5M108.5 7.5v9.5M123.5 10.5v3.5M138.5 9.5v5M153.5 6v12M168.5 3.5v17.5M183.5 6v12M198.5 10.5v3.5M213.5 9v6.5M228.5 6v12M243.5 5v14M258.5 8.5v7.5M273.5 10v4M288.5 9.5v5.5"/><path d="M8.5 7.5v9M23.5 6.5v11.5M38.5 8.5v7M53.5 10.5v3M68.5 8.5v7.5M83.5 4.5v15M98.5 4v16.5M113.5 8v8M128.5 10.5v3.5M143.5 8v8M158.5 5.5v13M173.5 6.5v11.5M188.5 9v6.5M203.5 10.5v3.5M218.5 9v6.5M233.5 5v14.5M248.5 4.5v15M263.5 8.5v7.5M278.5 10v4"/><path d="M13.5 4.5v15M28.5 5.5v13M43.5 9.5v5.5M58.5 10v4M73.5 6.5v11M88.5 5v14M103.5 6v12M118.5 9.5v5M133.5 10.5v3.5M148.5 8v8M163.5 5v14M178.5 6.5v11.5M193.5 9.5v5.5M208.5 10v4.5M223.5 7v10.5M238.5 3v18.5M253.5 5.5v13.5M268.5 9.5v5M283.5 10v4"/></svg><svg class="glyph"><use href="#g-sound"/></svg></div>
+            </div>
+          </div>
+          <footer class="bay__foot"><h3 class="bay__name" id="dc-hear-t"><svg class="glyph" aria-hidden="true"><use href="#g-sound"/></svg>Hear the Mac too</h3><span class="chip dc-switch"><i class="lamp on"></i><span class="vh">Its switch in Settings: </span>HEAR THE MAC’S SOUND TOO</span><span class="bay__line">Switch it on, and the other side of a call, or a video, is written down&nbsp;too.</span></footer>
+        </article>
+        <!-- The Mac's sound over time: off while you talk, back when you stop. -->
+        <article class="bay dc-opt dc-quiet rv" aria-labelledby="dc-mute-t">
+          <div class="bay__stage" aria-hidden="true">
+            <div class="dc-lanes">
+              <p class="dc-lane"><span>YOU</span><svg viewBox="0 0 200 28" preserveAspectRatio="none"><path class="dc-lane__off" d="M2.5 14v0M7.5 14v0M12.5 14v0M17.5 14v0M22.5 14v0M27.5 14v0M32.5 14v0M37.5 14v0M42.5 14v0M47.5 14v0M52.5 14v0M147.5 14v0M152.5 14v0M157.5 14v0M162.5 14v0M167.5 14v0M172.5 14v0M177.5 14v0M182.5 14v0M187.5 14v0M192.5 14v0M197.5 14v0"/><path d="M57.5 5v18M62.5 7v14.5M67.5 8v12.5M72.5 11v6.5M77.5 11.5v5M82.5 11.5v5M87.5 11v6M92.5 12v4.5M97.5 11v6M102.5 8v12M107.5 7.5v13M112.5 7.5v13M117.5 8v12.5M122.5 8.5v11.5M127.5 11v6.5M132.5 7.5v13.5M137.5 8v12.5M142.5 9.5v9"/></svg></p>
+              <p class="dc-lane"><span>MAC</span><svg viewBox="0 0 200 28" preserveAspectRatio="none"><path class="dc-lane__off" d="M52.5 14v0M57.5 14v0M62.5 14v0M67.5 14v0M72.5 14v0M127.5 14v0M132.5 14v0M137.5 14v0M142.5 14v0M147.5 14v0"/><path d="M2.5 11.5v5M7.5 10v8.5M12.5 10v8M17.5 6.5v15.5M22.5 8v12M27.5 11v6M32.5 9.5v9M37.5 7v14.5M42.5 11v6M47.5 10.5v7M152.5 10.5v7.5M157.5 8v12M162.5 8.5v11M167.5 11v6.5M172.5 11.5v5.5M177.5 11.5v5.5M182.5 10v8.5M187.5 10.5v7.5M192.5 8.5v11M197.5 10.5v7.5"/></svg><b>MUTED</b></p>
+            </div>
+          </div>
+          <footer class="bay__foot"><h3 class="bay__name" id="dc-mute-t"><svg class="glyph" viewBox="0 0 16 14" aria-hidden="true"><use href="#dc-vol-off"/></svg>Mute the Mac</h3><span class="bay__line">The Mac’s sound goes off while you talk, then comes&nbsp;back.</span></footer>
+        </article>
+        <!-- A clipboard manager's list, without the dictation in it. -->
+        <article class="bay dc-opt dc-inc rv" aria-labelledby="dc-inc-t">
+          <div class="bay__stage" aria-hidden="true">
+            <div class="dc-clips">
+              <p class="dc-clips__h">Clipboard history</p>
+              <p class="dc-clips__gap">Your dictation<b>Skipped</b></p>
+              <p>See you at 7:30, north gate</p>
+              <p>invoice-0412.pdf</p>
+            </div>
+          </div>
+          <footer class="bay__foot"><h3 class="bay__name" id="dc-inc-t"><svg class="glyph" aria-hidden="true"><use href="#dc-hid"/></svg>Incognito</h3><span class="bay__line">Marked so clipboard managers skip it, and gone within&nbsp;90&nbsp;s.</span></footer>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- /@seg dictation -->
+
+<!-- ============================ 04 WINDOWS ============================ -->
+<!-- @seg windows -->
+<section class="seg" id="windows" aria-labelledby="windows-t">
+  <div class="wrap">
+    <header class="seg__head rv">
+      <p class="seg__kicker"><span class="seg__no">04</span><svg class="glyph" aria-hidden="true"><use href="#g-win"/></svg><span class="seg__name">Windows</span></p>
+      <h2 class="seg__title" id="windows-t">Swipe a window <span>into place.</span></h2>
+      <p class="seg__lede">Two fingers on its title bar, then swipe toward where it should go.</p>
+      <dl class="seg__facts">
+        <div><dt>Gestures</dt><dd>10</dd></div>
+        <div><dt>From lift to landed</dt><dd>51<small>ms, measured</small></dd></div>
+      </dl>
+      <p class="seg__chips"><span class="chip">Needs a trackpad</span><span class="chip">Off until you switch it on</span><span class="chip">Needs Accessibility</span></p>
+    </header>
+    <div class="seg__body">
+      <article class="bay bay--auto wn-bay rv" aria-labelledby="windows-bay">
+        <h3 class="bay__name vh" id="windows-bay">Try the ten gestures</h3>
+        <div class="bay__stage wn-stage">
+
+          <!-- The screen, first and largest: one window, its title bar, the pointer. Everything on it is drawn in the Mac's own
+               points on a 1512 × 982 sheet (.wn-sheet) and scaled as one. While two fingers swipe, the pointer becomes a small
+               picture of the screen; nothing else is drawn, on the window or anywhere. The window is a saved TextEdit file
+               (an untitled one with words in it would ask to be saved before a pinch could close it); its words are the
+               plan the Dictation demo dictates. -->
+          <div class="wn-view">
+            <div class="wn-mac" aria-hidden="true">
+              <div class="wn-screen">
+                <div class="wn-sheet">
+                  <div class="mbar">
+                    <span class="mbar__l"><i class="mbar__apple"></i><b>TextEdit</b><span>File</span><span>Edit</span><span>Format</span><span>View</span><span>Window</span><span>Help</span></span>
+                    <span class="mbar__r"><i class="mbar__batt" style="--b:.82"></i><svg class="mbar__cc"><use href="#g-cc"/></svg><i class="mbar__dot"></i><span class="mbar__clock">Tue 17 Nov 9:41</span></span>
+                  </div>
+                  <i class="wn-band"></i>
+                  <i class="wn-notch"><i class="ncam"></i></i>
+                  <div class="wn-win">
+                    <div class="wn-bar"><span class="tl is-front"><i></i><i></i><i></i></span><span class="wn-title">Plan.txt</span></div>
+                    <div class="wn-doc"><p>Plan for tomorrow</p><p>1. Ship the recording flow<br>2. Write up the benchmarks<br>3. Send the summary to the team before lunch</p></div>
+                  </div>
+                  <div class="wn-dock">
+                    <i class="is-run"></i><i></i><i></i><i class="is-app is-run"></i><i></i><i></i><i></i><i></i>
+                    <span class="wn-dock-sep"></span>
+                    <span class="wn-dock-min"><b><i></i></b></span>
+                    <svg class="wn-bin" viewBox="0 0 48 48"><path d="M11.5 13.5 14.4 37.2Q24 41.6 33.6 37.2L36.5 13.5"/><ellipse cx="24" cy="13.5" rx="12.5" ry="3.6"/><path d="M18 17.6 19.2 38.4M24 18.2V39.4M30 17.6 28.8 38.4"/></svg>
+                  </div>
+                  <span class="wn-ptr">
+                    <svg class="mptr" viewBox="0 0 14 20"><use href="#g-pointer"/></svg>
+                    <span class="wn-pic is-empty"><i></i></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <!-- stacked under the screen (a phone), the gesture being shown is named right here -->
+            <p class="wn-now" aria-hidden="true"><span class="wn-pic" style="--x:0;--y:0;--w:.5;--h:1"><i></i></span><b>Left half</b><span>Swipe left</span></p>
+          </div>
+
+          <!-- The control beside it: every gesture where its swipe points, the trackpad in the middle. -->
+          <div class="wn-map">
+            <div class="wn-keys">
+              <div class="wn-pad" role="group" aria-label="Swipes">
+                <button type="button" class="wn-key" data-p="tl" data-how="Swipe up and left" aria-label="Top left quarter: swipe up and left"><span class="wn-pic" style="--x:0;--y:0;--w:.5;--h:.5" aria-hidden="true"><i></i></span><span class="wn-name">Top left</span></button>
+                <button type="button" class="wn-key" data-p="fill" data-how="Swipe up" aria-label="Fill the screen: swipe up"><span class="wn-pic" style="--x:0;--y:0;--w:1;--h:1" aria-hidden="true"><i></i></span><span class="wn-name">Fill</span></button>
+                <button type="button" class="wn-key" data-p="tr" data-how="Swipe up and right" aria-label="Top right quarter: swipe up and right"><span class="wn-pic" style="--x:.5;--y:0;--w:.5;--h:.5" aria-hidden="true"><i></i></span><span class="wn-name">Top right</span></button>
+                <button type="button" class="wn-key is-on" data-p="left" data-how="Swipe left" aria-label="Left half: swipe left" aria-current="true"><span class="wn-pic" style="--x:0;--y:0;--w:.5;--h:1" aria-hidden="true"><i></i></span><span class="wn-name">Left half</span></button>
+                <div class="wn-tp" aria-hidden="true">
+                  <span class="wn-finger"><i class="wn-trail"></i><b class="wn-dot"></b></span>
+                  <span class="wn-finger"><i class="wn-trail"></i><b class="wn-dot"></b></span>
+                  <svg class="wn-hold" viewBox="0 0 60 60"><circle cx="30" cy="30" r="27"/></svg>
+                  <i class="wn-ring"></i><i class="wn-ring"></i>
+                  <span class="wn-tpname">Trackpad</span>
+                </div>
+                <button type="button" class="wn-key" data-p="right" data-how="Swipe right" aria-label="Right half: swipe right"><span class="wn-pic" style="--x:.5;--y:0;--w:.5;--h:1" aria-hidden="true"><i></i></span><span class="wn-name">Right half</span></button>
+                <button type="button" class="wn-key" data-p="bl" data-how="Swipe down and left" aria-label="Bottom left quarter: swipe down and left"><span class="wn-pic" style="--x:0;--y:.5;--w:.5;--h:.5" aria-hidden="true"><i></i></span><span class="wn-name">Bottom left</span></button>
+                <button type="button" class="wn-key" data-p="min" data-c="yellow" data-how="Swipe down" aria-label="Minimise: swipe down"><span class="wn-pic" style="--x:.2174;--y:.7143;--w:.5652;--h:.2857;--c:var(--sys-yellow)" aria-hidden="true"><i></i></span><span class="wn-name">Minimise</span></button>
+                <button type="button" class="wn-key" data-p="br" data-how="Swipe down and right" aria-label="Bottom right quarter: swipe down and right"><span class="wn-pic" style="--x:.5;--y:.5;--w:.5;--h:.5" aria-hidden="true"><i></i></span><span class="wn-name">Bottom right</span></button>
+              </div>
+              <div class="wn-more" role="group" aria-label="Full screen and close">
+                <button type="button" class="wn-key" data-p="full" data-c="green" data-how="Up, rest, push on" aria-label="Full screen: swipe up, rest, then push on"><span class="wn-pic is-whole" style="--c:var(--sys-green)" aria-hidden="true"><i></i></span><span class="wn-name">Full screen<small><span>Up, rest,</span> <span>push on</span></small></span></button>
+                <button type="button" class="wn-key" data-p="close" data-c="red" data-how="Pinch. Not the app." aria-label="Close window: pinch. Not the app."><span class="wn-pic is-whole" style="--c:var(--sys-red)" aria-hidden="true"><i></i></span><span class="wn-name">Close window<small><span>Pinch.</span> <span>Not the app.</span></small></span></button>
+              </div>
+              <p class="hint"><span class="when-point">Point at a gesture <br>to try it</span><span class="when-tap">Tap a gesture <br>to try it</span></p>
+            </div>
+          </div>
+          <p class="vh" aria-live="polite"></p>
+        </div>
+
+        <ol class="steps" role="list">
+          <li class="step"><span class="step__n" aria-hidden="true">1</span><span class="step__t">Point at a title bar</span></li>
+          <li class="step"><span class="step__n" aria-hidden="true">2</span><span class="step__t">Swipe with two fingers</span></li>
+          <li class="step"><span class="step__n" aria-hidden="true">3</span><span class="step__t"><span>See where it goes,</span> <span>feel a knock</span></span></li>
+          <li class="step is-on" style="--p:1"><span class="step__n" aria-hidden="true">4</span><span class="step__t">Lift: it lands</span></li>
+        </ol>
+      </article>
+    </div>
+  </div>
+</section>
+<!-- /@seg windows -->
+
+<!-- ============================ 05 KEYS ============================ -->
+<!-- @seg keys -->
+<section class="seg" id="keys" aria-labelledby="keys-t">
+  <div class="wrap">
+    <header class="seg__head rv">
+      <p class="seg__kicker"><span class="seg__no">05</span><svg class="glyph" aria-hidden="true"><use href="#g-key"/></svg><span class="seg__name">Keys</span></p>
+      <h2 class="seg__title" id="keys-t">Caps Lock, <span>four&nbsp;keys in&nbsp;one.</span></h2>
+      <p class="seg__lede">Notch makes it a hyper key: a modifier no app&nbsp;uses.</p>
+      <p class="seg__chips"><span class="chip">Off until you switch it on<span class="vh">.</span></span> <span class="chip">Needs Accessibility<span class="vh">.</span></span></p>
+    </header>
+    <div class="seg__body">
+      <!-- The markup is the still frame (what shows without script, with Reduce Motion, and while another scene plays):
+           the keys let go, D marked, the notch a dictation in mid-sentence. keys.js plays on from here. -->
+      <article class="bay bay--auto rv" data-scene="hyper" aria-labelledby="keys-hyper">
+        <div class="bay__stage hk__stage">
+          <div class="vn" data-state="voice" aria-hidden="true">
+            <div class="vn__shape">
+              <div class="vn__voice">
+                <div class="wings"><div class="wing wing--l"><i></i><i></i><i></i><i></i><i></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div><div class="wings__gap"></div><div class="wing wing--r"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div></div>
+                <div class="vbody"><div class="vread"><span class="vtime">0:02</span><span class="vwords">6 WORDS</span></div><i class="vsep"></i><div class="vtrans"><div class="vline"><span class="vword on">Two</span><span class="vword on">keys,</span><span class="vword on">and</span><span class="vword on">the</span><span class="vword on">Mac</span><span class="vword on cur">is</span><span class="vword">taking</span><span class="vword">notes</span></div></div></div>
+              </div>
+              <div class="vn__copied"><div class="vcopied"><span class="vc-l">COPIED</span><i class="vc-gap"></i><span class="vc-r">8 WORDS</span></div></div>
+            </div>
+          </div>
+          <div class="hk__eq" aria-hidden="true">
+            <div class="hk__part">
+              <div class="hk__key hk__key--caps"><i class="hk__led"></i><svg class="glyph hk__sign"><use href="#g-key"/></svg></div>
+              <span class="hk__op">=</span>
+              <div class="hk__mods">
+                <div class="hk__key hk__key--mod"><svg class="glyph hk__sign"><use href="#g-ctrl"/></svg><span class="hk__word">control</span></div>
+                <div class="hk__key hk__key--mod"><svg class="glyph hk__sign"><use href="#g-opt"/></svg><span class="hk__word">option</span></div>
+                <div class="hk__key hk__key--mod hk__key--shift"><svg class="glyph hk__sign"><use href="#g-shift"/></svg></div>
+                <div class="hk__key hk__key--mod hk__key--cmd"><svg class="glyph hk__sign"><use href="#g-cmd"/></svg><span class="hk__word">command</span></div>
+              </div>
+            </div>
+            <div class="hk__part">
+              <span class="hk__op">+</span>
+              <div class="hk__kb">
+                <div class="hk__row"><i>Q</i><i>W</i><i>E</i><i>R</i><i>T</i><i>Y</i><i>U</i><i>I</i><i>O</i><i>P</i></div>
+                <div class="hk__row"><i>A</i><i class="hk__s">S</i><i class="hk__d is-mark">D</i><i>F</i><i>G</i><i>H</i><i>J</i><i>K</i><i>L</i></div>
+                <div class="hk__row"><i>Z</i><i>X</i><i>C</i><i>V</i><i>B</i><i>N</i><i>M</i></div>
+              </div>
+            </div>
+          </div>
+          <p class="hk__say">Held with another key, Caps&nbsp;Lock counts as Control, Option, Shift and Command&nbsp;together.</p>
+        </div>
+        <ul class="steps hk__uses" role="list">
+          <li class="step is-on" style="--p:.37"><span class="keys" aria-hidden="true"><kbd class="kc"><svg class="glyph"><use href="#g-key"/></svg></kbd><kbd class="kc">D</kbd></span><span class="hk__use"><span class="vh">Caps Lock and D: </span><span>Dictation<span class="vh">.</span></span> <span class="pair__line">Ready as soon as the key is&nbsp;on.</span></span></li>
+          <li class="step"><span class="keys" aria-hidden="true"><kbd class="kc"><svg class="glyph"><use href="#g-key"/></svg></kbd><kbd class="kc">S</kbd></span><span class="hk__use"><span class="vh">Caps Lock and S, for one: </span><span>Notch’s other shortcuts<span class="vh">.</span></span> <span class="pair__line">Set any of them to Caps&nbsp;Lock in&nbsp;Settings.</span></span></li>
+          <li class="step"><span class="keys" aria-hidden="true"><kbd class="kc"><svg class="glyph"><use href="#g-key"/></svg></kbd><kbd class="kc kc--any"></kbd></span><span class="hk__use"><span class="vh">Caps Lock and any other key: </span><span>The rest<span class="vh">.</span></span> <span class="pair__line">Free to assign in any app, or&nbsp;in&nbsp;System&nbsp;Settings.</span></span></li>
+        </ul>
+        <footer class="bay__foot"><h3 class="bay__name" id="keys-hyper"><svg class="glyph" aria-hidden="true"><use href="#g-key"/></svg>Hyper key</h3><span class="bay__line">While it is on, Caps Lock stops locking capitals. It&nbsp;comes back when Notch&nbsp;quits.</span><span class="chip hk__switch"><i class="lamp on" aria-hidden="true"></i><span class="vh">Its switch in Settings: </span>CAPS LOCK IS HYPER KEY</span></footer>
+      </article>
+    </div>
+  </div>
+</section>
+<!-- /@seg keys -->
+
+<!-- ============================ 06 MIRROR ============================ -->
+<!-- @seg mirror -->
+<section class="seg" id="mirror" aria-labelledby="mirror-t">
+  <div class="wrap">
+    <header class="seg__head rv">
+      <p class="seg__kicker"><span class="seg__no">06</span><svg class="glyph" aria-hidden="true"><use href="#g-cam"/></svg><span class="seg__name">Mirror</span></p>
+      <h2 class="seg__title" id="mirror-t">See yourself <span>before they do.</span></h2>
+      <p class="seg__lede">Your camera in the notch, flipped like a mirror.</p>
+    </header>
+    <div class="seg__body">
+
+      <!-- One surface: the top of a Mac's screen at its real size (the shared menu bar; the battery equal to BAT), and the
+           panel open from the notch as the app draws it (Console.swift, Readouts.swift): the gauges, the camera's picture
+           under them (Camera.swift), the function bar. MIRROR is a real key here: it opens and closes the picture. The
+           camera runs only while the picture shows, and with it the green light beside the lens, the green dot in the
+           menu bar and the lamp in the foot (data-cam). The picture is drawn, never a real camera; the hero's mirror
+           shows the same drawing (#mr-room-art, #mr-me-art: keep both ids and the 464 by 261 frame). -->
+      <article class="bay rv mr-look" aria-labelledby="mr-look-t" data-panel="on" data-mirror="on" data-cam="on" data-ptr="key">
+        <div class="bay__stage mr-stage">
+          <div class="mr-scene">
+            <div class="mbar" aria-hidden="true">
+              <span class="mbar__l"><i class="mbar__apple"></i><b>Calendar</b><span>File</span><span>Edit</span><span>View</span><span>Window</span><span>Help</span></span>
+              <span class="mbar__r"><i class="mbar__batt" style="--b:.74"></i><svg class="mbar__cc"><use href="#g-cc"/></svg><i class="mbar__dot" data-on="cam"></i><span class="mbar__clock">Tue 17 Nov 9:41</span></span>
+            </div>
+            <div class="mr-panel">
+              <i class="mr-spot" aria-hidden="true"></i>
+              <div class="mr-shape">
+                <div class="mr-cap" aria-hidden="true"><i class="ncam"></i></div>
+                <div class="mr-open"><div class="mr-open__in"><div class="mr-readouts">
+                  <div class="mr-body" aria-hidden="true">
+                    <div class="mr-gauges">
+                      <div class="gauge"><span class="gauge__h">MEM</span><span class="gauge__row"><span class="gauge__n">61</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:6"></i></div>
+                      <div class="gauge"><span class="gauge__h">CPU</span><span class="gauge__row"><span class="gauge__n">18</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:2"></i></div>
+                      <div class="gauge"><span class="gauge__h">TEMP</span><span class="gauge__row"><span class="gauge__n">44</span><span class="gauge__u">°C</span></span><i class="bar10" style="--lit:4"></i></div>
+                      <div class="gauge"><span class="gauge__h">SWAP</span><span class="gauge__row"><span class="gauge__n">0.8</span><span class="gauge__u">GB</span></span><i class="bar10" style="--lit:1"></i></div>
+                      <div class="gauge"><span class="gauge__h">BAT</span><span class="gauge__row"><span class="gauge__n">74</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:7"></i></div>
+                    </div>
+                    <div class="mr-fold"><div class="mr-fold__in"><div class="mr-fold__pad">
+                      <div class="cam mr-cam">
+                      <svg class="cam__room" viewBox="0 0 464 261" preserveAspectRatio="xMidYMid slice" focusable="false">
+                        <defs>
+                          <linearGradient id="mr-wall" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0" stop-color="#100d0b"/><stop offset=".42" stop-color="#1c1510"/><stop offset=".78" stop-color="#2e2016"/><stop offset="1" stop-color="#382618"/>
+                          </linearGradient>
+                          <radialGradient id="mr-warm" gradientUnits="userSpaceOnUse" cx="404" cy="58" r="300">
+                            <stop offset="0" stop-color="#ffc283" stop-opacity=".62"/><stop offset=".22" stop-color="#f0a465" stop-opacity=".3"/><stop offset=".55" stop-color="#c47a45" stop-opacity=".1"/><stop offset="1" stop-color="#c47a45" stop-opacity="0"/>
+                          </radialGradient>
+                          <linearGradient id="mr-ceil" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0" stop-color="#000" stop-opacity=".5"/><stop offset=".32" stop-color="#000" stop-opacity="0"/>
+                          </linearGradient>
+                          <radialGradient id="mr-shade" cx=".5" cy=".62" r=".7">
+                            <stop offset="0" stop-color="#fff7e6"/><stop offset=".5" stop-color="#ffd69a"/><stop offset="1" stop-color="#e68e48"/>
+                          </radialGradient>
+                          <radialGradient id="mr-bloom" cx=".5" cy=".5" r=".5">
+                            <stop offset="0" stop-color="#ffe2b4" stop-opacity=".6"/><stop offset=".38" stop-color="#ffbd76" stop-opacity=".18"/><stop offset="1" stop-color="#ffbd76" stop-opacity="0"/>
+                          </radialGradient>
+                          <filter id="mr-f8" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="8"/></filter>
+                          <filter id="mr-f4" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4"/></filter>
+                          <filter id="mr-f2" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2"/></filter>
+                        </defs>
+                        <g id="mr-room-art">   <!-- also shown by the hero's mirror (index.html #hero-mirror) -->
+                        <rect width="464" height="261" fill="url(#mr-wall)"/>
+                        <rect width="464" height="261" fill="url(#mr-warm)"/>
+                        <!-- a bookshelf, out of focus -->
+                        <g filter="url(#mr-f4)">
+                          <rect x="-24" y="-12" width="156" height="290" fill="#0c0908"/>
+                          <rect x="128" y="-12" width="8" height="290" fill="#2a1f16"/>
+                          <rect x="-24" y="60" width="160" height="7" fill="#3a2b1f"/>
+                          <rect x="-24" y="136" width="160" height="7" fill="#33261c"/>
+                          <rect x="-24" y="212" width="160" height="7" fill="#2b2018"/>
+                          <rect x="2" y="22" width="9" height="38" fill="#5a2e24"/>
+                          <rect x="12" y="17" width="7" height="43" fill="#7e5d38"/>
+                          <rect x="20" y="26" width="11" height="34" fill="#2c3848"/>
+                          <rect x="32" y="20" width="6" height="40" fill="#a39272"/>
+                          <rect x="39" y="24" width="9" height="36" fill="#47324c"/>
+                          <rect x="52" y="29" width="8" height="33" fill="#6a3b2a" transform="rotate(16 56 60)"/>
+                          <rect x="88" y="40" width="18" height="20" rx="3" fill="#b9a688" opacity=".7"/>
+                          <rect x="6" y="100" width="10" height="36" fill="#38483c"/>
+                          <rect x="17" y="94" width="8" height="42" fill="#95744a"/>
+                          <rect x="26" y="98" width="7" height="38" fill="#672a25"/>
+                          <rect x="34" y="104" width="12" height="32" fill="#c2b292" opacity=".75"/>
+                          <rect x="72" y="112" width="40" height="24" fill="#29231e"/>
+                          <rect x="4" y="176" width="9" height="36" fill="#45352a"/>
+                          <rect x="14" y="170" width="11" height="42" fill="#2b3442"/>
+                        </g>
+                        <!-- a plant by the lamp -->
+                        <g filter="url(#mr-f8)">
+                          <ellipse cx="428" cy="150" rx="34" ry="15" fill="#283b21" transform="rotate(-38 428 150)"/>
+                          <ellipse cx="454" cy="196" rx="32" ry="14" fill="#1d2e18" transform="rotate(24 454 196)"/>
+                          <ellipse cx="404" cy="214" rx="28" ry="12" fill="#2d4325" transform="rotate(-62 404 214)"/>
+                          <ellipse cx="446" cy="120" rx="22" ry="10" fill="#3b582c" transform="rotate(-72 446 120)"/>
+                          <ellipse cx="418" cy="176" rx="20" ry="9" fill="#485f31" transform="rotate(-20 418 176)"/>
+                        </g>
+                        <!-- the lamp -->
+                        <circle cx="404" cy="60" r="90" fill="url(#mr-bloom)"/>
+                        <path d="M384 36h40l8 44h-56z" fill="url(#mr-shade)" filter="url(#mr-f2)"/>
+                        <rect x="402" y="80" width="4" height="96" fill="#140e0a" filter="url(#mr-f2)"/>
+                        <!-- lights out of focus -->
+                        <g fill="#ffd9a8" filter="url(#mr-f2)">
+                          <circle cx="160" cy="22" r="7" opacity=".08"/>
+                          <circle cx="178" cy="36" r="5" opacity=".06"/>
+                          <circle cx="318" cy="16" r="6" opacity=".09"/>
+                          <circle cx="346" cy="108" r="8" opacity=".06"/>
+                        </g>
+                        <rect width="464" height="261" fill="url(#mr-ceil)"/>
+                        </g>
+                      </svg>
+                      <svg class="cam__me mr-me" viewBox="0 0 464 261" preserveAspectRatio="xMidYMid slice" focusable="false">
+                        <defs>
+                          <linearGradient id="mr-knit" gradientUnits="userSpaceOnUse" x1="118" y1="0" x2="340" y2="0">
+                            <stop offset="0" stop-color="#181a1f"/><stop offset=".42" stop-color="#1f2228"/><stop offset=".76" stop-color="#292d35"/><stop offset="1" stop-color="#333840"/>
+                          </linearGradient>
+                          <linearGradient id="mr-neck" gradientUnits="userSpaceOnUse" x1="202" y1="0" x2="256" y2="0">
+                            <stop offset="0" stop-color="#4c2d21"/><stop offset=".42" stop-color="#764834"/><stop offset=".82" stop-color="#a67053"/><stop offset="1" stop-color="#b57c5d"/>
+                          </linearGradient>
+                          <linearGradient id="mr-under" gradientUnits="userSpaceOnUse" x1="0" y1="150" x2="0" y2="194">
+                            <stop offset="0" stop-color="#2a150d" stop-opacity=".34"/><stop offset="1" stop-color="#2a150d" stop-opacity=".1"/>
+                          </linearGradient>
+                          <linearGradient id="mr-skin" gradientUnits="userSpaceOnUse" x1="191.5" y1="0" x2="266.5" y2="0">
+                            <stop offset="0" stop-color="#7a4936"/><stop offset=".18" stop-color="#985f46"/><stop offset=".38" stop-color="#b97b5c"/><stop offset=".58" stop-color="#cf916c"/><stop offset=".8" stop-color="#e2a882"/><stop offset="1" stop-color="#dba079"/>
+                          </linearGradient>
+                          <linearGradient id="mr-jaw" gradientUnits="userSpaceOnUse" x1="0" y1="112" x2="0" y2="155">
+                            <stop offset="0" stop-color="#3b2016" stop-opacity="0"/><stop offset="1" stop-color="#3b2016" stop-opacity=".4"/>
+                          </linearGradient>
+                          <linearGradient id="mr-fore" gradientUnits="userSpaceOnUse" x1="0" y1="56" x2="0" y2="88">
+                            <stop offset="0" stop-color="#2a150d" stop-opacity=".55"/><stop offset="1" stop-color="#2a150d" stop-opacity="0"/>
+                          </linearGradient>
+                          <linearGradient id="mr-hair" gradientUnits="userSpaceOnUse" x1="165" y1="0" x2="296" y2="0">
+                            <stop offset="0" stop-color="#1a110c"/><stop offset=".45" stop-color="#21160f"/><stop offset=".8" stop-color="#2e1f15"/><stop offset="1" stop-color="#432b1b"/>
+                          </linearGradient>
+                          <linearGradient id="mr-rim" gradientUnits="userSpaceOnUse" x1="0" y1="34" x2="0" y2="200">
+                            <stop offset="0" stop-color="#f0b877" stop-opacity="0"/><stop offset=".14" stop-color="#f0b877" stop-opacity=".6"/><stop offset=".6" stop-color="#e6a868" stop-opacity=".46"/><stop offset="1" stop-color="#d99a5c" stop-opacity=".3"/>
+                          </linearGradient>
+                          <radialGradient id="mr-iris"><stop offset="0" stop-color="#150b07"/><stop offset=".55" stop-color="#2a180f"/><stop offset="1" stop-color="#3d2617"/></radialGradient>
+                          <clipPath id="mr-face"><path d="M229 48C250 48 264.6 66 266 94C266.5 108 262.8 121 256.9 132.5C251.4 142.5 242.3 150.6 235.4 153C231.3 154.3 226.7 154.3 222.6 153C215.7 150.6 206.6 142.5 201.1 132.5C195.2 121 191.5 108 192 94C193.4 66 208 48 229 48Z"/></clipPath>
+                          <clipPath id="mr-eye-l"><path d="M205 100.6C207.5 97.6 211 96.6 213.5 96.8C216.5 97 219 98.8 220.3 101.3C218 102.4 215.5 102.7 212.8 102.6C209.8 102.5 207 101.8 205 100.6Z"/></clipPath>
+                          <clipPath id="mr-eye-r"><path d="M253 100.6C250.5 97.6 247 96.6 244.5 96.8C241.5 97 239 98.8 237.7 101.3C240 102.4 242.5 102.7 245.2 102.6C248.2 102.5 251 101.8 253 100.6Z"/></clipPath>
+                          <clipPath id="mr-torso"><path d="M118 270C118 252 120 238 125 227C129 218 134 211 142 206C160 198 180 191 195 181C205 189.5 217 193.5 229 193.5C241 193.5 253 189.5 263 181C278 191 298 198 316 206C324 211 329 218 333 227C338 238 340 252 340 270Z"/></clipPath>
+                          <clipPath id="mr-throat"><path d="M203.5 134C203.5 150 204.5 161 202 176C209 190.5 218.5 196.5 229 196.5C239.5 196.5 249 190.5 256 176C253.5 161 254.5 150 254.5 134Z"/></clipPath>
+                          <!-- soft edges, each over the whole figure so that nothing a blur spreads is cut off -->
+                          <filter id="mr-s9" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="12"/></filter>
+                          <filter id="mr-s4" filterUnits="userSpaceOnUse" x="100" y="10" width="260" height="270"><feGaussianBlur stdDeviation="4"/></filter>
+                          <filter id="mr-s3" filterUnits="userSpaceOnUse" x="100" y="10" width="260" height="270"><feGaussianBlur stdDeviation="2.6"/></filter>
+                          <filter id="mr-s2" filterUnits="userSpaceOnUse" x="100" y="10" width="260" height="270"><feGaussianBlur stdDeviation="1.8"/></filter>
+                          <filter id="mr-s1" filterUnits="userSpaceOnUse" x="100" y="10" width="260" height="270"><feGaussianBlur stdDeviation=".9"/></filter>
+                          <filter id="mr-s0" filterUnits="userSpaceOnUse" x="100" y="10" width="260" height="270"><feGaussianBlur stdDeviation=".45"/></filter>
+                          <!-- the camera's own softness, and a little of its noise, which also keeps the dark gradients from banding -->
+                          <filter id="mr-lens" filterUnits="userSpaceOnUse" x="-10" y="-10" width="484" height="290" color-interpolation-filters="sRGB">
+                            <feGaussianBlur stdDeviation=".5" result="b"/>
+                            <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="2" seed="4"/>
+                            <feColorMatrix values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0 1"/>
+                            <feComposite in2="b" operator="in" result="n"/>
+                            <feComposite in="b" in2="n" operator="arithmetic" k1="0" k2="1" k3=".05" k4="-.025"/>
+                          </filter>
+                        </defs>
+                        <g id="mr-me-art" filter="url(#mr-lens)">   <!-- also shown by the hero's mirror -->
+                          <ellipse cx="178" cy="156" rx="56" ry="100" fill="#000" opacity=".2" filter="url(#mr-s9)"/>
+                          <!-- the hair behind the neck, falling behind the shoulders -->
+                          <g transform="rotate(-1.5 229 164)">
+                            <g filter="url(#mr-s1)">
+                              <path d="M229 32.4C207 32.4 187 48 182 77C179 97 180 118 178.4 140C177 158 172 176 167 196L167 214L293 214L293 196C289 176 285 158 282.6 140C280 118 280 96 276 77C271 48 251 32.4 229 32.4Z" fill="url(#mr-hair)"/>
+                              <path d="M182 77C179 97 180 118 178.4 140C177 158 172 176 167 196" fill="none" stroke="#6a584c" stroke-width="1.6" opacity=".22"/>
+                            </g>
+                          </g>
+                          <!-- shoulders in a dark knit: the lamp on the far one -->
+                          <path d="M118 270C118 252 120 238 125 227C129 218 134 211 142 206C160 198 180 191 195 181C205 189.5 217 193.5 229 193.5C241 193.5 253 189.5 263 181C278 191 298 198 316 206C324 211 329 218 333 227C338 238 340 252 340 270Z" fill="url(#mr-knit)"/>
+                          <g clip-path="url(#mr-torso)">
+                            <g filter="url(#mr-s4)">
+                              <ellipse cx="216" cy="204" rx="50" ry="10" fill="#04060a" opacity=".2"/>
+                              <ellipse cx="306" cy="213" rx="26" ry="7" fill="#5d687c" opacity=".2" transform="rotate(24 306 213)"/>
+                              <ellipse cx="150" cy="250" rx="22" ry="30" fill="#020304" opacity=".3"/>
+                            </g>
+                            <path d="M127 224C131 215 136 210 144 206C162 198 180 191 194 182" fill="none" stroke="#5a6472" stroke-width="3" opacity=".4" filter="url(#mr-s2)"/>
+                          </g>
+                          <path d="M295 197C304 200.4 311 203.6 316 206C324 211 329 218 333 227" fill="none" stroke="#d9aa7c" stroke-width="2" opacity=".34" filter="url(#mr-s1)"/>
+                          <!-- the neck, in the jaw's shadow -->
+                          <path d="M203.5 134C203.5 150 204.5 161 202 176C209 190.5 218.5 196.5 229 196.5C239.5 196.5 249 190.5 256 176C253.5 161 254.5 150 254.5 134Z" fill="url(#mr-neck)"/>
+                          <g clip-path="url(#mr-throat)">
+                            <path d="M196 132C208 150 219 156 229 156C239 156 250 150 262 132L262 152C251 168 240 175 229 175C218 175 207 168 196 152Z" fill="#1c0e09" opacity=".44" filter="url(#mr-s4)"/>
+                            <rect x="196" y="130" width="66" height="70" fill="url(#mr-under)"/>
+                            <ellipse cx="248.5" cy="171" rx="4" ry="10" fill="#e0a27c" opacity=".22" filter="url(#mr-s2)"/>
+                          </g>
+                          <!-- the knit's collar -->
+                          <path d="M193 179.5C203 195.5 216 200.5 229 200.5C242 200.5 255 195.5 265 179.5L259.4 176.2C251 189.4 240 193.6 229 193.6C218 193.6 207 189.4 198.6 176.2Z" fill="#191c21"/>
+                          <path d="M198.6 176.2C207 189.4 218 193.6 229 193.6C240 193.6 251 189.4 259.4 176.2" fill="none" stroke="#3a414c" stroke-width="1" opacity=".7"/>
+                          <!-- the head, tilted a touch -->
+                          <g transform="rotate(-1.5 229 164)">
+                            <path d="M229 48C250 48 264.6 66 266 94C266.5 108 262.8 121 256.9 132.5C251.4 142.5 242.3 150.6 235.4 153C231.3 154.3 226.7 154.3 222.6 153C215.7 150.6 206.6 142.5 201.1 132.5C195.2 121 191.5 108 192 94C193.4 66 208 48 229 48Z" fill="url(#mr-skin)"/>
+                            <g clip-path="url(#mr-face)">
+                              <rect x="186" y="110" width="86" height="48" fill="url(#mr-jaw)"/>
+                              <rect x="186" y="46" width="86" height="44" fill="url(#mr-fore)"/>
+                              <g filter="url(#mr-s4)">
+                                <ellipse cx="197.5" cy="112" rx="8" ry="36" fill="#1a0d09" opacity=".2"/>
+                                <ellipse cx="208" cy="110" rx="13" ry="30" fill="#8090b8" opacity=".07"/>
+                                <ellipse cx="250.5" cy="109" rx="8.5" ry="10" fill="#ffd2aa" opacity=".18"/>
+                                <ellipse cx="236" cy="78" rx="12" ry="6" fill="#f6c7a2" opacity=".14"/>
+                                <ellipse cx="248" cy="118" rx="7.5" ry="5" fill="#cc6a52" opacity=".16"/>
+                                <ellipse cx="210" cy="118" rx="6.5" ry="5" fill="#b5563f" opacity=".12"/>
+                              </g>
+                              <!-- the hair's shadow on the cheeks -->
+                              <g fill="none" stroke-width="5" filter="url(#mr-s2)">
+                                <path d="M202.2 79C199.8 88 196.6 98 195.4 110C194.4 122 195.6 136 196.8 147" stroke="#1f0f09" opacity=".24"/>
+                                <path d="M256.4 78C261.4 87 263.4 98 264 110C264.6 124 263.2 136 262.6 147" stroke="#3a1f14" opacity=".3"/>
+                              </g>
+                            </g>
+                            <g transform="translate(0 -2.5)">
+                              <!-- the eye sockets, and the side of the nose away from the lamp -->
+                              <g filter="url(#mr-s2)">
+                                <ellipse cx="212.6" cy="98.6" rx="10.5" ry="6.2" fill="#2e170e" opacity=".3"/>
+                                <ellipse cx="245.4" cy="98.6" rx="10" ry="5.8" fill="#5a3425" opacity=".22"/>
+                                <path d="M224.6 96C224.2 103 223.6 110 223.2 116" fill="none" stroke="#3d2115" stroke-width="3" opacity=".26"/>
+                                <ellipse cx="231" cy="148" rx="6" ry="3" fill="#f0bb97" opacity=".2"/>
+                              </g>
+                              <!-- eyes, looking into the lens -->
+                              <g filter="url(#mr-s0)">
+                                <path d="M205 100.6C207.5 97.6 211 96.6 213.5 96.8C216.5 97 219 98.8 220.3 101.3C218 102.4 215.5 102.7 212.8 102.6C209.8 102.5 207 101.8 205 100.6Z" fill="#a9958a"/>
+                                <path d="M253 100.6C250.5 97.6 247 96.6 244.5 96.8C241.5 97 239 98.8 237.7 101.3C240 102.4 242.5 102.7 245.2 102.6C248.2 102.5 251 101.8 253 100.6Z" fill="#cfbbab"/>
+                                <g clip-path="url(#mr-eye-l)">
+                                  <circle cx="212.7" cy="99.8" r="3.2" fill="url(#mr-iris)"/>
+                                  <ellipse cx="212" cy="101" rx="1.8" ry="1.1" fill="#7a4f30" opacity=".5"/>
+                                  <circle cx="212.7" cy="99.8" r="1.35" fill="#070403"/>
+                                  <path d="M204.6 100.9C207.3 97.4 211 96.3 213.5 96.5C216.6 96.7 219.2 98.6 220.5 101.2" fill="none" stroke="#150b07" stroke-width="2.6" opacity=".4"/>
+                                </g>
+                                <g clip-path="url(#mr-eye-r)">
+                                  <circle cx="245.3" cy="99.8" r="3.2" fill="url(#mr-iris)"/>
+                                  <ellipse cx="244.6" cy="101" rx="1.8" ry="1.1" fill="#8a5a36" opacity=".55"/>
+                                  <circle cx="245.3" cy="99.8" r="1.35" fill="#070403"/>
+                                  <path d="M253.4 100.9C250.7 97.4 247 96.3 244.5 96.5C241.4 96.7 238.8 98.6 237.5 101.2" fill="none" stroke="#150b07" stroke-width="2.6" opacity=".32"/>
+                                </g>
+                                <circle cx="213.8" cy="98.7" r=".75" fill="#fff4e4" opacity=".8"/>
+                                <circle cx="246.4" cy="98.7" r=".75" fill="#fff4e4" opacity=".92"/>
+                                <path d="M204.6 100.9C207.3 97.4 211 96.3 213.5 96.5C216.6 96.7 219.2 98.6 220.5 101.2" fill="none" stroke="#1c110b" stroke-width="1.1" stroke-linecap="round"/>
+                                <path d="M253.4 100.9C250.7 97.4 247 96.3 244.5 96.5C241.4 96.7 238.8 98.6 237.5 101.2" fill="none" stroke="#1c110b" stroke-width="1.1" stroke-linecap="round"/>
+                                <path d="M205 100.6C207 101.8 209.8 102.5 212.8 102.6C215.5 102.7 218 102.4 220.3 101.3" fill="none" stroke="#5a3122" stroke-width=".6" opacity=".4"/>
+                                <path d="M253 100.6C251 101.8 248.2 102.5 245.2 102.6C242.5 102.7 240 102.4 237.7 101.3" fill="none" stroke="#7a4a35" stroke-width=".6" opacity=".35"/>
+                                <!-- the lids' creases -->
+                                <path d="M206 97.2C208.8 94.6 213 93.8 216.4 94.4C218.6 94.8 220 95.8 221 97.2" fill="none" stroke="#4a281a" stroke-width=".9" opacity=".42"/>
+                                <path d="M252 97.2C249.2 94.6 245 93.8 241.6 94.4C239.4 94.8 238 95.8 237 97.2" fill="none" stroke="#6a3c29" stroke-width=".9" opacity=".36"/>
+                                <!-- brows -->
+                                <path d="M221.8 92.5C218.4 90.7 214 89.7 209.8 89.7C206.8 89.7 204.2 90.5 202.4 91.8C203.6 89.2 206.4 87.4 210 87.1C214.4 86.9 218.8 87.9 221.6 89.6C222.4 90.4 222.4 91.7 221.8 92.5Z" fill="#22140d" opacity=".8"/>
+                                <path d="M236.2 92.5C239.6 90.7 244 89.7 248.2 89.7C251.2 89.7 253.8 90.5 255.6 91.8C254.4 89.2 251.6 87.4 248 87.1C243.6 86.9 239.2 87.9 236.4 89.6C235.6 90.4 235.6 91.7 236.2 92.5Z" fill="#2a1910" opacity=".72"/>
+                              </g>
+                              <!-- nose -->
+                              <g filter="url(#mr-s1)">
+                                <path d="M230.4 99C230.8 105 230.8 110 230.4 114" fill="none" stroke="#ffd9b6" stroke-width="1.5" opacity=".22"/>
+                                <ellipse cx="230.4" cy="116.6" rx="3.2" ry="2.6" fill="#ffd8b4" opacity=".28"/>
+                                <ellipse cx="227.4" cy="124.6" rx="6.5" ry="2.2" fill="#4a281a" opacity=".2"/>
+                                <ellipse cx="231.6" cy="136" rx="4.4" ry="1.2" fill="#f0b6a2" opacity=".4"/>
+                                <ellipse cx="229.4" cy="141.6" rx="7" ry="1.9" fill="#5a3122" opacity=".3"/>
+                              </g>
+                              <g filter="url(#mr-s0)">
+                                <path d="M222.6 113C220.6 116.5 220.4 119.6 222.2 121.6C223.6 122.4 225 122 225.8 121" fill="none" stroke="#4a281a" stroke-width="1.1" opacity=".38"/>
+                                <path d="M236 113.4C237.8 116.6 238 119.4 236.4 121.4C235.2 122 234 121.8 233.2 121" fill="none" stroke="#6a3c29" stroke-width=".9" opacity=".25"/>
+                                <ellipse cx="225.2" cy="121.3" rx="1.9" ry="1" fill="#2c150d" opacity=".7" transform="rotate(-12 225.2 121.3)"/>
+                                <ellipse cx="233.8" cy="121.2" rx="1.75" ry=".95" fill="#2c150d" opacity=".55" transform="rotate(12 233.8 121.2)"/>
+                                <ellipse cx="229.4" cy="122.5" rx="5.6" ry="1.4" fill="#4a281a" opacity=".3"/>
+                                <!-- mouth: closed, the corners lifted -->
+                                <path d="M215.6 131.9C219.4 130.8 223.4 129.2 226 129.1C227.4 129.1 228.4 129.9 229.4 130C230.4 129.9 231.4 129.1 232.8 129.1C235.4 129.2 239.4 130.8 243.2 131.6C239.2 133.6 234.4 134.1 229.4 133.7C224.4 134.1 219.6 133.6 215.6 131.9Z" fill="#8a4f42" opacity=".82"/>
+                                <path d="M217.4 132.6C221.4 133.9 225.4 134.2 229.4 133.9C233.4 134.2 237.4 133.9 241.4 132.4C239.6 136.4 235.2 138.9 229.4 139C223.6 138.9 219.2 136.6 217.4 132.6Z" fill="#a3604f" opacity=".82"/>
+                                <path d="M215.6 131.9C219.6 133.6 224.4 134.1 229.4 133.7C234.4 134.1 239.2 133.6 243.2 131.6" fill="none" stroke="#3c1c16" stroke-width=".9" opacity=".7" stroke-linecap="round"/>
+                                <circle cx="215.2" cy="131.7" r="1.1" fill="#3c1c16" opacity=".35"/>
+                                <circle cx="243.6" cy="131.4" r="1" fill="#3c1c16" opacity=".28"/>
+                              </g>
+                            </g>
+                            <!-- the hair, one soft mass: parted left of centre, falling behind the shoulders -->
+                            <path d="M177.6 140C179 118 178 96 181 76C186 46 206 30 229 30.4C252 30 272 46 277 76C280 96 280 116 282 138C283.4 150 285.6 163 288.4 176L263.6 176C262.4 166 262.2 156 262.6 147C263.2 136 264.6 124 264 110C263.4 98 261.4 87 256.4 78C249 66 235 57.5 219.4 57C212 59.5 205.4 67.5 202.2 79C199.8 88 196.6 98 195.4 110C194.4 122 195.6 136 196.8 147C197.4 156 197.4 166 196.4 176L172.4 176C174.6 163 176.8 152 177.6 140Z" fill="url(#mr-hair)" filter="url(#mr-s1)"/>
+                            <!-- the light on it: the screen on the locks by the face, the lamp across the crown and down the far side -->
+                            <g filter="url(#mr-s3)">
+                              <ellipse cx="199" cy="172" rx="7" ry="22" fill="#070403" opacity=".5"/>
+                              <ellipse cx="259" cy="172" rx="7" ry="22" fill="#0b0604" opacity=".42"/>
+                            </g>
+                            <g fill="none" stroke-width="5" opacity=".3" filter="url(#mr-s3)">
+                              <path d="M188 86C185.8 104 185.8 124 186.6 146C186.8 158 185 170 182 184" stroke="#4d3a2c"/>
+                              <path d="M271 86C273.2 104 273.4 124 273.8 146C274.8 160 277.8 174 281.8 190" stroke="#7a563a"/>
+                              <path d="M215 42.4C230 38 250 41.4 263.4 56" stroke="#7a5a3e"/>
+                            </g>
+                            <g fill="none" stroke-linecap="round" filter="url(#mr-s1)">
+                              <path d="M219 57C220 49 223 41 227 34" stroke="#0d0806" stroke-width="1.2" opacity=".45"/>
+                              <path d="M222 56.5C237 58 249.4 66.5 255.6 79" stroke="#5a3e2a" stroke-width="1.6" opacity=".2"/>
+                              <path d="M217 58.4C209.8 62.6 205 71 202.6 82" stroke="#2e1f15" stroke-width="1.6" opacity=".3"/>
+                              <path d="M259.6 40.6C269.2 48.4 275 60 277 76C280 96 280 116 282 138C284.4 158 288.6 176 292.6 195" stroke="url(#mr-rim)" stroke-width="1.8"/>
+                            </g>
+                            <!-- the lamp's light caught in the outer strands: a soft band just inside the edge, not an outline -->
+                            <path d="M257.4 43.2C266.6 50.8 272.2 61.6 274.3 77C277.3 97 277.4 117 279.4 139C281.7 158 285.7 176 289.6 194" fill="none" stroke="url(#mr-rim)" stroke-width="4.6" stroke-linecap="round" opacity=".4" filter="url(#mr-s3)"/>
+                          </g>
+                        </g>
+                        <!-- a blink: the lids, drawn only while the camera runs here (mirror.css) -->
+                        <g transform="rotate(-1.5 229 164) translate(0 -2.5)" filter="url(#mr-s0)">
+                          <g class="mr-lid" opacity="0"><path d="M203.6 101C206.8 95.7 210.9 94.7 213.5 94.9C217.2 95.1 220.4 97.4 221.7 101.6C218.6 103 215.6 103.3 212.8 103.2C209.5 103.1 206.2 102.3 203.6 101Z" fill="#a36b53"/><path d="M205 100.8C207 102 209.8 102.7 212.8 102.8C215.5 102.9 218 102.6 220.3 101.5" fill="none" stroke="#1a0e09" stroke-width="1" stroke-linecap="round"/></g>
+                          <g class="mr-lid" opacity="0"><path d="M254.4 101C251.2 95.7 247.1 94.7 244.5 94.9C240.8 95.1 237.6 97.4 236.3 101.6C239.4 103 242.4 103.3 245.2 103.2C248.5 103.1 251.8 102.3 254.4 101Z" fill="#d49b78"/><path d="M253 100.8C251 102 248.2 102.7 245.2 102.8C242.5 102.9 240 102.6 237.7 101.5" fill="none" stroke="#1a0e09" stroke-width="1" stroke-linecap="round"/></g>
+                        </g>
+                      </svg>
+                        <i class="mr-dark"></i>
+                      </div>
+                    </div></div></div>
+                  </div>
+                  <div class="hairline" aria-hidden="true"></div>
+                  <div class="bar mr-bar">
+                    <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-shot"/></svg></span>
+                    <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-text"/></svg></span>
+                    <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-rec"/></svg></span>
+                    <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-dict"/></svg></span>
+                    <button class="cell mr-key is-hot" type="button" aria-label="Mirror" aria-pressed="true"><svg class="glyph" aria-hidden="true"><use href="#g-cam"/></svg><span class="name">MIRROR</span></button>
+                    <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-top"/></svg></span>
+                    <span class="cell" aria-hidden="true"><svg class="glyph"><use href="#g-set"/></svg></span>
+                  </div>
+                </div></div></div>
+              </div>
+              <svg class="mptr mr-ptr" viewBox="0 0 14 20" aria-hidden="true" focusable="false"><use href="#g-pointer"/></svg>
+            </div>
+          </div>
+          <p class="hint mr-hint"><span class="when-point">Press MIRROR</span><span class="when-tap">Tap MIRROR</span></p>
+        </div>
+        <footer class="bay__foot"><h3 class="bay__name" id="mr-look-t"><i class="mr-lamp" aria-hidden="true"></i>Camera</h3><span class="bay__line">On only while the mirror shows.</span></footer>
+      </article>
+
+    </div>
+  </div>
+</section>
+<!-- /@seg mirror -->
+
+<!-- ============================ 07 TRANSCRIBE ============================ -->
+<!-- @seg transcribe -->
+<section class="seg" id="transcribe" aria-labelledby="transcribe-t">
+  <!-- Transcribe's own drawing: a frame of the interview (made up), two people at their microphones, lit from behind.
+       It is the video in QuickTime Player and, small, its picture on the Desktop. -->
+  <svg class="sprite" aria-hidden="true" focusable="false"><defs>
+    <symbol id="tx-frame" viewBox="0 0 464 261">
+      <defs>
+        <radialGradient id="tx-f-back" cx="233" cy="118" r="260" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#a48a72"/><stop offset=".2" stop-color="#6b5848"/><stop offset=".48" stop-color="#352c25"/><stop offset=".8" stop-color="#17130f"/><stop offset="1" stop-color="#0e0c0a"/></radialGradient>
+        <filter id="tx-f-far" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+        <filter id="tx-f-rim" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.2"/></filter>
+        <filter id="tx-f-edge" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation=".5"/></filter>
+        <g id="tx-f-him"><path d="M112 192C112 176 104 162 103 146C101 118 110 92 132 80C152 69 180 72 192 92C197 100 198 108 197 114C200 118 203 122 206 128C208 132 207 134 203 135C203 138 204 141 202 143C203 146 202 149 199 151C199 157 194 161 187 161C181 161 176 163 174 169C172 177 173 182 176 188C196 192 216 206 226 232L232 261L60 261C62 228 82 202 112 192Z"/></g>
+        <g id="tx-f-her"><path d="M354 188C354 172 362 158 363 142C365 114 356 88 334 76C314 65 286 68 274 88C269 96 268 104 269 110C266 114 263 118 260 124C258 128 259 130 263 131C263 134 262 137 264 139C263 142 264 145 267 147C267 153 272 157 279 157C285 157 290 159 292 165C294 173 293 178 290 184C270 188 250 202 240 228L234 261L406 261C404 224 384 198 354 188Z"/><path d="M332 72C362 76 382 102 381 138C380 162 372 182 362 196L350 190C356 176 352 120 332 72Z"/></g>
+      </defs>
+      <rect width="464" height="261" fill="url(#tx-f-back)"/>
+      <g filter="url(#tx-f-far)">
+        <rect x="10" y="28" width="58" height="190" fill="#120d0a" opacity=".8"/>
+        <rect x="16" y="70" width="46" height="5" fill="#4a3727"/><rect x="16" y="120" width="46" height="5" fill="#4a3727"/><rect x="16" y="170" width="46" height="5" fill="#4a3727"/>
+        <circle cx="420" cy="58" r="15" fill="#f3dcc2"/><rect x="418" y="72" width="5" height="160" fill="#110d0a"/>
+        <circle cx="236" cy="40" r="5" fill="#ffdcb0" opacity=".5"/><circle cx="96" cy="34" r="4" fill="#ffdcb0" opacity=".35"/><circle cx="372" cy="196" r="5" fill="#ffdcb0" opacity=".25"/>
+      </g>
+      <g transform="translate(20.3 36.5) scale(.86)"><use href="#tx-f-him" fill="#dcc0a2" opacity=".55" transform="translate(2 -1)" filter="url(#tx-f-rim)"/><use href="#tx-f-him" fill="#0e0b09" filter="url(#tx-f-edge)"/></g>
+      <g transform="translate(44.9 36.5) scale(.86)"><use href="#tx-f-her" fill="#dcc0a2" opacity=".55" transform="translate(-2 -1)" filter="url(#tx-f-rim)"/><use href="#tx-f-her" fill="#0e0b09" filter="url(#tx-f-edge)"/></g>
+      <g fill="#0b0908" filter="url(#tx-f-edge)">
+        <path d="M206 261L209 178" stroke="#0b0908" stroke-width="2.6" fill="none"/><rect x="202" y="152" width="12" height="27" rx="6" transform="rotate(-26 208 165)"/>
+        <path d="M260 261L257 175" stroke="#0b0908" stroke-width="2.6" fill="none"/><rect x="251" y="148" width="12" height="27" rx="6" transform="rotate(26 257 161)"/>
+      </g>
+    </symbol>
+  </defs></svg>
+  <div class="wrap">
+    <header class="seg__head rv">
+      <p class="seg__kicker"><span class="seg__no">07</span><svg class="glyph" aria-hidden="true"><use href="#g-scribe"/></svg><span class="seg__name">Transcribe</span></p>
+      <h2 class="seg__title" id="transcribe-t">Any video. <span>Every word.</span></h2>
+      <p class="seg__lede">A video, a sound file or a link, written down on your&nbsp;Mac.</p>
+      <dl class="seg__facts">
+        <div><dt>Uploaded</dt><dd>0</dd></div>
+      </dl>
+    </header>
+    <div class="seg__body tx-body">
+      <!-- The top of a Mac's screen, 1 px to the point. A video on the Desktop (paused in QuickTime too) is dropped on the
+           notch, which widens into TRANSCRIBE's band, then its strip (Catch.swift, Meter.swift, Console.swift); the card
+           comes where a shot's card goes (TranscriptCard.swift), and its OPEN shows the text in TextEdit. The frame in the
+           markup is the result, which is also the still frame. transcribe.js plays the rest. -->
+      <article class="bay bay--auto tx rv" aria-labelledby="tx-t">
+        <h3 class="bay__name vh" id="tx-t">Transcribing a video</h3>
+        <p class="vh">Interview.mov, a video of two people talking, is dragged from the Desktop onto the notch, which widens: Drop to Transcribe. A strip beside the notch shows Transcribing and how far it has got. Then a card: Transcribed, saved to Documents / Scribe, with Copy, Open and Show. Open shows the text in TextEdit, each speaker named: Speaker 1, Speaker 2.</p>
+        <div class="bay__stage tx__stage" aria-hidden="true">
+          <div class="tx__cv" data-app="text" data-n="idle">
+            <div class="mbar">
+              <span class="mbar__l"><i class="mbar__apple"></i><b>TextEdit</b><span>File</span><span>Edit</span><span>Format</span><span>View</span><span>Window</span><span>Help</span></span>
+              <span class="mbar__r"><i class="mbar__batt" style="--b:.82"></i><svg class="mbar__cc"><use href="#g-cc"/></svg><i class="mbar__dot"></i><span class="mbar__clock">Tue 17 Nov 9:41</span></span>
+            </div>
+            <i class="tx-hole"></i>
+
+            <!-- the video, on the Desktop as Finder shows it: its picture, its name; selected, in this Mac's Graphite -->
+            <div class="tx-file is-sel"><svg class="tx-pic" viewBox="0 0 464 261"><use href="#tx-frame"/></svg><span class="tx-file__n">Interview.mov</span></div>
+
+            <!-- QuickTime Player, behind: the same video, paused. With the pointer away from it, a QuickTime window is the
+                 picture alone, with no title and no controls. -->
+            <div class="tx-qt"><svg viewBox="0 0 464 261"><use href="#tx-frame"/></svg></div>
+
+            <!-- TextEdit, in front: the text file, as Scribe writes it (a speaker's name on a line of its own) -->
+            <div class="tx-win">
+              <div class="tx-win__bar"><span class="tl is-front"><i></i><i></i><i></i></span><b>Interview.txt</b></div>
+              <div class="tx-doc">
+                <p>Speaker 1<br>Thanks for coming in. Let’s go back to the beginning: how did the bakery start?</p>
+                <p>Speaker 2<br>With one oven and a lot of early mornings. The first year I baked everything myself, and my sister ran the counter.</p>
+                <p>Speaker 1<br>And now?</p>
+                <p>Speaker 2<br>Now there are six of us. I still come in at five, though. Somebody has to taste the bread.</p>
+                <p>Speaker 1<br>What sells out first?</p>
+                <p>Speaker 2<br>The sourdough, every day by ten. We bake more of it every month, and it still goes.</p>
+                <p>Speaker 1<br>Is there a secret?</p>
+              </div>
+            </div>
+
+            <!-- what TRANSCRIBE left (TranscriptCard.swift): bottom left, 14 from the corner, 300 wide; 6 seconds, waiting
+                 while the pointer is on it -->
+            <div class="tx-card is-in">
+              <div class="tx-card__top"><span class="tx-card__h">TRANSCRIBED</span><span class="tx-card__t">Interview</span><span class="tx-card__s">SAVED TO DOCUMENTS / SCRIBE</span></div>
+              <div class="tx-card__keys"><span>COPY</span><span class="is-hot">OPEN</span><span>SHOW</span><span class="tx-card__x"><svg class="glyph"><use href="#g-x"/></svg></span></div>
+              <i class="tx-card__line" style="--left:.5"></i>
+            </div>
+
+            <!-- the notch, and what TRANSCRIBE makes of it: the band that catches a drop, the strip built like one wide gauge,
+                 DONE with the word count for two seconds -->
+            <div class="tx-n" data-state="idle">
+              <div class="tx-n__shape">
+                <div class="tx-n__band tx-n__drop"><span>DROP TO</span><i></i><span>TRANSCRIBE</span></div>
+                <div class="tx-n__work">
+                  <div class="tx-n__top"><span class="tx-n__stage">TRANSCRIBING</span><span class="tx-n__pc"><b>100</b>%</span></div>
+                  <i class="bar10 tx-n__segs" style="--lit:49"></i>
+                  <span class="tx-n__name">Interview</span>
+                </div>
+                <div class="tx-n__band tx-n__done"><span>DONE</span><i></i><span>2,148 WORDS</span></div>
+                <div class="tx-n__cam"><i class="ncam"></i></div>
+              </div>
+            </div>
+
+            <!-- the video while it is dragged, under the pointer -->
+            <div class="tx-ghost"><svg class="tx-pic" viewBox="0 0 464 261"><use href="#tx-frame"/></svg><span class="tx-file__n">Interview.mov</span></div>
+            <svg class="mptr" viewBox="0 0 14 20"><use href="#g-pointer"/></svg>
+          </div>
+        </div>
+        <ol class="steps tx__steps">
+          <li class="step"><span class="step__n" aria-hidden="true">1</span>Drop it on the notch</li>
+          <li class="step"><span class="step__n" aria-hidden="true">2</span>See how far it is</li>
+          <li class="step is-on" style="--p:1"><span class="step__n" aria-hidden="true">3</span>Each speaker named</li>
+        </ol>
+      </article>
+      <!-- the honest part: what it needs, and what a link does -->
+      <div class="tx-notes rv">
+        <p><b>Needs Scribe,</b> a free app that does the work. Without it, TRANSCRIBE&nbsp;hides.</p>
+        <p><b>A link?</b> Scribe fetches its sound, as a browser would; the words are still worked out on your&nbsp;Mac.</p>
+        <p><b>The first time,</b> Scribe fetches its speech models: about&nbsp;1&nbsp;GB.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- /@seg transcribe -->
+
+<!-- ============================ NEXT + OPEN SOURCE ============================ -->
+<!-- @seg more -->
+<!-- ============ BUILD A SEGMENT (#next): the panel as it is today, with one open cell in its function bar ============ -->
+<section class="seg" id="next" aria-labelledby="next-t">
+  <svg class="sprite" aria-hidden="true" focusable="false"><defs>
+    <symbol id="mo-dir" viewBox="0 0 16 16"><path d="M1.5 3H6.25L7.75 4.75H14.5V13.5H1.5Z"/></symbol>
+    <symbol id="mo-check" viewBox="0 0 16 16"><path d="M2.5 8.5L6.25 12.25L13.5 4.25"/></symbol>
+    <symbol id="mo-file" viewBox="0 0 16 16"><path d="M3.5 1.5H9.5L12.5 4.5V14.5H3.5ZM9.5 1.5V4.5H12.5"/></symbol>
+    <symbol id="mo-note" viewBox="0 0 16 16"><path d="M2 2.5H14V11H8L5 14V11H2Z"/></symbol>
+    <symbol id="mo-term" viewBox="0 0 16 16"><path d="M2.5 4.5L6.5 8L2.5 11.5M8.5 12H13.5"/></symbol>
+  </defs></svg>
+  <div class="wrap">
+    <header class="seg__head rv">
+      <p class="seg__kicker"><svg class="glyph" aria-hidden="true"><use href="#g-plus"/></svg><span class="seg__name">Build a segment</span></p>
+      <h2 class="seg__title" id="next-t">Room for more. <span>Propose yours.</span></h2>
+      <p class="seg__lede">Transcribe was an open slot here. Now&nbsp;it is&nbsp;a&nbsp;key.</p>
+    </header>
+    <div class="seg__body">
+      <article class="bay bay--auto rv nxt" id="nxt" aria-labelledby="nxt-n">
+        <div class="bay__stage nxt__stage">
+
+          <!-- The panel as it is today (Readouts.swift: the camera's band, the gauges, the hairline, and the function bar
+               SHOT TEXT REC DICTATE TRANSCRIBE MIRROR FREE SET), at its own size, with one open cell before SET, which is
+               always last, and the place where that cell's own view would open (where the mirror opens, 12 under the
+               gauges). The pointer rests on the cell the list beside it names: TRANSCRIBE then fills white with its name
+               and takes the room the name needs, the other cells sharing the rest, as the app's Cell does. -->
+          <p class="vh">The panel as it is today. Its function bar holds SHOT, TEXT, REC, DICTATE, TRANSCRIBE, MIRROR and FREE, then one open cell for a new segment, then SET.</p>
+          <div class="nxt__view" aria-hidden="true">
+            <div class="nxt__fit">
+              <div class="sp" data-slot="yours">
+                <div class="sp__cap"><i class="ncam"></i></div>
+                <div class="sp__top">
+                  <div class="sp__gauges">
+                    <span class="gauge"><span class="gauge__h">MEM</span><span class="gauge__row"><span class="gauge__n">63</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:6"></i></span>
+                    <span class="gauge"><span class="gauge__h">CPU</span><span class="gauge__row"><span class="gauge__n">27</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:3"></i></span>
+                    <span class="gauge"><span class="gauge__h">TEMP</span><span class="gauge__row"><span class="gauge__n">48</span><span class="gauge__u">°C</span></span><i class="bar10" style="--lit:5"></i></span>
+                    <span class="gauge"><span class="gauge__h">SWAP</span><span class="gauge__row"><span class="gauge__n">1.3</span><span class="gauge__u">GB</span></span><i class="bar10" style="--lit:2"></i></span>
+                    <span class="gauge"><span class="gauge__h">BAT</span><span class="gauge__row"><span class="gauge__n">82</span><span class="gauge__u">%</span></span><i class="bar10" style="--lit:8"></i></span>
+                  </div>
+                  <div class="sp__place"><span class="sp__plus"><svg class="glyph"><use href="#g-plus"/></svg></span><span>YOUR SEGMENT</span><i class="sp__caret"></i></div>
+                </div>
+                <div class="hairline"></div>
+                <div class="bar sp__bar">
+                  <span class="cell"><svg class="glyph"><use href="#g-shot"/></svg></span>
+                  <span class="cell"><svg class="glyph"><use href="#g-text"/></svg></span>
+                  <span class="cell"><svg class="glyph"><use href="#g-rec"/></svg></span>
+                  <span class="cell"><svg class="glyph"><use href="#g-dict"/></svg></span>
+                  <span class="cell sp__key" data-slot="scribe"><svg class="glyph"><use href="#g-scribe"/></svg><span class="name">TRANSCRIBE</span></span>
+                  <span class="cell"><svg class="glyph"><use href="#g-cam"/></svg></span>
+                  <span class="cell"><svg class="glyph"><use href="#g-top"/></svg></span>
+                  <span class="cell sp__open is-on" data-slot="yours"><svg class="glyph"><use href="#g-plus"/></svg></span>
+                  <span class="cell"><svg class="glyph"><use href="#g-set"/></svg></span>
+                </div>
+              </div>
+              <svg class="mptr nxt__ptr" viewBox="0 0 14 20"><use href="#g-pointer"/></svg>
+            </div>
+          </div>
+
+          <!-- What the two marked cells are. Pointing at one, or pressing it, puts the drawn pointer on its cell. -->
+          <div class="nxt__list" role="group" aria-label="The newest key and the open slot">
+            <button class="nxt__it" type="button" data-slot="scribe">
+              <span class="nxt__ic" aria-hidden="true"><svg class="glyph"><use href="#g-scribe"/></svg></span>
+              <span class="nxt__name pair__name">Transcribe</span>
+              <span class="nxt__tag">Built</span>
+              <span class="nxt__line pair__line">Videos and sound files, as&nbsp;text.</span>
+            </button>
+            <button class="nxt__it" type="button" data-slot="yours" aria-current="true">
+              <span class="nxt__ic nxt__ic--open" aria-hidden="true"><svg class="glyph"><use href="#g-plus"/></svg></span>
+              <span class="nxt__name pair__name">Your segment</span>
+              <span class="nxt__tag">Open</span>
+              <span class="nxt__line pair__line">The tool you wish it&nbsp;had.</span>
+            </button>
+          </div>
+        </div>
+        <footer class="bay__foot">
+          <h3 class="bay__name" id="nxt-n"><svg class="glyph" aria-hidden="true"><use href="#g-plus"/></svg>Open slot</h3>
+          <span class="bay__line">A new segment starts with an&nbsp;issue.</span>
+          <a class="btn btn--ghost btn--sm nxt__go" href="#source">How to build one</a>
+        </footer>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ OPEN SOURCE (#source): how a segment is built, in the repository's own terms (its CONTRIBUTING.md) ============ -->
+<section class="seg" id="source" aria-labelledby="source-t">
+  <div class="wrap">
+    <header class="seg__head rv">
+      <p class="seg__kicker"><svg class="glyph" aria-hidden="true"><use href="#g-code"/></svg><span class="seg__name">Open source</span></p>
+      <h2 class="seg__title" id="source-t">Read it. <span>Build on it.</span></h2>
+      <p class="seg__lede">In the code a segment is a part: a&nbsp;gauge, a&nbsp;tool or a&nbsp;setting.</p>
+      <dl class="seg__facts">
+        <div><dt>Swift files</dt><dd>71</dd></div>
+        <div><dt>Libraries</dt><dd>0</dd></div>
+        <div><dt>Network calls</dt><dd>0</dd></div>
+      </dl>
+    </header>
+    <div class="seg__body">
+      <div class="bays">
+
+        <!-- Three steps, each with its picture: the issue, the folder, the commands. A step is written before its picture
+             (so it is read first, and comes first on a phone); on a wide screen the stylesheet sets it under the picture,
+             along the bay's foot. -->
+        <article class="bay bay--auto rv how" id="how" aria-labelledby="how-n">
+          <h3 class="bay__name vh" id="how-n">How to build one</h3>
+          <ol class="how__list" data-at="all">
+
+            <li class="how__it">
+              <p class="step"><span class="step__n" aria-hidden="true">1</span><span>Open an issue with your&nbsp;idea</span></p>
+              <div class="how__pic">
+                <p class="vh">The issue says what the segment does, which kind it is, what you would see or hear, and any permission it needs. Then the maintainer says yes or no.</p>
+                <div class="kd is" aria-hidden="true">
+                  <p class="kd__top"><svg class="glyph"><use href="#mo-note"/></svg>Issue<span class="is__label">idea</span></p>
+                  <p class="is__title"><span data-type="Your segment">Your segment</span><i class="kd__caret"></i></p>
+                  <ul class="is__rows">
+                    <li><span>What it does</span><i style="--w:86%"></i></li>
+                    <li><span>Which kind</span><i style="--w:34%"></i></li>
+                    <li><span>What you see or hear</span><i style="--w:68%"></i></li>
+                    <li><span>Any permission</span><i style="--w:22%"></i></li>
+                  </ul>
+                  <p class="is__say"><span><span class="is__the">The </span>maintainer decides</span><span class="is__lamps"><span><i class="lamp"></i>Yes</span><span><i class="lamp"></i>No</span></span></p>
+                </div>
+              </div>
+            </li>
+
+            <!-- The source folder as it is (eleven folders, 71 Swift files, counted 17 Nov 2026 with Transcribe), and what a new
+                 tool adds: its own folder, its key in Readouts.swift and its picture in Glyphs.swift (CONTRIBUTING.md,
+                 "Proposing a new segment"). -->
+            <li class="how__it">
+              <p class="step"><span class="step__n" aria-hidden="true">2</span><span>Add a folder under <code>Sources/</code>, one&nbsp;subject per&nbsp;file</span></p>
+              <div class="how__pic">
+                <p class="vh">The Sources folder, by feature: Capture, Dictation, Keys, Panel for the numbers and the mirror, Recording, Transcribe and Windows. App, Settings, Shared and Style are shared by all. A new segment is a new folder beside them, such as YourSegment with YourSegment.swift. A tool is also wired in by hand: its key in Panel, in Readouts.swift, and its picture in Style, in Glyphs.swift.</p>
+                <div class="kd tr" aria-hidden="true">
+                  <p class="kd__top"><svg class="glyph"><use href="#mo-dir"/></svg>Sources</p>
+                  <ul class="tr__list">
+                    <li class="tr__row tr__row--core"><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n">App/</span></li>
+                    <li class="tr__row"><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n">Capture/</span><span class="tr__g"><svg class="glyph"><use href="#g-shot"/></svg><svg class="glyph"><use href="#g-text"/></svg><svg class="glyph"><use href="#g-zip"/></svg></span></li>
+                    <li class="tr__row"><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n">Dictation/</span><span class="tr__g"><svg class="glyph"><use href="#g-dict"/></svg></span></li>
+                    <li class="tr__row"><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n">Keys/</span><span class="tr__g"><svg class="glyph"><use href="#g-key"/></svg></span></li>
+                    <li class="tr__row"><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n">Panel/</span><span class="tr__g"><svg class="glyph"><use href="#g-num"/></svg><svg class="glyph"><use href="#g-top"/></svg><svg class="glyph"><use href="#g-cam"/></svg></span></li>
+                    <li class="tr__row tr__row--file tr__row--core"><i class="tr__el"></i><svg class="glyph tr__dir"><use href="#mo-file"/></svg><span class="tr__n">Readouts.swift</span><span class="tr__add" data-add>+ <span>its </span>key</span></li>
+                    <li class="tr__row"><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n">Recording/</span><span class="tr__g"><svg class="glyph"><use href="#g-rec"/></svg></span></li>
+                    <li class="tr__row tr__row--core"><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n">Settings/</span></li>
+                    <li class="tr__row tr__row--core"><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n">Shared/</span></li>
+                    <li class="tr__row tr__row--core"><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n">Style/</span></li>
+                    <li class="tr__row tr__row--file tr__row--core"><i class="tr__el"></i><svg class="glyph tr__dir"><use href="#mo-file"/></svg><span class="tr__n">Glyphs.swift</span><span class="tr__add" data-add>+ <span>its </span>picture</span></li>
+                    <li class="tr__row"><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n">Transcribe/</span><span class="tr__g"><svg class="glyph"><use href="#g-scribe"/></svg></span></li>
+                    <li class="tr__row"><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n">Windows/</span><span class="tr__g"><svg class="glyph"><use href="#g-win"/></svg></span></li>
+                    <li class="tr__row tr__row--new tr__row--last" data-new><i class="tr__frame"></i><svg class="glyph tr__dir"><use href="#mo-dir"/></svg><span class="tr__n"><span data-type="YourSegment/">YourSegment/</span><i class="kd__caret"></i></span></li>
+                    <li class="tr__row tr__row--new tr__row--file tr__row--after" data-new><i class="tr__el"></i><svg class="glyph tr__dir"><use href="#mo-file"/></svg><span class="tr__n">YourSegment.swift</span></li>
+                  </ul>
+                </div>
+              </div>
+            </li>
+
+            <!-- The repository's own three commands (CONTRIBUTING.md, "Build and run" and "Tests"), typed at a prompt. 109 is the
+                 number of @Test in Tests/LogicTests with Transcribe's two new files (88 at the last commit). -->
+            <li class="how__it">
+              <p class="step"><span class="step__n" aria-hidden="true">3</span><span><code>./build.sh</code>, try it, send a pull&nbsp;request</span></p>
+              <div class="how__pic">
+                <div class="kd tm">
+                  <p class="kd__top" aria-hidden="true"><svg class="glyph"><use href="#mo-term"/></svg>Terminal</p>
+                  <ul class="tm__list" aria-label="The commands">
+                    <li data-line><code>./build.sh</code> <span>makes Notch.app, in about 45&nbsp;s on an M1&nbsp;Pro</span></li>
+                    <li data-line><code>./test.sh</code> <span>runs 109 logic tests</span></li>
+                    <li data-line><code>scripts/rules.sh</code> <span>checks the rules: no&nbsp;network code, no&nbsp;library</span></li>
+                    <li class="tm__wait" aria-hidden="true"><code><span data-cmd></span><i class="kd__caret"></i></code></li>
+                  </ul>
+                </div>
+              </div>
+            </li>
+
+          </ol>
+        </article>
+
+        <!-- The rules every change keeps, as CONTRIBUTING.md states them, and the way in. -->
+        <article class="bay bay--auto rv rl" aria-labelledby="rl-n">
+          <div class="bay__stage rl__stage">
+            <ul class="rl__list" aria-label="The rules every change keeps">
+              <li><b class="pair__name">No libraries</b> <span class="pair__line">Only what ships with macOS and&nbsp;Swift.</span></li>
+              <li><b class="pair__name">No network code, no telemetry</b> <span class="pair__line">Notch itself cannot send&nbsp;anything.</span></li>
+              <li><b class="pair__name">Off by default</b> <span class="pair__line">If it needs a permission or changes how the Mac&nbsp;behaves.</span></li>
+            </ul>
+            <div class="rl__cta">
+              <a class="btn" href="https://github.com/WHATDOESTHEFOXSAY2U/notch" data-repo><svg class="glyph" aria-hidden="true"><use href="#g-code"/></svg>View source</a>
+              <a class="btn btn--ghost" href="https://github.com/WHATDOESTHEFOXSAY2U/notch/blob/main/CONTRIBUTING.md" data-repo data-repo-path="CONTRIBUTING.md">Contributing guide<svg class="glyph" aria-hidden="true"><use href="#g-out"/></svg></a>
+            </div>
+          </div>
+          <footer class="bay__foot">
+            <h3 class="bay__name" id="rl-n"><svg class="glyph" aria-hidden="true"><use href="#mo-check"/></svg>Rules</h3>
+            <span class="bay__line">Every change keeps them. A new segment&nbsp;too.</span>
+          </footer>
+        </article>
+
+      </div>
+    </div>
+  </div>
+</section>
+<!-- /@seg more -->
+
+<!-- ============================ GET ============================ -->
+<!-- @seg get -->
+<section class="sec" id="download" aria-labelledby="download-t">
+  <div class="wrap">
+    <div class="get rv">
+      <div class="get__main">
+        <img class="appicon" src="assets/icon-336.png" alt="The Notch app icon" width="112" height="112" loading="lazy" decoding="async">
+        <h2 id="download-t">Get Notch. <span>It’s free.</span></h2>
+        <p class="get__lede">Seven segments, in your notch.</p>
+        <div class="get__cta">
+          <!-- Shown by home.js on anything that is not a Mac: the share sheet, or the link copied. -->
+          <button class="btn btn--lg get__send" type="button" hidden>Send the link to my Mac</button>
+          <a class="btn btn--lg" href="https://github.com/WHATDOESTHEFOXSAY2U/notch/releases/latest/download/Notch.dmg" data-download>Download for Mac</a>
+          <a class="btn btn--ghost btn--lg" href="https://github.com/WHATDOESTHEFOXSAY2U/notch" data-repo><svg class="glyph" aria-hidden="true"><use href="#g-code"/></svg>View source</a>
+        </div>
+        <p class="get__sent" role="status"></p>
+        <!-- What it needs, then what you get (VERSION; du -sh of the app with Transcribe: 3.6 MB; scripts/rules.sh) -->
+        <ul class="get__facts micro" aria-label="Good to know">
+          <li>Apple silicon</li><li>macOS 26 or later</li><li>A notch is optional</li><li>Version 0.9</li><li>Under 4 MB</li><li>No network code</li>
+        </ul>
+        <!-- The README's Install steps 3 and 4, in one sentence (in step 5 macOS asks once more, with the same button).
+             It holds while releases are signed ad hoc and not notarized. -->
+        <p class="get__first">The first time, macOS says Apple could not verify it: click <b>Done</b>, then <b>Open&nbsp;Anyway</b> in System&nbsp;Settings&nbsp;› Privacy&nbsp;&amp;&nbsp;Security.</p>
+      </div>
+      <!-- What macOS asks, and when: the four permissions of the README's table that a person meets, in the page's own names
+           (a capture is SHOT, TEXT or REC; the Mirror is MIRROR; pasting is PASTE INTO ACTIVE TEXT BOX). -->
+      <div class="get__foot">
+        <div class="get__ask get__ask--h">
+          <h3 id="asks-t">Nothing asked at launch</h3>
+          <p>macOS asks at first use.</p>
+        </div>
+        <dl class="get__asks" aria-labelledby="asks-t">
+          <div class="get__ask"><dt><svg class="glyph" aria-hidden="true"><use href="#g-shot"/></svg>Screen Recording</dt><dd>At the first capture.</dd></div>
+          <div class="get__ask"><dt><svg class="glyph" aria-hidden="true"><use href="#g-dict"/></svg>Microphone</dt><dd>At the first dictation.</dd></div>
+          <div class="get__ask"><dt><svg class="glyph" aria-hidden="true"><use href="#g-cam"/></svg>Camera</dt><dd>When the Mirror first&nbsp;opens.</dd></div>
+          <div class="get__ask"><dt><svg class="glyph" aria-hidden="true"><use href="#g-key"/></svg>Accessibility</dt><dd>When you switch on pasting, the hyper&nbsp;key or&nbsp;swipes.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- /@seg get -->
+
+</main>
+
+<!-- @seg foot -->
+<footer class="foot">
+  <div class="wrap foot__in">
+    <p class="foot__brand"><img src="assets/icon-64.png" alt="" width="20" height="20" loading="lazy" decoding="async"><b>Notch</b><span class="foot__ver"><span>Version </span>0.9</span></p>
+    <div class="foot__note">
+      <p>Readings, names and file sizes in the demos are made up. Speeds measured on an M1&nbsp;Pro, November&nbsp;2026.</p>
+      <p>Built and used every day on one MacBook&nbsp;Pro (M1&nbsp;Pro, macOS&nbsp;27). Reports from other Macs are&nbsp;welcome.</p>
+      <p>Recording or transcribing a call can need the other people’s consent where you&nbsp;live.</p>
+    </div>
+    <nav class="foot__links" aria-label="Footer">
+      <a href="https://github.com/WHATDOESTHEFOXSAY2U/notch" data-repo>Source</a>
+      <a href="https://github.com/WHATDOESTHEFOXSAY2U/notch/blob/main/LICENSE">MIT license</a>
+      <a href="#top">Back to top</a>
+    </nav>
+  </div>
+</footer>
+<!-- /@seg foot -->
+
+<script src="app.js" defer></script>
+<script src="segments/hero.js" defer></script>
+<script src="segments/home.js" defer></script>
+<script src="segments/numbers.js" defer></script>
+<script src="segments/capture.js" defer></script>
+<script src="segments/dictation.js" defer></script>
+<script src="segments/windows.js" defer></script>
+<script src="segments/keys.js" defer></script>
+<script src="segments/mirror.js" defer></script>
+<script src="segments/more.js" defer></script>
+<script src="segments/transcribe.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!-- The app's name and id are written here and nowhere else: build.sh names the app after them, and the app reads
+     its name from here while it runs. The version and build number are not here: build.sh writes them into the
+     built app's copy, from the VERSION file and the number of commits. -->
+<dict>
+    <key>CFBundleName</key><string>Notch</string>
+    <key>CFBundleIdentifier</key><string>local.notch</string>
+    <key>CFBundleExecutable</key><string>Notch</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>LSMinimumSystemVersion</key><string>26.0</string>
+    <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
+    <key>LSUIElement</key><true/>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>NSMicrophoneUsageDescription</key><string>Notch listens through your microphone while you dictate, and adds it to screen recordings when you switch MIC on there. Nothing is sent anywhere.</string>
+    <key>NSSpeechRecognitionUsageDescription</key><string>Notch turns what you dictate into text on this Mac. Nothing is sent anywhere.</string>
+    <key>NSCameraUsageDescription</key><string>Notch shows your camera as a mirror when you press CAM, and puts it in a screen recording only when you switch CAM on there. Nothing is sent anywhere.</string>
+    <key>NSAudioCaptureUsageDescription</key><string>Notch hears what the Mac is playing while you dictate with HEAR THE MAC'S SOUND TOO switched on. Nothing is sent anywhere.</string>
+    <key>NSDesktopFolderUsageDescription</key><string>Notch saves your shots and recordings to the Desktop. Nothing is sent anywhere.</string>
+</dict>
+</plist>

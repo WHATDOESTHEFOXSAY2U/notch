@@ -1,0 +1,376 @@
+/* Notch website, segment 02 Capture: one stage, the four tools played in turn (Shot, Text, Rec, Compress).
+   Every rule is scoped under #capture. The Mac's own parts are the shared ones (../styles.css, "The Mac, drawn once":
+   .mbar, .tl, .mptr, .mcross, .keys, .steps, .ncam); this file only says where they sit and at what scale.
+   Notch's own parts (the selection, the strip, the card, the line under the notch) are drawn the way the app draws them
+   (Selection.swift, Strip.swift, Card.swift, Console.swift), 1 px to the point.
+
+   Three layouts, by the bay's width (the container `cap`). The card is where the app puts it (the bottom-left corner) and
+   the new files where Finder puts them (the top-right corner, one under the other); the Clipboard, a window that can be
+   anywhere, sits beside one of the two:
+   wide (1120 and up)   the card bottom left, the window, the Clipboard, the Desktop's files in their column at the right;
+   middle (580 to 1119) the window above, the card and the Clipboard under it, the files still in their column;
+   phone (under 580)    the same, with the files in a row under the window and the whole scene drawn at 0.8. */
+
+#capture .cap { container: cap / inline-size; }
+
+/* ---------- the stage: a Mac's screen in its bezel ---------- */
+#capture .cap__stage { --bz: 10px; padding: var(--bz); background: #000; }   /* --bz: the bezel, as black as the notch */
+/* --u: the scale the Mac is drawn at, Notch's own parts included (one scale for the whole scene). --bar, --tb: its menu
+   bar and a title bar at that scale. --lab: the size of the app's small mono labels (11 points), set larger where the
+   scene is drawn smaller so that they stay readable (about 9.5 px on a phone). --edge: the card's margin.
+   --fw, --fp: the width of the Desktop's column of files and the pitch between them. --cw: the Clipboard window's width.
+   --zw: the room for the window in front, between the card and the Clipboard (the screen less 14 + 190 + 24 on the
+   left and 24 + --cw + 14 + --fw + 10 on the right). Lengths in cqw are worked out where they are used, inside the
+   screen, so 100cqw is the screen's width there. */
+#capture .scr { --u: 1; --bar: calc(33px * var(--u)); --tb: calc(32px * var(--u)); --lab: 11px; --edge: 14px; --fw: 116px; --fp: 96px;
+  --cw: clamp(236px, 22cqw, 290px); --zw: calc(100cqw - var(--cw) - 392px);
+  position: relative; height: 480px; overflow: hidden; isolation: isolate; container: scr / inline-size;
+  border-radius: calc(var(--r) - 1px - var(--bz)) calc(var(--r) - 1px - var(--bz)) 2px 2px;   /* a MacBook's screen: round at the top, square at the bottom */
+  color: #fff; font: 12px/1.3 var(--sans); -webkit-user-select: none; user-select: none;
+  background: radial-gradient(52% 92% at 50% -24%, rgba(255, 255, 255, .2), transparent 62%),
+    radial-gradient(70% 52% at 16% 114%, rgba(255, 255, 255, .09), transparent 64%),
+    radial-gradient(62% 48% at 94% 110%, rgba(255, 255, 255, .065), transparent 62%),
+    linear-gradient(172deg, #303035 0%, #202024 48%, #17171a 100%); }
+#capture .scr::before { content: ""; position: absolute; inset: var(--bar) 0 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(rgba(255, 255, 255, .075) 1px, transparent 1.3px) 0 0 / 16px 16px;
+  -webkit-mask-image: radial-gradient(70% 90% at 50% 0%, #000 30%, transparent 85%); mask-image: radial-gradient(70% 90% at 50% 0%, #000 30%, transparent 85%); }
+/* a cut: the next frame is drawn at once, nothing slides (the whole screen, or one part of it) */
+#capture .cut, #capture .cut *, #capture .cut *::before, #capture .cut *::after { transition: none !important; }
+
+/* the menu bar (the shared .mbar), drawn at the Mac's scale; the notch hangs in its middle */
+#capture .mbar { position: absolute; z-index: 2; left: 0; top: 0; width: calc(100% / var(--u)); transform: scale(var(--u)); transform-origin: 0 0; }
+#capture .mbar__dot { transition: background-color .12s; }
+#capture .mbar__dot[data-on] { transition-delay: .3s; }   /* the camera starts as the call comes up, not before */
+
+/* ---------- the notch (the hardware: black, no edge, above everything the screen can draw, the selection's dim
+   included), and the line the app shows under it (Console.swift) ---------- */
+#capture .nn { position: absolute; z-index: 53; top: 0; left: calc(50% - 90px); width: 180px; overflow: hidden; border-radius: 0 0 10px 10px; background: #000;
+  transform: scale(var(--u)); transform-origin: 50% 0; }
+#capture .nn__cap { position: relative; height: 32px; }
+#capture .nn[data-cam="on"] .ncam::after { transition-delay: .3s; }
+#capture .nn__line { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t) var(--spring); }
+#capture .nn[data-state="say"] .nn__line { grid-template-rows: 1fr; }
+#capture .nn__line > div { min-height: 0; overflow: hidden; }
+#capture .nn__line span { display: block; padding: 3px 0 5px 1px; text-align: center; font: var(--lab)/calc(var(--lab) + 2px) var(--mono); letter-spacing: 1px; white-space: nowrap; }
+
+/* ---------- windows: 16 round, a 32-point title bar, the three buttons 9 in (the shared .tl) ---------- */
+#capture .win { position: absolute; z-index: 3; display: flex; flex-direction: column; border-radius: calc(16px * var(--u)); background: #242428; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .12), inset 0 1px 0 rgba(255, 255, 255, .08), 0 44px 80px -30px rgba(0, 0, 0, .9), 0 16px 30px -16px rgba(0, 0, 0, .7);
+  transition: opacity .4s ease .2s, translate .6s var(--spring) .2s, visibility 0s .2s; }   /* the window coming in waits for the one going out */
+#capture .win__bar { flex: none; display: grid; grid-template-columns: minmax(max-content, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: calc(8px * var(--u));
+  height: var(--tb); padding: 0 calc(9px * var(--u)); background: rgba(255, 255, 255, .035); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .35); }
+#capture .win__bar .tl { --s: calc(14px * var(--u)); --p: calc(23px * var(--u)); }
+#capture .win__bar b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 calc(13px * var(--u))/1.2 var(--sans); letter-spacing: -.005em; color: var(--text); }
+#capture .win--report, #capture .win--call { top: calc(var(--bar) + 51px); left: calc(228px + (var(--zw) - var(--ww)) / 2); width: var(--ww); }
+#capture .win--report { --ww: min(620px, var(--zw)); }
+#capture .win--call { --ww: min(520px, var(--zw)); }
+#capture .scr[data-win="report"] .win--call, #capture .scr[data-win="call"] .win--report { opacity: 0; translate: 0 8px; visibility: hidden; transition: opacity .2s ease, translate .2s ease, visibility 0s .2s; }
+
+/* a picture of a region of a window (the card's, the Desktop's, the clipboard's): a copy of the window, clipped to the region.
+   A region as large as the window shows the Desktop in its four corners, as a real one does. */
+#capture .snap { position: absolute; display: block; overflow: hidden; background: #29292d; }
+#capture .win--snap { position: absolute; left: 0; top: 0; z-index: auto; transform-origin: 0 0; opacity: 1; translate: none; visibility: visible; transition: none; box-shadow: none; }
+
+/* the report */
+#capture .doc { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 18px 24px 22px; }
+#capture .doc__head { flex: none; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+#capture .doc__t { font: 600 15px/1.2 var(--sans); letter-spacing: -.01em; color: var(--text); }
+#capture .doc__key { display: flex; gap: 14px; font: 12px/1 var(--sans); color: var(--gray); }
+#capture .doc__key span { display: flex; align-items: center; gap: 6px; }
+#capture .doc__key i { width: 9px; height: 9px; border-radius: 2px; background: #5c5c63; }
+#capture .doc__key span + span i { background: #dedee2; }
+#capture .doc__cols { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 36px; align-items: end; }
+#capture .chart { position: relative; height: 156px; display: flex; justify-content: space-around; align-items: flex-end; padding: 0 4px 24px;
+  background: linear-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px) 0 0 / 100% 33px; box-shadow: inset 0 -25px 0 -24px rgba(255, 255, 255, .18); }
+#capture .chart__g { position: relative; display: flex; align-items: flex-end; gap: 4px; height: 100%; }
+#capture .chart__g i { width: 20px; height: calc(var(--v) * 100%); border-radius: 2px 2px 0 0; background: #5c5c63; }
+#capture .chart__g i + i { background: #dedee2; }
+#capture .chart__g span { position: absolute; left: 50%; bottom: -20px; transform: translateX(-50%); font: 12px/1 var(--sans); color: var(--gray); }
+#capture .tbl { font: 13.5px/1 var(--sans); font-variant-numeric: tabular-nums; color: var(--text); padding-bottom: 2px; }
+#capture .tbl__r { display: grid; grid-template-columns: minmax(0, 1fr) 58px 58px; align-items: center; height: 31px; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .07); }
+#capture .tbl__r span + span { text-align: right; }
+#capture .tbl__h { color: var(--gray); font-size: 12px; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .16); }
+
+/* the call: four people on camera, each in a room of their own. They are drawn once, in the sprite at the top of this
+   section (the Mirror segment's manner: soft light, a room out of focus); the result card's picture reuses them. */
+#capture .call { flex: 1 1 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 6px; padding: 6px; }
+#capture .tile { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; background: #141416; }
+#capture .tile__cam { position: absolute; inset: 0; width: 100%; height: 100%; }
+#capture .tile::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(120% 110% at 50% 40%, transparent 55%, rgba(0, 0, 0, .42)), var(--grain); }
+#capture .tile span { position: absolute; z-index: 2; left: 7px; bottom: 7px; padding: 3px 6px; border-radius: 5px; background: rgba(0, 0, 0, .5); font: 500 11px/1.2 var(--sans); }
+#capture .tile.is-on::after { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .85); }   /* the one speaking */
+/* The Desktop's two small pictures of the call are 64 points wide: there each tile is its room's tone with a head and
+   shoulders in it, plain gradients in place of the four filtered drawings (capture.js leaves those out of these copies). */
+#capture .tile:nth-child(1) { --wall: #2b322c; --skin: #e0b494; --top: #c0b19c; }
+#capture .tile:nth-child(2) { --wall: #3b4149; --skin: #c0875e; --top: #344761; }
+#capture .tile:nth-child(3) { --wall: #1b2020; --skin: #7a4b33; --top: #88482f; }
+#capture .tile:nth-child(4) { --wall: #2a1e15; --skin: #b37757; --top: #262b33; }
+#capture .file__pic .tile { border-radius: 0; background: radial-gradient(ellipse 12% 24% at 50% 44%, var(--skin) 92%, transparent), radial-gradient(ellipse 30% 36% at 50% 104%, var(--top) 94%, transparent), var(--wall); }
+#capture .file__pic .tile::after { background: none; }
+#capture .file__pic .tile span { display: none; }
+
+/* ---------- what you end up with: files on the Desktop, as Finder shows them (a picture, the name on two lines, nothing under it) ---------- */
+#capture .files { position: absolute; z-index: 1; right: 10px; top: calc(var(--bar) + 13px); width: var(--fw); display: flex; flex-direction: column; }
+#capture .file { flex: none; min-width: 0; height: var(--fp); display: flex; flex-direction: column; align-items: center; text-align: center;
+  opacity: 0; transform: scale(.92); transition: opacity .3s ease, transform .5s var(--spring); }
+#capture .file.on { opacity: 1; transform: none; }
+#capture .file__pic { position: relative; flex: none; width: 64px; height: 40px; overflow: hidden; border-radius: 3px; background: #2a2a2d;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .3), 0 8px 16px -6px rgba(0, 0, 0, .7); }
+#capture .file__name { display: flex; flex-direction: column; align-items: center; margin-top: 6px; font: 500 12px/15px var(--sans); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .7); white-space: nowrap; }
+
+/* ---------- the clipboard: Finder's window for it. It is not the app in front, so its buttons are grey and its shadow small. ---------- */
+#capture .clip { position: absolute; z-index: 2; right: calc(10px + var(--fw) + 14px); bottom: var(--edge); width: var(--cw); height: 204px; display: flex; flex-direction: column;
+  border-radius: calc(16px * var(--u)); background: #222226; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .1), inset 0 1px 0 rgba(255, 255, 255, .06), 0 20px 36px -22px rgba(0, 0, 0, .8); }
+#capture .clip .win__bar b { color: var(--gray); }
+#capture .clip__body { position: relative; flex: 1 1 auto; min-height: 0; }
+#capture .clip__img, #capture .clip__txt { position: absolute; opacity: 0; transition: opacity .15s ease; }
+#capture .clip__img { inset: 14px 18px; }
+#capture .clip__img .snap { box-shadow: 0 0 0 1px rgba(255, 255, 255, .2); border-radius: 1px; }
+#capture .clip__txt { left: 18px; top: 50%; translate: 0 -50%; margin: 0; font: 14px/21px var(--mono); color: var(--text); white-space: pre; letter-spacing: 0; }
+#capture .clip[data-kind="img"] .clip__img, #capture .clip[data-kind="txt"] .clip__txt { opacity: 1; transition: opacity .35s ease .15s; }   /* what was there goes first */
+#capture .clip__foot { position: relative; flex: none; height: 28px; box-shadow: inset 0 1px 0 rgba(0, 0, 0, .35); font: 11.5px/28px var(--sans); color: var(--gray); }
+#capture .clip__f { position: absolute; left: 18px; opacity: 0; transition: opacity .15s ease; white-space: nowrap; }
+#capture .clip[data-kind="img"] .clip__f--img, #capture .clip[data-kind="txt"] .clip__f--txt { opacity: 1; transition: opacity .35s ease .15s; }
+
+/* ---------- the selection (Selection.swift): the screen dims by 28%, a rectangle is dragged out. A one-point outline just
+   outside it, brackets 3 thick and 12 long, plain black tags 20 high; red while it records. Nothing glows. ---------- */
+#capture .ov { position: absolute; inset: 0; z-index: 50; pointer-events: none; }
+#capture .ov__dim { position: absolute; inset: 0; background: rgba(0, 0, 0, .28); opacity: 0; }
+#capture .ov[data-state="pick"] .ov__dim { opacity: 1; }
+#capture .ov { --pt: calc(1px * var(--u)); }   /* one point, at the scene's scale */
+#capture .tag { position: absolute; height: calc(20 * var(--pt)); padding: 0 calc(5 * var(--pt)) 0 calc(6 * var(--pt)); background: #000;
+  font: calc(var(--lab) * var(--u))/calc(20 * var(--pt)) var(--mono); letter-spacing: var(--pt); color: #fff; white-space: nowrap; }
+#capture .ov__hint { left: 50%; top: calc(56 * var(--pt)); transform: translateX(-50%); color: var(--gray); opacity: 0; }
+#capture .ov[data-state="pick"] .ov__hint { opacity: 1; }
+#capture .sel { --c: #fff; position: absolute; opacity: 0; box-shadow: 0 0 0 var(--pt) var(--c), 0 0 0 200vmax rgba(0, 0, 0, .28); }
+#capture .ov[data-state="drag"] .sel, #capture .ov[data-state="chosen"] .sel, #capture .ov[data-state="rec"] .sel { opacity: 1; }
+#capture .ov[data-state="rec"] .sel { --c: var(--red); box-shadow: 0 0 0 var(--pt) var(--c); }
+#capture .br { --o: calc(-3 * var(--pt)); --bw: calc(3 * var(--pt)); position: absolute; width: calc(12 * var(--pt)); height: calc(12 * var(--pt)); border: 0 solid var(--c); }
+#capture .br--tl { left: var(--o); top: var(--o); border-width: var(--bw) 0 0 var(--bw); }
+#capture .br--tr { right: var(--o); top: var(--o); border-width: var(--bw) var(--bw) 0 0; }
+#capture .br--bl { left: var(--o); bottom: var(--o); border-width: 0 0 var(--bw) var(--bw); }
+#capture .br--br { right: var(--o); bottom: var(--o); border-width: 0 var(--bw) var(--bw) 0; }
+#capture .sel__size { left: calc(-3 * var(--pt)); top: calc(-27 * var(--pt)); opacity: 0; }
+#capture .ov[data-state="drag"] .sel__size { opacity: 1; }
+
+/* ---------- the recording strip (Strip.swift). Its record key's left edge never moves; the rest folds up to it.
+   It floats above the selection's dim (FloatingPanel.swift), so it is as bright as the picture inside the rectangle. ---------- */
+#capture .strip { position: absolute; z-index: 52; width: 0; height: 30px; font: 11px/1 var(--mono); letter-spacing: 1px; opacity: 0; transition: opacity .2s;
+  scale: var(--u); transform-origin: 0 0; }   /* at the scene's scale, from its record key's left edge (capture.js places it) */
+#capture .strip.on { opacity: 1; }
+#capture .strip__l, #capture .strip__r { position: absolute; top: 0; height: 30px; display: flex; align-items: center; background: #000; }
+#capture .strip__l { right: 0; padding: 4px 0 4px 4px; box-shadow: inset 1px 0 0 rgba(255, 255, 255, .16), inset 0 1px 0 rgba(255, 255, 255, .26), inset 0 -1px 0 rgba(255, 255, 255, .12), -20px 26px 40px -24px #000; }
+#capture .strip__r { left: 0; padding: 4px 4px 4px 0; gap: 2px; box-shadow: inset -1px 0 0 rgba(255, 255, 255, .16), inset 0 1px 0 rgba(255, 255, 255, .26), inset 0 -1px 0 rgba(255, 255, 255, .12), 20px 26px 40px -24px #000; }
+#capture .grip { display: grid; grid-template-columns: 2px 2px; gap: 2px; padding: 0 7px 0 5px; }
+#capture .grip i { width: 2px; height: 2px; background: var(--gray); }
+#capture .k { display: grid; place-items: center; flex: none; width: 28px; height: 22px; color: var(--gray); }
+#capture .k.on { background: #fff; color: #000; }
+#capture .opts { display: flex; gap: 2px; overflow: hidden; max-width: 118px; transition: max-width var(--t) var(--spring), opacity .2s; }
+#capture .sdiv { flex: none; width: 1px; height: 14px; margin: 0 4px; background: var(--unlit); transition: width var(--t) var(--spring), margin var(--t) var(--spring); }
+#capture .k--pause { color: #fff; max-width: 0; overflow: hidden; opacity: 0; transition: max-width var(--t) var(--spring), opacity .2s, margin var(--t) var(--spring); }
+#capture .k--x { color: #fff; max-width: 28px; overflow: hidden; transition: max-width var(--t) var(--spring), opacity .2s; }
+#capture .main { position: relative; display: flex; align-items: center; height: 22px; overflow: hidden; color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
+#capture .main .glyph { position: relative; width: 16px; height: 16px; margin: 0 6px; }
+#capture .main__stop { display: none; color: #fff; }
+#capture .main__t { position: relative; max-width: 0; overflow: hidden; opacity: 0; font-size: 13px; letter-spacing: .5px; text-align: right; color: #fff; font-variant-numeric: tabular-nums;
+  transition: max-width var(--t) var(--spring), opacity .2s, padding var(--t) var(--spring); }
+#capture .main__fill { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: var(--red); }
+#capture .main.hot { background: var(--red); color: #fff; }   /* under the pointer, before it starts */
+#capture .strip[data-state="rec"] .opts { max-width: 0; opacity: 0; }
+#capture .strip[data-state="rec"] .sdiv { width: 0; margin: 0; }
+#capture .strip[data-state="rec"] .k--pause { max-width: 28px; opacity: 1; margin-right: 2px; }
+#capture .strip[data-state="rec"] .k--x { max-width: 0; opacity: 0; }
+#capture .strip[data-state="rec"] .main__t { max-width: 60px; min-width: 51px; padding-right: 9px; opacity: 1; }
+#capture .strip[data-state="rec"] .main__rec { display: none; }
+#capture .strip[data-state="rec"] .main__stop { display: block; }
+#capture .strip[data-state="rec"] .main.hot { background: none; box-shadow: inset 0 0 0 1px #fff; }   /* under the pointer while it records: a white edge */
+
+/* ---------- the result card (Card.swift): bottom left, 14 from the corner, 190 wide; 30 for the line on top, 104 for the
+   picture, then the keys (29) or, while COMPRESS works, the time left and ten cells (49). The app swaps the two at once;
+   here the card takes the app's spring to grow, so nothing pops. ---------- */
+#capture .card { --kh: calc(var(--lab) * 1.2 + 6px);   /* a key's height */
+  position: absolute; z-index: 20; left: var(--edge); bottom: var(--edge); width: 190px; color: #fff; font: var(--lab)/1.2 var(--mono); letter-spacing: 1px; white-space: nowrap;
+  border: 1px solid transparent; background: linear-gradient(#000, #000) padding-box, var(--rim) border-box;
+  box-shadow: 0 30px 56px -22px #000;
+  scale: var(--u); transform-origin: 0 100%;   /* at the scene's scale, from its corner (capture.js measures it so) */
+  transform: translateX(calc(-100% - 24px)); transition: transform var(--t) var(--spring); }
+#capture .card.in { transform: none; }
+#capture .card__head { display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 8px; font-size: 15px; letter-spacing: 0; }
+#capture .card__lamp { display: none; flex: none; width: 7px; height: 7px; background: var(--red); }
+#capture .card__sp { flex: 1; }
+#capture .card__cut { display: none; padding: 3px 4px 3px 5px; font-size: var(--lab); letter-spacing: 1px; background: #fff; color: #000; }
+#capture .card__pic { position: relative; height: 104px; margin: 0 8px; overflow: hidden; background: var(--unlit); }
+#capture .card__foot { position: relative; height: calc(var(--kh) + 10px); overflow: hidden; transition: height .3s var(--spring); }
+#capture .card__keys, #capture .card__work { position: absolute; left: 0; right: 0; top: 0; transition: opacity .12s ease; }
+#capture .card__keys { display: flex; align-items: stretch; padding: 4px 0 0 2px; }
+#capture .ckey { display: flex; align-items: center; padding: 3px 5px 3px 6px; }
+#capture .ckey.hot { background: #fff; color: #000; }
+#capture .ckey--z { display: none; }
+#capture .cross { display: grid; place-items: center; margin-left: auto; padding: 0 5px 0 3px; }
+#capture .card__work { padding-top: 4px; opacity: 0; }
+#capture .card__left { display: flex; align-items: stretch; padding-left: 8px; height: var(--kh); color: var(--gray); }
+#capture .card__left span:first-child { display: flex; align-items: center; }
+#capture .card__cells { display: flex; gap: 2px; height: 26px; }
+#capture .card__cells i { flex: 1; background: var(--unlit); }
+#capture .card__cells i.on { background: #fff; }
+#capture .card__line { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: #fff; transform-origin: 0 50%; }
+#capture .card[data-kind="rec"] .card__lamp { display: block; }
+#capture .card[data-kind="rec"][data-phase="ready"] .ckey--z { display: flex; }
+#capture .card[data-phase="work"] .card__foot { height: calc(var(--kh) + 30px); }
+#capture .card[data-phase="work"] .card__keys { opacity: 0; }
+#capture .card[data-phase="work"] .card__work { opacity: 1; }
+#capture .card[data-phase="work"] .card__line { opacity: 0; }
+#capture .card[data-phase="done"] .card__cut { display: block; }
+
+/* ---------- the shortcut as it is pressed, the way a screen recording shows keys: the page's caption, in the shared keys ---------- */
+#capture .hud { position: absolute; z-index: 55; left: calc(228px + var(--zw) / 2); bottom: 14px; padding: 7px; border-radius: 13px; transform: translateX(-50%);
+  background: rgba(14, 14, 16, .88); box-shadow: 0 0 0 1px rgba(255, 255, 255, .13), 0 24px 50px -20px #000;
+  opacity: 0; translate: 0 6px; transition: opacity .2s ease, translate .4s var(--spring); }
+#capture .hud.on { opacity: 1; translate: none; }
+#capture .hud .keys { display: flex; gap: 5px; }
+#capture .hud .kc { min-width: 32px; height: 32px; padding: 0 8px; border-radius: 8px; font-size: 15px; }
+#capture .hud .kc .glyph { width: 15px; height: 15px; }
+
+/* ---------- the pointer: the shared arrow, or the shared crosshair while a rectangle is chosen. It never changes size. ---------- */
+#capture .ptr { position: absolute; z-index: 60; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+#capture .ptr svg { display: none; scale: var(--u); }
+#capture .ptr .mptr { transform-origin: 1.3px 1.3px; }
+#capture .ptr[data-shape="arrow"] .mptr, #capture .ptr[data-shape="cross"] .mcross { display: block; }
+
+/* ---------- the four tools: the bay's foot, in the shared .steps. Each cell is one button (its hit area covers the
+   cell); the shortcut and the line under the name are words beside it. ---------- */
+#capture .cap__nav { position: relative; z-index: 6; display: flex; border-top: 1px solid var(--line); }
+#capture .cap__steps { flex: 1 1 auto; min-width: 0; margin: 0; padding: 0; list-style: none; border-top: 0; }
+#capture .cap__steps li { position: relative; min-width: 0; padding: 0 20px 18px; }
+#capture .cap__steps li + li { box-shadow: inset 1px 0 0 var(--line); }
+#capture .cap__nav:has(.cap__play:not([hidden])) .cap__steps { box-shadow: inset -1px 0 0 var(--line); }   /* and one before the pause key, while there is one */
+#capture .cap__step { position: static; width: 100%; min-height: 0; padding: 15px 0 9px; transition: color .2s; }
+#capture .cap__step::after { content: ""; position: absolute; inset: 0; }
+#capture .cap__step:focus-visible { outline: none; }
+#capture .cap__step:focus-visible::after { outline: 2px solid rgba(255, 255, 255, .9); outline-offset: -6px; border-radius: 10px; }
+#capture .cap__steps li:hover .cap__step { color: #fff; }
+#capture .cap__name { display: flex; align-items: center; gap: 9px; min-width: 0; line-height: 22px; color: inherit; white-space: nowrap; }   /* the shared pair: .pair__name over .pair__line */
+#capture .cap__name .glyph { width: 14px; height: 14px; }
+#capture .cap__more { display: block; margin: 0; pointer-events: none; }
+#capture .cap__more .keys, #capture .cap__fig { position: absolute; right: 20px; top: 15px; }
+#capture .cap__fig { display: flex; align-items: center; gap: 6px; height: 22px; font: 500 12px/1 var(--mono); letter-spacing: .02em; color: var(--gray); white-space: nowrap; }
+#capture .cap__fig i { font-style: normal; }
+#capture .cap__fig b { font-weight: 500; color: var(--text); }
+#capture .cap__line { display: block; text-wrap: pretty; transition: color .2s; }
+#capture .cap__step.is-on + .cap__more .cap__line { color: var(--text); }
+#capture .cap__play { position: relative; flex: none; align-self: flex-start; display: grid; place-items: center; width: 40px; height: 40px; margin: 12px 14px 0; border-radius: 50%; color: #fff;
+  border: 1px solid var(--line-2); background: rgba(255, 255, 255, .04); transition: background .2s, border-color .2s; }
+#capture .cap__play:hover { background: rgba(255, 255, 255, .1); border-color: var(--line-3); }
+#capture .cap__play .glyph { width: 13px; height: 13px; }
+#capture .cap__g-play { display: none; fill: currentColor; stroke: none; }
+#capture .cap.is-paused .cap__g-pause { display: none; }
+#capture .cap.is-paused .cap__g-play { display: block; }
+
+/* the shortcut drops under the name where the two no longer fit on one line */
+@container cap (max-width: 1119px) {
+  #capture .cap__steps li { padding: 0 16px 16px; }
+  #capture .cap__step { padding-bottom: 7px; }
+  #capture .cap__more .keys, #capture .cap__fig { position: static; margin-bottom: 9px; }
+  #capture .cap__more .keys { display: flex; }
+}
+
+/* ---------- middle: the window above, the card and the Clipboard under it; the files keep their column ---------- */
+@container cap (max-width: 1119px) {
+  /* --nw: the window's width. The call is then a title bar + 9 + half of it tall, and the report is given the same height.
+     On the screen itself 100cqw is the bay's width, so its own height takes the bezel off first. */
+  #capture .scr { --fp: 88px; --nw: min(440px, 100cqw - var(--fw) - 52px);
+    height: calc(var(--bar) + 25px + var(--tb) + 9px + min(440px, 100cqw - 2 * var(--bz) - var(--fw) - 52px) / 2 + 44px + 185px + var(--edge)); }   /* 44: room for the recording strip between the window and the card */
+  #capture .win--report, #capture .win--call { --ww: var(--nw); top: calc(var(--bar) + 25px); left: calc((100cqw - var(--fw) - 24px - var(--nw)) / 2); height: calc(var(--tb) + 9px + var(--nw) / 2); }
+  #capture .doc { padding: 14px 18px 16px; }
+  #capture .doc__head { margin-bottom: 12px; }
+  #capture .doc__t { font-size: 14px; }
+  #capture .doc__key { font-size: 11px; gap: 12px; }
+  #capture .doc__cols { gap: 22px; align-items: stretch; }
+  #capture .chart { height: auto; padding-bottom: 22px; background-size: 100% 25px; box-shadow: inset 0 -23px 0 -22px rgba(255, 255, 255, .18); }
+  #capture .chart__g i { width: 15px; }
+  #capture .chart__g span { font-size: 11px; bottom: -18px; }
+  #capture .tbl { align-self: end; font-size: 12.5px; }
+  #capture .tbl__h { font-size: 11px; }
+  #capture .tbl__r { grid-template-columns: minmax(0, 1fr) 50px 50px; height: 27px; }
+  #capture .tile { aspect-ratio: 2 / 1; }
+  #capture .clip { left: calc(var(--edge) + 204px); right: auto; width: min(300px, 100cqw - 2 * var(--edge) - 204px); height: 165px; }
+  #capture .hud { left: calc(var(--edge) + 95px); bottom: calc(var(--edge) + 12px); }   /* where the card will come, under where the pointer rests */
+}
+
+/* ---------- phone: the whole scene drawn at 0.8, Notch's own parts with it, so the notch is a Mac's and not a phone's;
+   no bezel (a piece of a larger screen); the files in a row under the window. The app's small labels are set as large
+   as the card's row of four keys allows (11.6, so 9.3 on the page). ---------- */
+@container cap (max-width: 759px) {
+  #capture .mbar__date { display: none; }   /* macOS drops the date when the bar is short of room */
+}
+@container cap (max-width: 579px) {
+  #capture .cap__stage { --bz: 0px; }
+  /* the card: 190 x 186 points while COMPRESS works, so 152 x 149 here */
+  #capture .scr { --u: .8; --lab: 11.6px; --edge: 8px; --nw: min(440px, 100cqw - 24px); border-radius: 0;
+    height: calc(var(--bar) + 18px + var(--tb) + 9px + min(440px, 100cqw - 24px) / 2 + 12px + 58px + 16px + 186px * var(--u) + var(--edge)); }
+  #capture .win--report, #capture .win--call { top: calc(var(--bar) + 18px); left: calc((100cqw - var(--nw)) / 2); }
+  #capture .doc { padding: 10px 13px 12px; }
+  #capture .doc__head { margin-bottom: 10px; }
+  #capture .doc__t { font-size: 13px; }
+  #capture .doc__cols { gap: 14px; }
+  #capture .chart { padding-bottom: 20px; background-size: 100% 21px; box-shadow: inset 0 -21px 0 -20px rgba(255, 255, 255, .18); }
+  #capture .chart__g { gap: 3px; }
+  #capture .chart__g i { width: 12px; }
+  #capture .chart__g span { font-size: 10px; bottom: -17px; }
+  #capture .tbl { font-size: 11px; }
+  #capture .tbl__h { font-size: 10px; }
+  #capture .tbl__r { grid-template-columns: minmax(0, 1fr) 42px 42px; height: 21px; }
+  #capture .tile { border-radius: 6px; }
+  #capture .tile span { font-size: 9.5px; left: 5px; bottom: 5px; padding: 2px 5px; }
+  #capture .files { top: calc(var(--bar) + 18px + var(--tb) + 9px + var(--nw) / 2 + 12px); left: 8px; right: 8px; width: auto; flex-direction: row-reverse; justify-content: center; }
+  #capture .file { flex: 0 1 112px; height: auto; }
+  #capture .file__pic { width: calc(64px * var(--u)); height: calc(40px * var(--u)); }
+  #capture .file__name { margin-top: 5px; font-size: 10px; line-height: 12px; }   /* Finder's 12 points, kept readable */
+  /* the Clipboard beside the card, as tall as the card with its keys (166 points) */
+  #capture .clip { left: calc(var(--edge) + 190px * var(--u) + 10px); right: var(--edge); width: auto; height: calc(166px * var(--u)); }
+  #capture .clip__img { inset: 10px; }
+  #capture .clip__txt { left: 10px; font-size: clamp(8px, (100cqw - 198px) / 11.5, 12.5px); line-height: 1.4; }
+  #capture .clip__foot { height: 24px; font-size: 10px; line-height: 24px; }
+  #capture .clip__f { left: 10px; }
+  #capture .hud { left: calc(var(--edge) + 95px * var(--u)); bottom: calc(var(--edge) + 12px); }   /* over the middle of where the card comes */
+  #capture .hud .kc { min-width: 30px; height: 30px; font-size: 14px; }
+}
+
+/* ---------- the four tools on a narrower bay (four columns would be too thin for a sentence): their names in a row,
+   the playing one's shortcut and line under them ---------- */
+@container cap (max-width: 899px) {
+  #capture .cap__nav { display: block; }
+  #capture .cap__steps { display: grid; grid-template-columns: repeat(4, auto) 44px; grid-auto-flow: row; justify-content: space-between; padding: 0 2px 0 6px; }
+  #capture .cap__nav:has(.cap__play[hidden]) .cap__steps { grid-template-columns: repeat(4, auto); padding-right: 6px; }
+  #capture .cap__steps li { display: contents; }
+  #capture .cap__step { position: relative; grid-row: 1; width: auto; min-height: 46px; padding: 0 10px; justify-content: center; }
+  #capture .cap__name { font-size: 14px; gap: 7px; }
+  #capture .cap__step:focus-visible::after { outline-offset: -3px; border-radius: 8px; }
+  #capture .cap__more { grid-row: 2; grid-column: 1 / -1; width: 0; min-width: 100%; padding: 2px 10px 14px; opacity: 0; }   /* no width of its own, so the columns are as wide as the names */
+  #capture .cap__step.is-on + .cap__more { opacity: 1; transition: opacity .3s ease .05s; }
+  #capture .cap__more .keys, #capture .cap__fig { margin-bottom: 8px; }
+  #capture .cap__line { color: var(--text); }   /* only the playing step's line shows here */
+  #capture .cap__nav:has(.cap__play:not([hidden])) .cap__steps { box-shadow: none; }
+  #capture .cap__play { position: absolute; right: 4px; top: 3px; margin: 0; }
+}
+@container cap (max-width: 449px) {
+  #capture .cap__name .glyph { display: none; }
+}
+/* the narrowest phones: the scene at 0.75, so Control Centre, the dot and the clock keep their room right of the notch */
+@container cap (max-width: 339px) {
+  #capture .scr { --u: .75; }
+}
+/* narrower than any phone the page is checked on: nothing may spill even so */
+@container cap (max-width: 309px) {
+  #capture .cap__step { padding: 0 6px; }
+  #capture .clip__img { inset: 7px; }
+  #capture .clip__txt { left: 7px; font-size: clamp(6px, (100cqw - 192px) / 11.5, 12.5px); }
+  #capture .clip__foot { font-size: 9px; }
+  #capture .clip__f { left: 7px; }
+}
+
+/* Without script nothing plays and no picture of a window can be made: the stage then shows what TEXT leaves, which needs neither. */
+html:not(.js) #capture .nn__line { grid-template-rows: 1fr; }
+html:not(.js) #capture .clip__txt, html:not(.js) #capture .clip__f--txt { opacity: 1; }

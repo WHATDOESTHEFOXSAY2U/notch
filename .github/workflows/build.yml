@@ -1,0 +1,84 @@
+# Builds the app and runs the tests on every push and pull request.
+# GitHub only builds and tests. Releases are made on the maintainer's Mac with ./release.sh.
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash   # with pipefail: a failing build.sh fails its step even through tee
+
+jobs:
+  build:
+    # xcode-27: macOS 27 on Apple silicon, with Xcode 27 and the macOS 27 SDK. Free for public repositories.
+    # Not macos-latest: that is macOS 26 with Xcode 26 (SDKs up to 26.5), and the app needs the macOS 27 SDK.
+    # It calls macOS 27 APIs behind #available; those must be in the SDK even when the target is macOS 26.
+    # UNVERIFIED until the first run: this label and the Xcode path below come from GitHub's runner-images
+    # README, for its 12 Nov 2026 image; no workflow has run on them yet. "Pick Xcode" fails with what the runner has.
+    runs-on: xcode-27
+    timeout-minutes: 30
+    env:
+      XCODE: /Applications/Xcode_27.2.app   # the Xcode the app is built with (UNVERIFIED: see above)
+      MIN_SDK: 27                           # the oldest macOS SDK that builds the app
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Pick Xcode, check the SDK
+        run: |
+          if [ ! -d "$XCODE" ]; then
+            echo "::error::$XCODE is not on this runner. It has: $(ls -d /Applications/Xcode*.app | tr '\n' ' ')"
+            exit 1
+          fi
+          export DEVELOPER_DIR="$XCODE/Contents/Developer"
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+          sdk=$(xcrun --sdk macosx --show-sdk-version)
+          if [ "${sdk%%.*}" -lt "$MIN_SDK" ]; then
+            echo "::error::This runner has the macOS $sdk SDK. The app needs the macOS $MIN_SDK SDK (Xcode $MIN_SDK) or newer."
+            exit 1
+          fi
+          sw_vers
+          xcodebuild -version
+          swiftc --version
+          echo "macOS SDK $sdk"
+
+      - name: House rules (no network code)
+        run: scripts/rules.sh
+
+      - name: Build (no warnings)
+        run: |
+          WARNINGS_AS_ERRORS=1 ./build.sh 2>&1 | tee "$RUNNER_TEMP/build.log"
+          if grep -q 'warning:' "$RUNNER_TEMP/build.log"; then
+            echo "::error::The build has warnings (above). It must have none."
+            exit 1
+          fi
+
+      - name: No network code in the built app
+        run: |
+          shopt -s nullglob
+          apps=(./*.app)
+          if [ ${#apps[@]} -eq 0 ]; then
+            echo "::error::build.sh made no .app"
+            exit 1
+          fi
+          for app in "${apps[@]}"; do scripts/rules.sh "$app"; done
+
+      - name: Tests
+        run: |
+          if [ ! -x ./test.sh ]; then
+            echo "::error::No ./test.sh to run the tests."
+            exit 1
+          fi
+          ./test.sh

@@ -1,0 +1,177 @@
+/* Notch website, segment 07 Transcribe: a video or a sound file, a link or a file, written down by the Scribe app.
+   Every rule starts with #transcribe. Shared parts live in ../styles.css: the bay, the Mac drawn once (.mbar, .tl, .mptr,
+   .ncam, .steps) and the panel's vocabulary (.bar10). Notch's own parts are drawn the way the app draws them, 1 px to the
+   point: the band that catches a drop and the DONE band (Meter.swift, Band: the notch and 110 a side, mono 12), the strip
+   (Meter.swift: the notch and 120 a side, 75 high, the gauges' 6 × 8 segments edge to edge), the card
+   (TranscriptCard.swift: 300 wide, bottom left, 14 from the corner).
+
+   One scale for the whole scene. Three layouts, by the bay's width (the container `tx`):
+   wide   (1000 and up)  the Mac at 1: QuickTime and the card on the left, TextEdit to their right, the file top right;
+   middle (600 to 999)   the Mac at 1, TextEdit above the card, opening over a smaller QuickTime;
+   phone  (under 600)    the same without QuickTime, drawn on a 440-point screen and scaled to the bay as one (--z, set by
+                         transcribe.js);
+                         the small type inside is set larger so it stays about 10 px on the page. */
+
+#transcribe .tx { container: tx / inline-size; }
+
+/* ---------- the stage: the top of a Mac's screen, the bay's own surface as its Desktop ---------- */
+/* --H: the screen's height. --z: the scale it is drawn at (1, but on a phone). --D: its width where it is scaled. */
+#transcribe .tx__stage { --H: 500px; --z: 1; position: relative; flex: none; height: calc(var(--H) * var(--z)); overflow: hidden; }
+#transcribe .tx__cv { position: absolute; left: 0; top: 0; width: 100%; height: var(--H); overflow: hidden; isolation: isolate; transform-origin: 0 0;
+  color: #fff; font: 12px/1.3 var(--sans); -webkit-user-select: none; user-select: none; }
+/* stacked as on the Mac: the Desktop's icons, the windows (QuickTime behind, TextEdit in front), the menu bar, then
+   Notch's own card and notch, the picture being dragged, the pointer */
+#transcribe .tx__cv .mbar { position: absolute; z-index: 4; left: 0; right: 0; top: 0; }
+/* where Notch's shape is (the closed notch, the band, the strip): the menu bar leaves out, whole, what it would cover */
+#transcribe .tx-hole { position: absolute; left: calc(50% - 90px); top: 0; width: 180px; height: 32px; visibility: hidden; }
+#transcribe .tx__cv[data-n="near"] .tx-hole, #transcribe .tx__cv[data-n="done"] .tx-hole { left: calc(50% - 200px); width: 400px; }
+#transcribe .tx__cv[data-n="work"] .tx-hole { left: calc(50% - 210px); width: 420px; }
+
+/* ---------- the video on the Desktop (Finder: a 64-point icon square, the picture centred in it, the name under it) ---------- */
+#transcribe .tx-file, #transcribe .tx-ghost { display: flex; flex-direction: column; align-items: center; width: 116px; pointer-events: none; }
+#transcribe .tx-file { position: absolute; z-index: 1; right: 10px; top: 46px; }
+#transcribe .tx-file::before { content: ""; position: absolute; left: 23px; top: -3px; width: 70px; height: 70px; border-radius: 6px; }   /* Finder's mark behind a selected icon */
+#transcribe .tx-pic { position: relative; display: block; flex: none; width: 64px; height: 36px; margin: 14px 0; overflow: hidden; border-radius: 3px; background: #17130f;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .3), 0 8px 16px -6px rgba(0, 0, 0, .7); }   /* a frame of the video (#tx-frame) */
+#transcribe .tx-file__n { position: relative; margin-top: 3px; padding: 0 5px; border-radius: 4px; font: 500 12px/16px var(--sans); color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .7); white-space: nowrap; }
+/* selected: in the app in front (Finder) the name sits on this Mac's Graphite; behind another app, on a fainter grey */
+#transcribe .tx-file.is-sel::before { background: rgba(255, 255, 255, .06); }
+#transcribe .tx-file.is-sel .tx-file__n { background: rgba(255, 255, 255, .2); text-shadow: none; }
+#transcribe .tx__cv[data-app="finder"] .tx-file.is-sel::before { background: rgba(255, 255, 255, .09); }
+#transcribe .tx__cv[data-app="finder"] .tx-file.is-sel .tx-file__n { background: #6c6c71; }
+/* the same, while it is dragged: Finder's picture of the selected icon, see-through, under the pointer */
+#transcribe .tx-ghost { position: absolute; z-index: 40; left: 0; top: 0; opacity: 0; will-change: transform; }
+#transcribe .tx-ghost.is-on { opacity: .5; }
+#transcribe .tx-ghost .tx-file__n { background: #6c6c71; text-shadow: none; }
+
+/* ---------- the notch (black, no edge, the camera in its 32-point band), and what TRANSCRIBE makes of it.
+   Closed it is a hole in the screen; the rim and shadow are the site's mark for an opened shape on a dark page. While a
+   drop is near, the app's own outline, white, says: let go here (Console.swift); along the top it runs on the wings only,
+   for the notch has no screen. ---------- */
+#transcribe .tx-n { position: absolute; z-index: 30; left: 50%; top: 0; transform: translateX(-50%); }
+#transcribe .tx-n__shape { --vr: 0; position: relative; width: 180px; height: 32px; overflow: hidden; color: #fff; font-family: var(--mono);
+  border: 1px solid transparent; border-top-width: 0; border-radius: 0 0 10px 10px;
+  background: linear-gradient(#000, #000) padding-box, linear-gradient(180deg, rgba(255, 255, 255, calc(.3 * var(--vr))), rgba(255, 255, 255, calc(.12 * var(--vr)))) border-box, #000;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, var(--vr));
+  transition: width var(--t) var(--spring), height var(--t) var(--spring), border-radius var(--t) var(--spring), border-color .2s, --vr .3s ease-out; }
+#transcribe .tx-n__shape::before, #transcribe .tx-n__shape::after { content: ""; position: absolute; z-index: 3; top: 0; width: calc(50% - 90px); height: 1px; background: #fff; opacity: 0; transition: opacity .2s; }
+#transcribe .tx-n__shape::before { left: 0; }
+#transcribe .tx-n__shape::after { right: 0; }
+#transcribe .tx-n[data-state="near"] .tx-n__shape { width: 400px; border-radius: 0 0 11px 11px; border-color: #fff; }
+#transcribe .tx-n[data-state="near"] .tx-n__shape::before, #transcribe .tx-n[data-state="near"] .tx-n__shape::after { opacity: 1; }
+#transcribe .tx-n[data-state="work"] .tx-n__shape { --vr: 1; width: 420px; height: 75px; border-radius: 0 0 11px 11px; }
+#transcribe .tx-n[data-state="done"] .tx-n__shape { --vr: 1; width: 400px; border-radius: 0 0 11px 11px; }
+#transcribe .tx-n__cam { position: absolute; z-index: 2; left: 0; right: 0; top: 0; height: 32px; }
+
+/* what each state shows, in place of the others (SwiftUI's opacity transition) */
+#transcribe .tx-n__band, #transcribe .tx-n__work { position: absolute; top: 0; left: 50%; opacity: 0; transition: opacity .25s; }
+#transcribe .tx-n[data-state="near"] .tx-n__drop, #transcribe .tx-n[data-state="work"] .tx-n__work, #transcribe .tx-n[data-state="done"] .tx-n__done { opacity: 1; }
+/* a band: a few words on each side of the notch, each centred in its 110 (Band) */
+#transcribe .tx-n__band { display: flex; align-items: center; width: 400px; height: 32px; margin-left: -200px; font-size: 12px; line-height: 1; white-space: nowrap; }
+#transcribe .tx-n__band span { flex: none; width: 110px; padding-left: 2px; text-align: center; letter-spacing: 2px; }
+#transcribe .tx-n__band i { flex: none; width: 180px; }
+#transcribe .tx-n__done span + i + span { padding-left: 1px; letter-spacing: 1px; }   /* a count is set closer, as COPIED's is */
+/* the strip: what is being done in grey and how far in white beside the notch; under it the segments, 6 and 2 points,
+   49 of them beside a 180-point notch with 15 clear on each side; then the recording's name, all on one left edge */
+#transcribe .tx-n__work { width: 420px; height: 75px; margin-left: -210px; font-size: 11px; line-height: 13px; }
+#transcribe .tx-n__top { display: flex; align-items: center; justify-content: space-between; height: 32px; padding: 0 15px; }
+#transcribe .tx-n__stage { letter-spacing: 1px; color: var(--gray); white-space: nowrap; }
+#transcribe .tx-n__pc { display: flex; align-items: baseline; gap: 5px; color: var(--gray); }
+#transcribe .tx-n__pc b { font-weight: 400; font-size: 20px; line-height: 24px; color: #fff; font-variant-numeric: tabular-nums; }
+#transcribe .tx-n__pc.is-off { visibility: hidden; }   /* a stage that cannot be measured shows no number */
+#transcribe .tx-n__segs { position: absolute; left: 15px; top: 36px; width: 390px; }
+#transcribe .tx-n__name { position: absolute; left: 15px; right: 15px; top: 52px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* ---------- QuickTime Player, behind, the video paused: away from the pointer its window is the picture alone. Not the
+   app in front, so a smaller shadow. Only where there is room beside TextEdit. ---------- */
+#transcribe .tx-qt { position: absolute; z-index: 2; left: 14px; top: 50px; width: 400px; height: 225px; overflow: hidden; border-radius: 16px; background: #17130f;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .6), 0 16px 32px -16px rgba(0, 0, 0, .75); }
+#transcribe .tx-qt svg { display: block; width: 100%; height: 100%; }
+#transcribe .tx-qt::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08); }
+
+/* ---------- TextEdit's window: 16 round, a 32-point title bar, its buttons 9 in; plain text in Menlo 11, the way TextEdit
+   opens a .txt; the insertion point at the start, in this Mac's Graphite ---------- */
+#transcribe .tx-win { --wl: max(440px, 50% - 200px); --ww: min(600px, 100% - var(--wl) - 140px); position: absolute; z-index: 3; left: var(--wl); top: 104px; width: var(--ww); height: 330px; display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 16px; background: #1e1e1e;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .72), inset 0 0 0 1px rgba(255, 255, 255, .09), inset 0 1px 0 rgba(255, 255, 255, .11), 0 18px 36px -10px rgba(0, 0, 0, .7), 0 44px 80px -28px rgba(0, 0, 0, .95);
+  transform-origin: 50% 40%; transition: opacity .2s ease, transform .3s var(--spring); }
+#transcribe .tx-win.is-off { opacity: 0; transform: scale(.97); transition: opacity .18s ease, transform .18s ease; }
+#transcribe .tx-win__bar { position: relative; flex: none; display: flex; align-items: center; justify-content: center; height: 32px; padding: 0 78px;
+  background: linear-gradient(#2d2d32, #28282c); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .5); }
+#transcribe .tx-win__bar .tl { position: absolute; left: 9px; top: 9px; }
+#transcribe .tx-win__bar b { overflow: hidden; font: 700 13px/1 var(--sans); letter-spacing: -.005em; color: var(--text); white-space: nowrap; text-overflow: ellipsis; }
+#transcribe .tx-doc { position: relative; flex: 1 1 auto; min-height: 0; padding: 10px 16px; overflow: hidden; font: 11px/14px var(--mono); letter-spacing: 0; color: #e4e4e6; text-align: left; }
+#transcribe .tx-doc p + p { margin-top: 14px; }   /* the empty line between two turns */
+#transcribe .tx-doc::before { content: ""; position: absolute; left: 14.5px; top: 10px; width: 1.5px; height: 14px; border-radius: 1px; background: #fff; }   /* before the first letter, which does not move for it */
+#transcribe .is-live .tx-doc::before { animation: tx-blink 1.06s steps(1) infinite; }   /* it blinks only while this scene has its turn */
+@keyframes tx-blink { 50% { opacity: 0; } }
+
+/* ---------- the card (TranscriptCard.swift): what was written down, where the text is, and the keys; 6 seconds, the
+   white line along its foot counting them, waiting while the pointer is on the card ---------- */
+#transcribe .tx-card { position: absolute; z-index: 20; left: 14px; bottom: 14px; width: 300px; font: 11px/13px var(--mono); color: #fff; white-space: nowrap;
+  border: 1px solid transparent; background: linear-gradient(#000, #000) padding-box, var(--rim) border-box; box-shadow: 0 30px 56px -22px #000;
+  transform: translateX(calc(-100% - 24px)); transition: transform var(--t) var(--spring); }
+#transcribe .tx-card.is-in { transform: none; }
+#transcribe .tx-card__top { display: flex; flex-direction: column; align-items: flex-start; padding: 14px 15px 12px; }
+#transcribe .tx-card__h { letter-spacing: 2px; color: var(--gray); }
+#transcribe .tx-card__t { margin: 7px 0 8px; font-size: 15px; line-height: 18px; }
+#transcribe .tx-card__s { max-width: 100%; overflow: hidden; letter-spacing: 1px; color: var(--gray); text-overflow: ellipsis; }
+#transcribe .tx-card__keys { display: flex; height: 35px; box-shadow: inset 0 var(--hair) 0 var(--unlit); }   /* the hairline above, then the 34-point row */
+#transcribe .tx-card__keys span { position: relative; flex: 1 1 0; display: grid; place-items: center; padding: 1px 0 0 2px; letter-spacing: 2px; }
+#transcribe .tx-card__keys span:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 1px; bottom: 0; width: var(--hair); background: var(--unlit); }
+#transcribe .tx-card__keys .is-hot { background: #fff; color: #000; }
+#transcribe .tx-card__keys .tx-card__x { flex: 0 0 40px; padding: 1px 0 0; }   /* the ×: 40 wide, red under the pointer (not shown here) */
+#transcribe .tx-card__x .glyph { width: 16px; height: 16px; }
+#transcribe .tx-card__line { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: #fff; transform: scaleX(var(--left, 1)); transform-origin: 0 50%; }
+
+/* ---------- the pointer (the shared arrow): moved by transcribe.js; where it rests in the still frame, on OPEN ---------- */
+#transcribe .tx__cv .mptr { z-index: 50; left: 0; top: 0; transform: translate(168px, calc(var(--H) - 31px)); will-change: transform; }
+#transcribe .tx__cv.is-settle .mptr, #transcribe .tx__cv.is-settle .tx-ghost { transition: transform .35s ease, opacity .2s; }
+
+/* ---------- the three steps, along the bay's foot (the shared .steps) ---------- */
+#transcribe .tx__steps { margin: 0; padding: 0; list-style: none; }
+#transcribe .tx__steps .step { transition: color .25s; }
+
+/* ---------- the honest part, under the bay: what it needs, and what a link does ---------- */
+#transcribe .tx-body { container: txb / inline-size; }
+#transcribe .tx-notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 16px; }   /* on the steps' three columns */
+#transcribe .tx-notes p { padding: 0 24px 0 21px; font: 400 14px/1.5 var(--sans); color: var(--gray); text-wrap: pretty; }
+#transcribe .tx-notes b { font-weight: 600; color: var(--text); }
+
+/* ---------- middle: TextEdit above the card, clear of the Desktop's column; the video's icon a little lower, where the
+   strip does not reach over it; QuickTime smaller, where TextEdit will open over it ---------- */
+@container tx (max-width: 999px) {
+  #transcribe .tx__stage { --H: 580px; }
+  #transcribe .tx-file { top: 84px; }
+  #transcribe .tx-qt, #transcribe .tx-win { --ww: min(600px, 100% - 144px); left: max(14px, (100% - 130px - var(--ww)) / 2); top: 104px; }
+  #transcribe .tx-qt { width: 320px; height: 180px; }
+  #transcribe .tx-win { height: 300px; }
+}
+
+/* ---------- phone: the same screen drawn 440 points wide and scaled to the bay as one; TextEdit under the file ---------- */
+@container tx (max-width: 599px) {
+  #transcribe .tx__stage { --D: 440px; --H: 606px; --z: .8; }
+  #transcribe .tx__cv { width: var(--D); transform: scale(var(--z)); }
+  #transcribe .tx-win { --ww: calc(var(--D) - 28px); left: 14px; top: 182px; height: 262px; }
+  #transcribe .tx-qt { display: none; }   /* the pointer's way from the card to the video would cross it */
+  /* the small type inside the scene, set larger so it reads at this scale */
+  #transcribe .tx-n__work, #transcribe .tx-n__band { font-size: 12px; }
+  #transcribe .tx-n__band span { letter-spacing: 1.5px; padding-left: 1.5px; }
+  #transcribe .tx-card { font-size: 12px; line-height: 14px; }
+  #transcribe .tx-card__keys span { letter-spacing: 1.5px; }
+  #transcribe .tx-doc { padding: 12px 16px; font-size: 13px; line-height: 17px; }
+  #transcribe .tx-doc p + p { margin-top: 17px; }
+  #transcribe .tx-doc::before { top: 12px; height: 17px; }
+}
+@container tx (max-width: 379px) { #transcribe .tx__stage { --z: .78; } }
+@container tx (max-width: 349px) { #transcribe .tx__stage { --z: .72; } }
+@container tx (max-width: 319px) { #transcribe .tx__stage { --z: .66; } }
+
+/* on a narrower bay the notes go one under another */
+@container txb (max-width: 879px) {
+  #transcribe .tx-notes { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  #transcribe .tx-notes p { max-width: 40em; }
+}
+@media (max-width: 720px) {
+  #transcribe .tx-notes p { padding: 0 16px 0 17px; }
+}

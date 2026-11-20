@@ -1,0 +1,11 @@
+*.app/
+build/
+.build/
+dist/
+.DS_Store
+# Working files that stay on the maintainer's Mac: icon studies, the website's test tools, editor settings.
+Icon/
+Website/lab/
+.claude/
+preview*.png
+previews/

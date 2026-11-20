@@ -1,0 +1,103 @@
+/* Notch website, segment 01 Numbers (Stats.swift, Console.swift, Readouts.swift).
+   Two surfaces, one above the other, each a slice of the top of the Mac's screen at the app's own size, drawn with the
+   shared parts (styles.css): the menu bar (.mbar), the notch's camera (.ncam), the pointer (.mptr), the gauge (.gauge,
+   .bar10), the function bar (.bar, .cell) and the prompt to try it (.hint).
+     1. Free: the notch open. FREE lists the apps using the most memory; a press on one gives its memory back.
+     2. The warning line: the notch closed, the line under it, and the five readings by name, with the marks at which
+        each of the four it watches turns amber, then red.
+   Everything here is scoped to #numbers. */
+
+#numbers .nx__stage { display: flex; flex-direction: column; }
+
+/* ---------- the top of the screen: the menu bar, and the notch hanging over it ---------- */
+#numbers .nx__stage > .mbar { position: absolute; inset: 0 0 auto 0; z-index: 1; }
+#numbers .mbar .is-cut { display: none; }   /* the Apple menu too, where numbers.js leaves a whole side out */
+/* numbers.js may shrink the notch and its panel to fit a narrow surface; it never enlarges them */
+#numbers .nx__hang { position: relative; z-index: 3; display: flex; justify-content: center; }
+
+/* ---------- the panel (Console.swift): black, the site's faint rim, five gauges over the function bar ---------- */
+/* --z is the panel's scale (numbers.js); --pz tells the shared small type and keys to make up for it */
+#numbers .np { --pz: var(--z, 1); position: relative; zoom: var(--z, 1); font-family: var(--mono); color: #fff; }
+#numbers .np__shape { width: 500px; border: 1px solid transparent; border-top: 0; border-radius: 0 0 14px 14px; overflow: hidden;
+  background: linear-gradient(#000, #000) padding-box, linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .09) 60%, rgba(255, 255, 255, .14)) border-box;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .45), 0 28px 56px -22px rgba(0, 0, 0, .95), 0 0 90px -30px rgba(255, 255, 255, .14); }
+#numbers .np__cap { position: relative; height: 32px; }
+#numbers .np__gauges { display: flex; gap: 16px; padding: 6px 17px 14px; transition: opacity .25s; }
+#numbers .np__hr { display: block; height: 1px; background: linear-gradient(#292929, #292929) 0 0 / 100% var(--hair) no-repeat; }
+#numbers .np__bar { transition: opacity .25s; }
+#numbers .np.is-dim .np__gauges, #numbers .np.is-dim .np__bar { opacity: .15; }
+#numbers .gauge__row { white-space: nowrap; }
+
+/* ---------- 1. Free: the bar lists the heaviest apps; the pointer presses one ---------- */
+/* the line under the panel: one line, or two once a press has freed memory; it keeps the room of two, so nothing under it moves */
+#numbers .nx__say { display: flex; flex-direction: column; align-items: center; gap: 5px; min-height: 89px; padding: 28px 20px 16px; text-align: center; font: 400 15px/1.35 var(--sans); color: var(--text); transition: opacity .25s; }
+#numbers .nx__say small { font-size: 14px; line-height: 1.4; color: var(--gray); font-variant-numeric: tabular-nums; }
+#numbers .nx__say b { font-weight: 600; color: #fff; }
+/* the prompt to try it (the shared .hint), until a visitor does */
+#numbers .nx__try { padding: 0 20px 26px; transition: opacity .25s; }
+#numbers .nx--free.is-hands .nx__try { opacity: 0; }
+/* the Mac's arrow, on the panel for as long as the panel is open. numbers.js moves its tip (left, top) along one of three
+   paths, each axis with its own easing: 'even' a straight line, 'arc' across first and then down onto a key, 'lift' up off the bar at once */
+#numbers .np .mptr { --ex: cubic-bezier(.45, 0, .2, 1); --ey: var(--ex); left: 70.8px; top: 58.4px; opacity: 0; transition: left .62s var(--ex), top .62s var(--ey), opacity .25s; }   /* at rest: on the MEM gauge, beside its number */
+#numbers .np .mptr[data-path="arc"] { --ex: cubic-bezier(.3, .6, .3, 1); --ey: cubic-bezier(.65, 0, .5, 1); }
+#numbers .np .mptr[data-path="lift"] { --ey: cubic-bezier(.25, .6, .3, 1); }
+#numbers .np .mptr.is-on { opacity: 1; }
+/* an app that was quit gives way, still lit, and the next heaviest slides in */
+#numbers [data-apps] .cell { transition: flex-grow .42s cubic-bezier(.3, .9, .3, 1), opacity .2s; }
+#numbers [data-apps] .cell.is-new { flex-grow: 0; opacity: 0; }
+#numbers [data-apps] .cell.is-going { flex-grow: 0; }
+#numbers [data-apps] .cell.is-new, #numbers [data-apps] .cell.is-moving, #numbers [data-apps] .cell.is-going { overflow: hidden; }   /* only while a cell grows or gives way, so its name never spills */
+#numbers [data-apps] .cell.is-going::after { display: none; }
+/* A key answers the visitor's pointer only once they have reached for one (numbers.js marks the bay .is-hands): while the
+   scene plays or rests, only its own pointer lights a key (.is-hot), whatever the visitor's pointer happens to lie on.
+   And on a touch screen a tap leaves its hover behind, so there a key is lit by the press alone. */
+#numbers .nx--free:not(.is-hands) .np__bar .cell:hover:not(.is-hot):not(:focus-visible) { background: none; color: #fff; }
+#numbers .nx--free:not(.is-hands) .np__bar .cell:hover:not(.is-hot):not(:focus-visible) :is(.glyph, .rest) { display: block; }
+#numbers .nx--free:not(.is-hands) .np__bar .cell:hover:not(.is-hot):not(:focus-visible) .name { display: none; }
+@media (hover: none) {
+  #numbers .np__bar .cell:hover:not(.is-hot):not(:focus-visible) { background: none; color: #fff; }
+  #numbers .np__bar .cell:hover:not(.is-hot):not(:focus-visible) :is(.glyph, .rest) { display: block; }
+  #numbers .np__bar .cell:hover:not(.is-hot):not(:focus-visible) .name { display: none; }
+}
+/* In a panel drawn smaller, an app's name and size ("SAFARI 2.4": ten letters in a fifth of the bar) are set as large as
+   the cell holds, about 10 px on the screen, without tracking. */
+#numbers .np.is-small [data-apps] .cell :is(.rest, .name) { font-size: min(calc(10px / var(--z, 1)), 14.4px); letter-spacing: 0; padding-left: 0; }
+
+/* ---------- 2. the warning line: the closed notch, its line, and the five readings by name, with the marks of the four it watches ---------- */
+#numbers .nx--warn { margin-top: var(--gap); }
+/* closed, the notch is a hole in the screen: plain black, no rim, no shadow */
+#numbers .nn { position: relative; width: 180px; height: 32px; border-radius: 0 0 10px 10px; background: #000; }
+/* Console.swift: 44 by 2 points, in the worst colour of the readings it watches. It hangs 6 points under the app's closed
+   shape, whose black sits 1 point inside the notch, so its top edge is 3 points under the notch's. */
+#numbers .nn__line { position: absolute; left: 50%; top: calc(100% + 3px); width: 44px; height: 2px; margin-left: -22px; background: var(--amber); opacity: 0; transition: opacity .3s, background-color .3s; }
+#numbers .nn__line[data-level="amber"] { opacity: 1; }
+#numbers .nn__line[data-level="red"] { opacity: 1; background: var(--red); }
+/* the lines from the warning line to the readings it watches, drawn by numbers.js */
+#numbers .nx__wires { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+#numbers .nx__wires path { fill: none; stroke: #37373d; stroke-width: 1; transition: stroke .3s; }
+#numbers .nx__wires path.is-amber { stroke: var(--amber); }
+#numbers .nx__wires path.is-red { stroke: var(--red); }
+/* each reading: its gauge as the app draws it, its plain name, and the marks at which it turns amber, then red.
+   The five stand as they do in the panel (80 wide, 16 apart). */
+#numbers .nx__marks { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(5, 80px); justify-content: center; gap: 34px 16px; margin-top: 74px; padding: 0 20px 38px; list-style: none; }
+#numbers .nx__col { min-width: 0; }
+#numbers .nx__name { display: block; margin-top: 14px; font: 600 13px/1.25 var(--sans); letter-spacing: -.005em; color: var(--text); white-space: nowrap; }
+#numbers .nx__rule { display: flex; gap: 10px; margin-top: 9px; font: 500 11px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: var(--gray); white-space: nowrap; }
+#numbers .nx__rule > span { display: flex; align-items: center; gap: 5px; }
+#numbers .nx__dot { flex: none; width: 6px; height: 8px; }
+#numbers .nx__dot + .nx__dot { margin-left: -3px; }
+#numbers .nx__dot--a { background: var(--amber); }
+#numbers .nx__dot--r { background: var(--red); }
+#numbers .nx__glyph-line { position: relative; width: 14px; height: 14px; flex: none; }
+#numbers .nx__glyph-line::before { content: ""; position: absolute; left: 0; right: 0; top: 2px; height: 5px; border-radius: 0 0 2.5px 2.5px; background: #fff; }
+#numbers .nx__glyph-line::after { content: ""; position: absolute; left: 3px; right: 3px; top: 10px; height: 2px; background: var(--amber); }
+/* the foot's second line keeps to the right while there is room beside the first, and goes under it, left, when there is not */
+#numbers .nx--warn .bay__line:not(.nx__alt) { flex: 1 1 auto; }
+
+/* ---------- narrower ---------- */
+@media (max-width: 720px) {
+  #numbers .nx__say { min-height: 81px; padding: 22px 16px 14px; }
+}
+@media (max-width: 600px) {
+  #numbers .nx__marks { grid-template-columns: repeat(3, 80px); justify-content: space-between; gap: 30px 0; width: 100%; max-width: 400px; margin: 62px auto 0; padding: 0 20px 30px; }
+}

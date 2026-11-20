@@ -1,0 +1,177 @@
+/* Notch website, segment 03 Dictation: talk, it types.
+   Every rule is scoped under #dictation. Shared parts live in ../styles.css: the bay, the voice strip (.vn), and the Mac
+   drawn once (.mbar, .tl, .keys and .kc, .steps). One scale per scene: on a narrow screen app.js sets --z for the strip,
+   and the menu bar and each window follow it, whole. */
+
+/* ---------- the head: how a dictation starts ---------- */
+#dictation .dc-how { display: block; max-width: 40em; font: 400 14px/28px var(--sans); color: var(--gray); text-wrap: pretty; }
+#dictation .dc-how .keys { margin: 0 1px; }
+#dictation .dc-how__when { white-space: nowrap; }   /* the condition stays in one piece, and its link on one line */
+#dictation .dc-how a { position: relative; color: var(--text); text-decoration: underline; text-decoration-color: var(--line-3); text-decoration-thickness: 1px; text-underline-offset: 3px; transition: text-decoration-color .2s; }
+#dictation .dc-how a:hover { text-decoration-color: currentColor; }
+#dictation .dc-how a:focus-visible { outline-offset: 2px; border-radius: 3px; }
+/* on a touch screen the words answer a finger on 40 px of height; the box that takes the tap is invisible, so the focus ring
+   still hugs the words */
+#dictation .dc-how a::after { content: ""; position: absolute; left: -6px; right: -6px; top: 50%; height: 40px; margin-top: -20px; display: none; }
+@media (hover: none), (pointer: coarse) { #dictation .dc-how a::after { display: block; } }
+.is-touch #dictation .dc-how a::after { display: block; }
+/* the DICTATE key as the panel draws it: black, the tool's picture, its name in the app's capitals */
+#dictation .dc-cell { display: inline-flex; align-items: center; gap: 7px; height: 22px; margin: 0 1px; padding: 0 6px 0 7px; vertical-align: middle; border-radius: 5px; white-space: nowrap;
+  font: 11px/1 var(--mono); letter-spacing: 2px; color: #fff; background: #000; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .17), 0 1px 0 rgba(0, 0, 0, .7); }
+#dictation .dc-cell .glyph { width: 12px; height: 12px; }
+/* Caps Lock, named: the sign alone is too easily taken for Shift */
+#dictation .dc-caps { display: inline-flex; align-items: center; gap: 5px; padding: 0 7px 0 6px; font: 500 11.5px/1 var(--sans); letter-spacing: 0; white-space: nowrap; }
+
+/* ---------- the scene: the top of a Mac's screen, Mail in front, a message being written ---------- */
+#dictation .dc-live { --h: 432px; }
+#dictation .dc-live .bay__stage { overflow: hidden; }
+#dictation .dc-live .mbar { position: absolute; inset: 0 0 auto; z-index: 1; zoom: var(--z, 1); }
+/* the Mac's sound in the menu bar: there, struck through, only while you talk (MUTE THE MAC WHILE DICTATING is on unless
+   switched off); it goes off as the start note ends. The dot beside Control Centre is macOS's own sign that a microphone is on. */
+#dictation .dc-vol { flex: none; width: 16px; height: 14px; overflow: visible; opacity: 0; transition: opacity .15s; }
+#dictation .is-mic .dc-vol { opacity: 1; transition-delay: .2s; }
+#dictation .dc-live .mbar__dot { transition: background-color .15s; }
+/* short of room, the clock drops its date first, as on a Mac; where nothing clears the strip, the bar is bare (dictation.js) */
+#dictation .mbar[data-tight] .dc-date, #dictation .mbar.is-bare > * { display: none; }
+
+/* a window: 16-point corners, a 32-point title bar, its three buttons 9 points in (.tl). It is drawn at the scene's one
+   scale, whole: on a phone, where the strip is drawn smaller (--z), the window is too, words and all, and is as wide on
+   screen as before (--ww). */
+#dictation .dc-win { --ww: min(560px, 100% - 40px); position: absolute; z-index: 2; left: 50%; width: calc(var(--ww) / var(--z, 1)); transform: translateX(-50%) scale(var(--z, 1)); transform-origin: 50% 0;
+  overflow: hidden; border-radius: 16px; background: #222226; text-align: left; font: 13px/1.6 var(--sans); color: var(--text);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .72), inset 0 0 0 1px rgba(255, 255, 255, .09), inset 0 1px 0 rgba(255, 255, 255, .11), 0 18px 36px -10px rgba(0, 0, 0, .7), 0 44px 80px -28px rgba(0, 0, 0, .95); }
+#dictation .dc-win__bar { position: relative; display: flex; align-items: center; justify-content: center; height: 32px; padding: 0 78px; background: linear-gradient(#2d2d32, #28282c); box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .5); }
+#dictation .dc-win__bar .tl { position: absolute; left: 9px; top: 9px; }
+#dictation .dc-win__t { overflow: hidden; font: 700 13px/1 var(--sans); letter-spacing: -.005em; color: var(--text); white-space: nowrap; text-overflow: ellipsis; }
+
+/* Mail's own window, behind the message: out of focus, so its buttons are grey and its shadow small. It runs on below the picture. */
+#dictation .dc-back { position: absolute; z-index: 1; left: 50%; top: 53px; width: min(900px, 100% - 240px); height: 480px; transform: translateX(-50%); overflow: hidden; border-radius: 16px; background: #1c1c20;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .6), inset 0 0 0 1px rgba(255, 255, 255, .055), inset 0 1px 0 rgba(255, 255, 255, .06), 0 14px 30px -14px rgba(0, 0, 0, .7); }
+#dictation .dc-back .tl { position: absolute; left: 9px; top: 9px; z-index: 1; }
+#dictation .dc-back__side { position: absolute; inset: 0 auto 0 0; width: 170px; padding: 50px 14px 0; background: rgba(255, 255, 255, .022); box-shadow: inset -1px 0 0 rgba(0, 0, 0, .4); }
+#dictation .dc-back__side b { display: block; width: var(--w); height: 7px; margin: 0 8px 17px; border-radius: 3px; background: rgba(255, 255, 255, .075); }
+#dictation .dc-back__side b.is-at { position: relative; background: rgba(255, 255, 255, .13); }
+#dictation .dc-back__side b.is-at::before { content: ""; position: absolute; left: -8px; top: -9px; width: 142px; height: 25px; border-radius: 6px; background: rgba(255, 255, 255, .055); }
+/* its three columns: mailboxes, the messages in Inbox, the one being read (the ends of its lines show past the message in front) */
+#dictation .dc-back__list { position: absolute; inset: 0 auto 0 170px; width: 250px; padding: 0 16px; box-shadow: inset -1px 0 0 rgba(0, 0, 0, .4); }
+#dictation .dc-back__t { display: block; height: 52px; font: 700 13px/52px var(--sans); color: var(--dim); }
+#dictation .dc-back__list p { height: 62px; padding-top: 13px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05); }
+#dictation .dc-back__list p > * { display: block; width: var(--w); height: 6px; margin-bottom: 8px; border-radius: 3px; background: rgba(255, 255, 255, .055); }
+#dictation .dc-back__list p > b { height: 7px; background: rgba(255, 255, 255, .1); }
+#dictation .dc-back__read { position: absolute; inset: 0 0 0 420px; padding: 74px 24px 0; }
+#dictation .dc-back__read > * { display: block; height: 6px; margin-bottom: 9px; border-radius: 3px; }
+#dictation .dc-back__read i { width: var(--w); background: rgba(255, 255, 255, .055); }
+#dictation .dc-back__read u { position: absolute; top: 19px; right: 20px; width: 15px; height: 15px; margin: 0; border-radius: 4px; background: rgba(255, 255, 255, .06); }   /* its toolbar's three buttons */
+#dictation .dc-back__read u:nth-child(2) { right: 47px; }
+#dictation .dc-back__read u:nth-child(3) { right: 74px; }
+
+/* the message you are typing in */
+#dictation .dc-mail { top: calc(114px * var(--z, 1)); }   /* under the strip at its tallest (88), and 26 more */
+#dictation .dc-win__f { margin: 0 18px; padding: 8px 0 7px; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .07); white-space: nowrap; }
+#dictation .dc-win__f span { color: var(--gray); }
+#dictation .dc-win__body { height: 118px; padding: 12px 18px; }
+#dictation .dc-win__in { margin-top: 1.6em; }   /* a blank line after the greeting */
+/* the insertion point. Since macOS 14 it takes the accent colour, and this Mac's is Graphite, as everything else on the page */
+#dictation .dc-caret { display: inline-block; width: 2px; height: 16px; margin-left: 1px; vertical-align: -3px; border-radius: 1px; background: var(--gray); }
+#dictation .is-live .dc-caret { animation: dc-blink 1.06s steps(1) infinite; }   /* it blinks only while this scene has its turn */
+#dictation .dc-paste { border-radius: 3px; -webkit-box-decoration-break: clone; box-decoration-break: clone; transition: opacity .5s; }
+#dictation .dc-paste.is-new { animation: dc-land 1.5s ease-out; }
+#dictation .is-fading .dc-paste { opacity: 0; }
+#dictation .is-fading .dc-caret { visibility: hidden; }   /* it comes back at the start of the line once the words have gone */
+@keyframes dc-blink { 50% { opacity: 0; } }
+@keyframes dc-land { from { background-color: rgba(255, 255, 255, .16); } to { background-color: rgba(255, 255, 255, 0); } }
+
+/* the strip hangs over everything; its band says PASTED only once the text is in */
+#dictation .dc-opt .grp, #dictation .dc-live .grp { z-index: 3; }
+#dictation .vc-l { transition: opacity .15s; }
+#dictation .vn.is-wait .vc-l { opacity: 0; }
+
+/* ---------- the steps under the scene (.steps): start, talk, stop, pasted. Stop and Pasted are the longer two. ---------- */
+#dictation .dc-steps { margin: 0; padding: 0; list-style: none; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1.9fr); }
+#dictation .dc-steps .step { transition: color .25s; }
+#dictation .dc-steps .glyph { margin: 0 1px; }
+#dictation .dc-step__t small { display: inline-block; font: 400 13px/1.3 var(--sans); color: var(--gray); text-wrap: balance; }   /* a quiet second line: beside the step's name where there is room, under it where there is not */
+/* a press shows on the key: it goes down and fills white, as the app's own keys do */
+#dictation .dc-steps .kc { transition: background .1s, color .1s, transform .1s, box-shadow .1s; }
+#dictation .dc-steps .keys.is-hot .kc { color: #000; background: #fff; box-shadow: inset 0 0 0 1px #fff, 0 0 0 rgba(0, 0, 0, 0); transform: translateY(1px); }
+
+/* ---------- three options. Hearing the Mac is the wide one: a call, and the strip writing it down. ---------- */
+#dictation .dc-opts { margin-top: var(--gap); grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); }
+#dictation .dc-opt { height: auto; }
+/* the pictures all sit at one height, whatever the words under them wrap to */
+#dictation .dc-opt .bay__stage { flex: none; height: 224px; display: grid; place-items: center; padding: 16px 20px; }
+#dictation .dc-opt .bay__foot { flex: 1 1 auto; align-content: flex-start; }
+#dictation .dc-opt .bay__name { min-height: 26px; }   /* as tall as the switch beside one of them, so the three names sit on one line */
+#dictation .dc-opt .bay__line { flex: 1 1 100%; }
+/* its switch in Settings, drawn the way the app draws a switch that is on (Key.swift, Style.swift): white, its lamp an 8-point square, solid */
+#dictation .dc-switch { margin-left: auto; gap: 9px; letter-spacing: .08em; }
+#dictation .dc-switch .lamp { width: 8px; height: 8px; border-radius: 0; }
+
+/* the call: a small window in front, the one speaking ringed in white, the sound the Mac plays drawn as it moves */
+#dictation .dc-hear .bay__stage { display: block; padding: 0; overflow: hidden; height: calc(224px * var(--z, 1)); }
+#dictation .dc-call { --ww: min(448px, 100% - 32px); top: calc(118px * var(--z, 1)); }   /* under the strip (88), clear of its shadow: the window in front must not look dimmed */
+#dictation .dc-call__row { display: flex; align-items: center; gap: 14px; height: 56px; padding: 0 18px 0 14px; color: var(--gray); }
+#dictation .dc-call__who { flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; font: 600 11.5px/1 var(--sans); letter-spacing: .02em; color: #fff;
+  background: linear-gradient(180deg, #5a5a61, #3b3b40); box-shadow: 0 0 0 2px #222226, 0 0 0 3.5px rgba(255, 255, 255, 0); transition: box-shadow .25s; }
+#dictation .is-heard .dc-call__who { box-shadow: 0 0 0 2px #222226, 0 0 0 3.5px rgba(255, 255, 255, .85); }
+#dictation .dc-call__wave { flex: 1 1 auto; min-width: 0; height: 24px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+#dictation .dc-call__wave path { transform-box: fill-box; transform-origin: 50% 50%; transform: scaleY(.16); transition: transform .3s ease-out; }
+#dictation .is-heard .dc-call__wave path { transform: scaleY(.85); }
+#dictation .is-live.is-heard .dc-call__wave path { animation: dc-wave .52s ease-in-out infinite alternate; }   /* it moves only while this scene has its turn */
+#dictation .is-live.is-heard .dc-call__wave path:nth-child(2) { animation-duration: .7s; animation-delay: -.3s; }
+#dictation .is-live.is-heard .dc-call__wave path:nth-child(3) { animation-duration: .61s; animation-delay: -.5s; }
+@keyframes dc-wave { from { transform: scaleY(.38); } to { transform: scaleY(1.1); } }
+
+/* the Mac's sound beside your voice, over time: two lanes */
+#dictation .dc-lanes { display: grid; gap: 16px; width: 100%; max-width: 300px; }
+#dictation .dc-lane { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); align-items: center; column-gap: 12px; font: 500 11px/1 var(--mono); letter-spacing: .08em; color: var(--gray); }
+#dictation .dc-lane svg { width: 100%; height: 32px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; }   /* as wide as its tile allows; the bars keep their weight */
+#dictation .dc-lane path { vector-effect: non-scaling-stroke; }
+#dictation .dc-lane__off { stroke: var(--dim); }
+#dictation .dc-lane b { position: absolute; left: calc(42px + (100% - 42px) / 2); top: 50%; transform: translate(-50%, -50%); font-weight: 500; color: var(--gray); }
+
+/* a clipboard manager's list, without the dictation in it */
+#dictation .dc-clips { width: min(300px, 100%); overflow: hidden; border-radius: 12px; background: #1f1f23; font: 12.5px/1 var(--sans); color: var(--text);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .7), inset 0 0 0 1px rgba(255, 255, 255, .075), inset 0 1px 0 rgba(255, 255, 255, .09), 0 24px 48px -24px rgba(0, 0, 0, .9); }
+#dictation .dc-clips p { display: flex; align-items: center; justify-content: space-between; gap: 10px; height: 30px; padding: 0 13px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06); white-space: nowrap; overflow: hidden; }
+#dictation .dc-clips .dc-clips__h { height: 28px; box-shadow: none; font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--gray); }
+#dictation .dc-clips .dc-clips__gap { height: 30px; margin: 0 6px 4px; padding: 0 7px; border: 1px dashed rgba(255, 255, 255, .22); border-radius: 8px; box-shadow: none; color: var(--gray); }
+#dictation .dc-clips__gap b { font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--gray); }
+
+/* ---------- smaller screens ---------- */
+@media (max-width: 1100px) {
+  /* the call keeps the full width; the other two share the row under it */
+  #dictation .dc-opts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #dictation .dc-hear { grid-column: 1 / -1; }
+  #dictation .dc-opt:not(.dc-hear) .bay__stage { height: 168px; }
+}
+@media (max-width: 1080px) {
+  #dictation .dc-back { display: none; }   /* too little of Mail's own window would show past the message */
+}
+@media (max-width: 1000px) {
+  /* the steps fold into two rows of two, and the scene keeps its height above them */
+  #dictation .dc-live { --h: 490px; }
+  #dictation .dc-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row; }
+  #dictation .dc-steps .step:nth-child(2) { box-shadow: inset 1px 0 0 var(--line); }
+  #dictation .dc-steps .step:nth-child(3) { box-shadow: inset 0 1px 0 var(--line); }
+  #dictation .dc-steps .step:nth-child(4) { box-shadow: inset 1px 0 0 var(--line), inset 0 1px 0 var(--line); }
+}
+@media (max-width: 720px) {
+  #dictation .seg__facts > div { flex: 1 1 0; }   /* the two facts side by side, their labels on two lines */
+  #dictation .seg__facts dt { text-wrap: balance; }
+  #dictation .dc-how { font-size: 13.5px; }
+  #dictation .dc-win { --ww: calc(100% - 24px); }
+  #dictation .dc-win__body { height: 160px; }   /* the message is narrower: its lines are more */
+  /* the scene is as tall as the window it holds, at the scene's scale, with room for its shadow */
+  #dictation .dc-live { height: auto; }
+  #dictation .dc-live .bay__stage { flex: none; height: calc(380px * var(--z, 1) + 34px); }
+  #dictation .dc-opts { grid-template-columns: minmax(0, 1fr); }
+  #dictation .dc-opt:not(.dc-hear) .bay__stage { height: 140px; }
+  #dictation .dc-clips p:last-child { display: none; }
+}
+@media (max-width: 560px) {
+  /* in a narrow cell a step's second line goes under it, the full width of the cell */
+  #dictation .dc-steps .step { flex-wrap: wrap; align-content: center; row-gap: 4px; padding: 12px 14px; }
+  #dictation .dc-step__t { display: contents; }
+  #dictation .dc-step__t small { flex: 1 1 100%; font-size: 12.5px; }
+}

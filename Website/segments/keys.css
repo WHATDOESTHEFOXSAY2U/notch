@@ -1,0 +1,130 @@
+/* Notch website, segment 05 Keys: Caps Lock as a hyper key (Hyper.swift, Hotkeys.swift).
+   One line reads as an equation: caps lock = control option shift command, + any key, with the same thing in words
+   under it. Along the bay's foot, what the key is good for: Caps Lock + D dictates out of the box (DICT's default,
+   Prefs.swift), Notch's other shortcuts can be set to it, and every key that is left is free to assign.
+   The markup is the still frame; keys.js only plays it. Every rule is scoped under #keys.
+   Shared parts (.bay, .vn, .steps, .keys and .kc, .pair__line, .chip, .lamp, .vh) live in ../styles.css. */
+
+#keys {
+  --u: 64px;      /* one key */
+  --kh: 60px;     /* a key's height */
+  --kg: 10px;     /* the gap between keys */
+  --op: 92px;     /* the room an = or a + takes */
+  --k: 26px;      /* a key of the small keyboard */
+  --kgap: 5px;
+}
+
+/* ---------- the stage: the notch hangs from the top edge; the equation and its sentence sit below it ---------- */
+#keys .hk__stage { display: flex; flex-direction: column; align-items: center; padding: 128px 24px 46px; }
+
+#keys .hk__eq, #keys .hk__part { display: flex; align-items: center; justify-content: center; }
+#keys .hk__mods { display: flex; gap: var(--kg); }
+#keys .hk__op { flex: none; width: var(--op); text-align: center; font: 200 30px/1 var(--sans); color: var(--gray); }
+
+/* the equation, in words */
+#keys .hk__say { max-width: 46em; margin-top: 32px; text-align: center; font: 400 15px/1.5 var(--sans); color: var(--gray); text-wrap: balance; }
+
+/* ---------- a keycap, drawn like a Mac's: dark, a lit top edge, small legends. At rest it is plainly readable;
+   white means pressed. control, option and command carry their sign and their word, as the left-hand ones do on a
+   MacBook; caps lock (with its light, dark while it is the hyper key) and shift carry the sign alone. ---------- */
+#keys .hk__key { position: relative; flex: none; width: var(--u); height: var(--kh); border-radius: 10px; color: var(--text);
+  background: linear-gradient(180deg, #3a3a40 0%, #303035 52%, #28282d 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), inset 0 1px 0 rgba(255, 255, 255, .19), 0 1px 0 rgba(0, 0, 0, .9), 0 14px 24px -12px #000;
+  transition: color .16s, transform .16s ease-out; }
+#keys .hk__key--caps { width: calc(var(--u) * 1.75 + var(--kg) * .75); }
+#keys .hk__key--shift { width: calc(var(--u) * 2.25 + var(--kg) * 1.25); }   /* a left shift, as on a US keyboard */
+#keys .hk__key--cmd { width: calc(var(--u) * 1.25 + var(--kg) * .25); }
+#keys .hk__sign { position: absolute; top: 8px; right: 9px; width: 15px; height: 15px; stroke-width: 1.3; }
+#keys .hk__key--caps .hk__sign, #keys .hk__key--shift .hk__sign { top: auto; right: auto; left: 9px; bottom: 8px; }
+#keys .hk__word { position: absolute; bottom: 9px; right: 10px; font: 400 10.5px/1 var(--sans); letter-spacing: .01em; white-space: nowrap; }
+#keys .hk__led { position: absolute; top: 10px; left: 11px; width: 4px; height: 4px; border-radius: 50%; background: #111113; box-shadow: 0 0 0 .5px rgba(255, 255, 255, .1); transition: background .16s; }
+
+/* held down: the key fills white, as a key under the pointer does in the app. The white is a layer of its own, so it
+   comes at once and goes a little slower, all of a piece (a gradient cannot fade into another). */
+#keys .hk__key::before { content: ""; position: absolute; inset: 0; border-radius: inherit; opacity: 0; transition: opacity .16s ease-out; background: linear-gradient(180deg, #fff 0%, #ebebee 100%);
+  box-shadow: inset 0 0 0 1px #fff, inset 0 -2px 0 rgba(0, 0, 0, .08), 0 0 0 1px rgba(255, 255, 255, .12), 0 0 30px -6px rgba(255, 255, 255, .28), 0 14px 34px -16px rgba(255, 255, 255, .3); }
+#keys .hk__key.on { transform: translateY(2px); color: #0c0c0d; transition-duration: .07s; }
+#keys .hk__key.on::before { opacity: 1; transition-duration: .07s; }
+#keys .hk__key.on .hk__led { background: #c4c4c9; box-shadow: none; }
+
+/* ---------- + any key: the rest of the keyboard, small ---------- */
+#keys .hk__kb { display: flex; flex-direction: column; gap: var(--kgap); padding: 12px; border-radius: 13px;
+  background: linear-gradient(180deg, #0d0d0f, #09090a); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07), inset 0 1px 0 rgba(255, 255, 255, .05), inset 0 6px 14px rgba(0, 0, 0, .5); }
+#keys .hk__row { display: flex; gap: var(--kgap); }
+#keys .hk__row:nth-child(2) { padding-left: calc((var(--k) + var(--kgap)) * .25); }
+#keys .hk__row:nth-child(3) { padding-left: calc((var(--k) + var(--kgap)) * .75); }
+#keys .hk__row i { flex: none; display: grid; place-items: center; width: var(--k); height: var(--k); border-radius: 6px; font: 500 10.5px/1 var(--sans); font-style: normal; color: var(--gray);
+  background: #222226; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), inset 0 1px 0 rgba(255, 255, 255, .08); transition: color .3s, box-shadow .3s, background .16s; }
+/* every key that is left, free to assign: they light up from left to right (--i, keys.js), and let go all at once */
+#keys .hk__kb.live .hk__row i:not(.hk__d) { color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .42), 0 0 12px -4px rgba(255, 255, 255, .3); transition-delay: calc(var(--i, 0) * 26ms); }
+/* the key a shortcut is on: ringed */
+#keys .hk__row i.is-mark { color: #fff; box-shadow: inset 0 0 0 1.5px #fff, 0 0 14px -3px rgba(255, 255, 255, .45); }
+#keys .hk__row i.on { transition-delay: 0s; background: #fff; color: #000; box-shadow: 0 0 0 1px #fff, 0 0 22px rgba(255, 255, 255, .38); }
+
+/* ---------- the notch and its strip (the shared .vn), drawn at their own size; a bay narrower than the strip shows
+   the whole of it smaller (--vz: keys.js, or the fallbacks at the end of this file) ---------- */
+#keys .vn { transform: translateX(-50%) scale(var(--vz, 1)); transform-origin: 50% 0; }
+#keys .vword + .vword { margin-left: 1ch; }
+#keys .vc-l { transition: opacity .12s; }
+#keys .vn.is-wait .vc-l { opacity: 0; }              /* the band's word lights once the text really is on the clipboard */
+
+/* ---------- what it is good for: three uses along the foot (the shared .steps), lit one at a time; under each
+   name, a line that says how it comes about ---------- */
+#keys .hk__uses { list-style: none; padding: 0; }
+/* the three names keep one line however their lines wrap; the two keys sit level with the name */
+#keys .hk__uses .step { gap: 13px; align-items: flex-start; transition: color .25s; }
+#keys .hk__uses .keys { margin-top: -2px; }
+#keys .hk__uses .step::before { transition: transform var(--pt, 0s) linear; }
+#keys .hk__use { display: flex; flex-direction: column; min-width: 0; }
+#keys .hk__use .pair__line { text-wrap: balance; transition: color .25s; }
+#keys .step.is-on .pair__line { color: var(--text); }
+#keys .kc--any { background: none; box-shadow: none; border: 1px dashed rgba(255, 255, 255, .38); }   /* any key: an open slot */
+
+/* the switch in Settings that turns it on, drawn the way the app draws it (Style.swift: an 8-point square, filled while on) */
+#keys .hk__switch { gap: 9px; letter-spacing: .08em; }
+#keys .hk__switch .lamp { width: 8px; height: 8px; border-radius: 0; }
+#keys .bay__line { text-wrap: pretty; }   /* no word left alone on a line */
+
+/* ---------- narrower ---------- */
+@media (max-width: 1240px) {
+  #keys { --op: 60px; }
+}
+@media (max-width: 1160px) {
+  /* two rows at full size: caps lock = the four keys; then + the keyboard */
+  #keys .hk__stage { padding-bottom: 40px; }
+  #keys .hk__eq, #keys .hk__part:last-child { flex-direction: column; }
+  #keys .hk__part:last-child .hk__op { width: auto; padding: 14px 0 16px; }
+  #keys .hk__say { margin-top: 28px; }
+}
+@media (max-width: 1023px) {
+  #keys .hk__switch { display: none; }   /* the foot holds it on its one row down to here */
+}
+@media (max-width: 900px) {
+  /* the three uses, one under the other; each still reads on one line while there is room */
+  #keys .hk__uses { grid-auto-flow: row; }
+  #keys .hk__uses .step { min-height: 50px; padding: 10px 20px; align-items: center; }
+  #keys .hk__uses .keys { margin-top: 0; }
+  #keys .hk__uses .step + .step { box-shadow: inset 0 1px 0 var(--line); }
+  #keys .hk__use { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 0 12px; }
+}
+@media (max-width: 720px) {
+  /* the equation stands up: one part under the other */
+  #keys { --u: 54px; --kh: 52px; --kg: 7px; --k: 24px; --kgap: 4px; }
+  #keys .hk__stage { padding: 104px 16px 28px; }
+  #keys .hk__part { flex-direction: column; }
+  #keys .hk__op, #keys .hk__part:last-child .hk__op { width: auto; padding: 6px 0 8px; font-size: 26px; }
+  #keys .hk__key--shift { width: calc(var(--u) * 1.25 + var(--kg) * .25); }   /* the short left shift of a British or European keyboard */
+  #keys .hk__sign { top: 7px; right: 8px; width: 14px; height: 14px; }
+  #keys .hk__key--caps .hk__sign, #keys .hk__key--shift .hk__sign { left: 8px; bottom: 7px; }
+  #keys .hk__word { bottom: 8px; right: 8px; font-size: 9.5px; letter-spacing: 0; }
+  #keys .hk__led { top: 9px; left: 9px; }
+  #keys .hk__kb { padding: 10px; }
+  #keys .hk__say { margin-top: 22px; font-size: 14px; }
+  #keys .hk__uses .step { padding: 12px 16px; align-items: flex-start; }
+  #keys .hk__uses .keys { margin-top: -2px; }
+  #keys .hk__use { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0; }
+  #keys .hk__use .pair__line { text-wrap: pretty; }
+}
+@media (max-width: 430px) { #keys .vn { --vz: .88; } }     /* before keys.js has measured, and without it */
+@media (max-width: 379px) { #keys { --k: 23px; } #keys .vn { --vz: .8; } }
+@media (max-width: 359px) { #keys { --u: 46px; --kh: 46px; --k: 20px; --kgap: 3px; } #keys .hk__kb { padding: 8px; } #keys .vn { --vz: .7; } }

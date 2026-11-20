@@ -1,0 +1,247 @@
+/* Notch website, segment "more": build a segment (#next, the open slot) and open source (#source, how one is built).
+   Every rule is scoped under its section. Shared parts (.bay, .gauge, .bar10, .hairline, .bar, .cell, .ncam, .mptr, .step,
+   .lamp, .btn, .pair__name, .pair__line, .vh) live in ../styles.css. Anything "open" (yours to add) is white in a dashed
+   outline; amber stays the app's warning. */
+
+/* ==========================================================================
+   #next: the panel as it is today, at its own size, with one open cell
+   before SET, and the place where that cell's view would open. The drawn
+   pointer rests on the cell the list beside it names.
+   ========================================================================== */
+#next .nxt::after { background: radial-gradient(40% 74% at 30.5% -12%, rgba(255, 255, 255, .075), transparent 72%); }   /* the bay's light, over the panel */
+#next .nxt__stage { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr); }
+
+/* the left: the panel hangs from the top edge of the bay, as it hangs from the top of the screen. more.js sets --z (1 wherever
+   there is room, smaller on a phone), --x (on a whole pixel, so nothing is drawn between pixels) and --ph (the panel's own
+   height). --pz tells the shared small type inside it (the gauges' labels, a cell's name) how much smaller it is drawn. */
+#next .nxt__view { position: relative; min-height: calc(var(--ph, 247px) * var(--z, 1) + 56px); }
+#next .nxt__fit { --pz: var(--z, 1); position: absolute; left: var(--x, calc(50% - 250px)); top: 0; width: 500px; transform: scale(var(--z, 1)); transform-origin: 0 0; }
+#next .nxt__fit.is-1x { transform: none; }
+
+/* the panel (Readouts.swift): black, 500 wide with the site's rim, the camera's band, the gauges 18 from the outer edge.
+   --fs is its small type: 11 px at 1, and about 10 px on screen when the panel is drawn smaller. */
+#next .sp { --fs: clamp(11px, calc(10px / var(--pz, 1)), 17px); width: 500px; border: 1px solid transparent; border-top-width: 0; border-radius: 0 0 14px 14px; overflow: hidden; color: #fff; font-family: var(--mono);
+  background: linear-gradient(#000, #000) padding-box, linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .1)) border-box;
+  box-shadow: 0 34px 80px -24px rgba(0, 0, 0, .95); }
+#next .sp__cap { position: relative; height: 32px; }
+#next .sp__top { display: grid; gap: 12px; padding: 6px 17px 14px; }
+#next .sp__gauges { display: flex; gap: 16px; }
+
+/* the place where the open cell's own view would open (where the mirror opens: 464 wide, 12 under the gauges): dashed,
+   white, waiting. While the pointer is on another key it steps back. */
+#next .sp__place { display: flex; align-items: center; justify-content: center; gap: 12px; height: 92px; border: 1px dashed rgba(255, 255, 255, .34);
+  font: var(--fs) / 1 var(--mono); letter-spacing: calc(2px * var(--pz, 1)); white-space: nowrap; transition: opacity .3s ease-out; }
+#next .sp__plus { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border: 1px dashed rgba(255, 255, 255, .6); }
+#next .sp__plus .glyph { width: 12px; height: 12px; }
+#next .sp__caret { flex: none; width: .55em; height: 1.1em; margin-left: -6px; background: #fff; }
+#next .sp[data-slot="scribe"] .sp__place { opacity: .38; }
+#next .sp[data-slot="scribe"] .sp__caret { visibility: hidden; }
+#next .nxt.is-live .sp[data-slot="yours"] .sp__caret { animation: mo-blink 1.1s steps(1) infinite; }   /* it blinks only while the scene plays */
+
+/* the function bar: SHOT TEXT REC DICTATE TRANSCRIBE MIRROR FREE, the open cell, then SET, which is always last. It is a
+   drawing (spans, which answer no pointer). TRANSCRIBE under the drawn pointer fills white with its name and takes the room
+   the name needs, 4 clear each side; the other cells share the rest (Cell, in Readouts.swift). */
+#next .sp__key.is-hot { flex: 0 0 auto; padding: 0 4px; }
+#next .sp__open { color: var(--gray); transition: color .25s; }
+#next .sp__open .glyph { width: 14px; height: 14px; }
+#next .sp__open::before { content: ""; position: absolute; inset: 5px 6px; border: 1px dashed rgba(255, 255, 255, .34); transition: border-color .25s; }
+#next .sp__open.is-on { color: #fff; }
+#next .sp__open.is-on::before { border-color: rgba(255, 255, 255, .9); }
+
+/* the pointer (the shared .mptr): its tip at --px, --py in the panel's own points; it glides from key to key */
+#next .nxt__ptr { left: 0; top: 0; transform: translate(var(--px, 426px), var(--py, 232px)); transition: transform .7s cubic-bezier(.42, 0, .22, 1); }
+#next .nxt__ptr.is-quick { transition-duration: .22s; }
+
+/* the right: what the two marked cells are, as buttons that put the pointer on their cell (a name over a line: the shared .pair) */
+#next .nxt__list { display: flex; flex-direction: column; box-shadow: inset 1px 0 0 var(--line); }
+#next .nxt__it { position: relative; flex: 1 1 0; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; column-gap: 16px; row-gap: 3px; align-content: center;
+  min-height: 104px; padding: 18px 20px 18px 26px; text-align: left; transition: background-color .25s; }
+#next .nxt__it + .nxt__it { box-shadow: inset 0 1px 0 var(--line); }
+#next .nxt__it[aria-current="true"] { background: rgba(255, 255, 255, .04); }
+#next .nxt__it[aria-current="true"]::before { content: ""; position: absolute; left: 0; top: 18px; bottom: 18px; width: 2px; border-radius: 0 2px 2px 0; background: #fff; }
+#next .nxt__it:active { background: rgba(255, 255, 255, .07); }
+#next .nxt__it:focus-visible { outline-offset: -5px; }
+/* a key that is built has a solid edge; the open slot a dashed one */
+#next .nxt__ic { grid-row: 1 / span 2; align-self: center; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; color: var(--gray);
+  border: 1px solid rgba(255, 255, 255, .22); transition: color .25s, border-color .25s; }
+#next .nxt__ic--open { border-style: dashed; border-color: rgba(255, 255, 255, .3); }
+#next .nxt__it[aria-current="true"] .nxt__ic { color: #fff; border-color: rgba(255, 255, 255, .8); }
+#next .nxt__name { align-self: end; }
+#next .nxt__tag { grid-column: 3; grid-row: 1; align-self: center; font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--gray); white-space: nowrap; transition: color .25s; }
+#next .nxt__it[aria-current="true"] .nxt__tag { color: #fff; }
+#next .nxt__line { grid-column: 2 / -1; align-self: start; text-wrap: balance; }
+/* the tags and the way on end on one edge */
+#next .bay__foot { padding-right: 20px; }
+#next .nxt__go { margin-left: auto; }
+@media (hover: hover) {
+  #next .nxt__it:hover { background: rgba(255, 255, 255, .025); }
+  #next .nxt__it[aria-current="true"]:hover { background: rgba(255, 255, 255, .05); }
+}
+
+/* ==========================================================================
+   #source: three steps, each under its picture (the issue, the source folder,
+   the commands), then the rules every change keeps and the way in.
+   ========================================================================== */
+#source { margin-top: calc(var(--space) * .64); }   /* the second half of one chapter: it stands closer to #next than a new segment would */
+#source .how::after { background: radial-gradient(64% 50% at 50% -10%, rgba(255, 255, 255, .07), transparent 74%); }
+#source .how__list { flex: 1 1 auto; list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: 1fr auto; }
+#source .how__it { display: grid; grid-row: span 2; grid-template-rows: subgrid; min-width: 0; }
+/* the picture above, its step (written first) along the foot; each picture on its step's own edges, 20 in from the column's */
+#source .how__pic { grid-row: 1; display: flex; justify-content: center; min-width: 0; padding: 32px 20px; }
+#source .how .step { grid-row: 2; }
+
+/* the steps along the foot (the shared .step): the one being shown is lit and a line runs along its top edge; when the
+   story is told, all three read in full */
+#source .how .step { border-top: 1px solid var(--line); transition: color .3s; }
+#source .how__it + .how__it .step { box-shadow: inset 1px 0 0 var(--line); }
+#source .how .step__n { transition: color .3s, background-color .3s, box-shadow .3s; }
+#source .how .step.is-on::before { transition: transform var(--d, 3s) linear; }
+#source .how__list[data-at="all"] .step { color: var(--text); }
+#source .how__list[data-at="all"] .step__n { color: #fff; box-shadow: inset 0 0 0 1px var(--line-3); }
+#source .how .step > span:last-child { text-wrap: balance; }
+#source .how .step code { font: 500 13px/1 var(--mono); letter-spacing: -.01em; white-space: nowrap; }
+
+/* the three pictures: black, a faint rim, monospaced, each under its name */
+#source .kd { display: flex; flex-direction: column; width: 100%; border: 1px solid transparent; border-radius: 12px; color: #fff; font: 13px/1 var(--mono);
+  background: linear-gradient(#000, #000) padding-box, linear-gradient(180deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .07)) border-box;
+  box-shadow: 0 34px 80px -28px rgba(0, 0, 0, .95); }
+#source .kd__top { flex: none; display: flex; align-items: center; gap: 9px; height: 40px; padding: 0 14px 0 18px; font: 11px/13px var(--mono); letter-spacing: 2px; text-transform: uppercase; color: var(--gray);
+  box-shadow: inset 0 -1px 0 #1f1f22; }
+#source .kd__top .glyph { width: 14px; height: 14px; }
+#source .kd__caret { flex: none; display: none; width: 7px; height: 15px; margin-left: 2px; background: #fff; }
+#source .is-typing > .kd__caret { display: block; }                                           /* steady while letters arrive, */
+#source .is-typing.is-idle > .kd__caret { animation: mo-blink 1.1s steps(1) infinite; }       /* blinking while it waits */
+/* what the story has not reached yet is not there; it arrives, and at the loop's start leaves, by fading (a command is
+   typed at the prompt, so it is simply there the moment it is run, and what it does follows) */
+#source .how [data-new], #source .how [data-add], #source .how [data-line] > span, #source .is__title > span { transition: opacity .3s ease-out; }
+#source .how .is-off, #source .how [data-line].is-off > * { opacity: 0; }
+#source .how [data-line].is-off { opacity: 1; }
+#source .how [data-line].is-off > code { transition: opacity .3s ease-out; }
+
+/* 1. the issue: its title, the four things the contributing guide asks for, and the maintainer's answer, not given yet */
+#source .is__label { margin-left: auto; padding: 3px 6px 3px 7px; font: 11px/1 var(--mono); letter-spacing: 1px; color: var(--gray); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .22); }
+#source .is__title { flex: none; display: flex; align-items: center; height: 46px; padding: 0 18px; white-space: nowrap; box-shadow: inset 0 -1px 0 #1f1f22; }
+#source .is__rows { flex: 1 1 auto; list-style: none; padding: 18px 18px 20px; display: grid; align-content: space-around; gap: 16px; }
+#source .is__rows li { display: grid; gap: 8px; }
+#source .is__rows span, #source .is__say { font: 11px/13px var(--mono); letter-spacing: 1px; text-transform: uppercase; color: var(--gray); }
+#source .is__rows i { display: block; width: var(--w); height: 6px; background: var(--unlit); }
+#source .is__say { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 46px; padding: 0 18px; white-space: nowrap; box-shadow: inset 0 1px 0 #1f1f22; }
+#source .is__lamps, #source .is__lamps span { display: flex; align-items: center; }
+#source .is__lamps { gap: 18px; color: #fff; }
+#source .is__lamps span { gap: 7px; }
+
+/* 2. the source folder, drawn like an editor's sidebar. The guides: one line down the folder, a tick to each child. */
+#source .tr__list { list-style: none; padding: 7px 0 10px; }
+#source .tr__row { position: relative; display: flex; align-items: center; gap: 10px; height: 25px; padding: 0 14px 0 42px; white-space: nowrap; }
+#source .tr__row::before { content: ""; position: absolute; left: 25px; top: 0; bottom: 0; width: 1px; background: #2a2a2d; }
+#source .tr__row::after { content: ""; position: absolute; left: 25px; top: 50%; width: 10px; height: 1px; background: #2a2a2d; }
+#source .tr__row--last::before { bottom: 50%; }                       /* the last folder turns the corner */
+#source .tr__row--after::before, #source .tr__row--file::after { content: none; }
+#source .tr__row--file { padding-left: 66px; }
+#source .tr__el { position: absolute; left: 49px; top: -6px; width: 10px; height: calc(50% + 7px); border: solid #2a2a2d; border-width: 0 0 1px 1px; }   /* a file hangs from its folder */
+#source .tr__dir { width: 14px; height: 14px; color: var(--gray); }
+#source .tr__n { display: flex; align-items: center; }
+#source .tr__row--core .tr__n { color: var(--gray); }
+#source .tr__row--core .tr__dir { color: var(--dim); }
+#source .tr__g { display: flex; gap: 10px; margin-left: auto; color: var(--gray); }
+#source .tr__g .glyph { width: 13px; height: 13px; }
+/* yours, and what a tool adds to two files that are already there: white, in a dashed outline */
+#source .tr__row--new .tr__n, #source .tr__row--new .tr__dir { color: #fff; }
+#source .tr__row--new.tr__row--last { margin-top: 5px; }
+#source .tr__row--new.tr__row--last::before { top: -5px; }
+#source .tr__frame { position: absolute; left: 36px; right: 12px; top: 0; height: 50px; border: 1px dashed rgba(255, 255, 255, .5); pointer-events: none; }
+#source .tr__add { margin-left: auto; padding: 3px 6px 3px 7px; font: 11px/1 var(--mono); letter-spacing: 1px; text-transform: uppercase; color: #fff; border: 1px dashed rgba(255, 255, 255, .5); }
+
+/* 3. the commands, as the contributing guide gives them, and what each one does */
+#source .tm__list { list-style: none; padding: 16px 18px 20px; display: grid; gap: 16px; }
+#source .tm__list li { display: grid; gap: 5px; }
+#source .tm__list code { display: flex; gap: 9px; font: 13px/18px var(--mono); color: #fff; }
+#source .tm__list code::before { content: "%"; color: var(--dim); }
+#source .tm__list li > span { padding-left: 17px; font: 400 13px/1.45 var(--sans); color: var(--gray); }
+#source .tm__wait code { gap: 0; }
+#source .tm__wait code::before { margin-right: 9px; }
+#source .tm__wait .kd__caret { display: block; height: 16px; margin: 1px 0 0; }   /* the prompt, waiting for the next command: Terminal's own block, which does not blink (more.js moves it up to the line being typed) */
+
+/* the rules: three lines on the foot's own left edge (each a name over a line: the shared .pair), the two ways in on the right */
+#source .rl::after { background: radial-gradient(50% 90% at 22% -30%, rgba(255, 255, 255, .06), transparent 74%); }
+#source .rl__stage { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 22px 48px; padding: 26px 20px; }   /* on the foot's own edges */
+#source .rl__list { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 36px; }
+#source .rl__list li { display: grid; align-content: start; gap: 4px; }
+#source .rl__list .pair__line { text-wrap: pretty; }
+#source .rl__cta { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* ---------- narrower ---------- */
+@media (max-width: 1180px) {
+  /* less room in each column: the pictures come closer together, and the tags say less */
+  #source .how__pic { padding: 24px 20px; }
+  #source .tr__row--file { padding-left: 60px; }
+  #source .tr__el { left: 45px; }
+  #source .tr__add > span, #source .is__the { display: none; }
+  #source .rl__stage { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 1000px) {
+  /* the panel keeps its own size, so the two go under it, side by side, on the foot's own left edge */
+  #next .nxt__stage { grid-template-columns: minmax(0, 1fr); }
+  #next .nxt::after { background: radial-gradient(70% 40% at 50% -6%, rgba(255, 255, 255, .075), transparent 74%); }
+  #next .nxt__view { min-height: calc(var(--ph, 247px) * var(--z, 1) + 40px); }
+  #next .nxt__list { flex-direction: row; box-shadow: inset 0 1px 0 var(--line); }
+  #next .nxt__it { padding-left: 20px; }
+  #next .nxt__it + .nxt__it { box-shadow: inset 1px 0 0 var(--line); }
+  #next .nxt__it[aria-current="true"]::before { left: 20px; right: 20px; top: 0; bottom: auto; width: auto; height: 2px; border-radius: 0 0 2px 2px; }
+}
+@media (max-width: 999px) {
+  /* the steps become rows: each step beside its picture */
+  #source .how__list { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  #source .how__it { grid-row: auto; grid-template-rows: none; grid-template-columns: minmax(0, .8fr) minmax(0, 1fr); align-items: center; }
+  #source .how__it + .how__it { box-shadow: inset 0 1px 0 var(--line); }
+  #source .how__pic { grid-row: auto; padding: 28px 20px 28px 0; }
+  #source .how .step, #source .how__it + .how__it .step { grid-row: auto; border-top: 0; box-shadow: none; min-height: 0; padding: 28px 20px; align-items: flex-start; font-size: 15px; }
+  #source .how .step::before { content: none; }
+  #source .kd { max-width: 420px; }
+  #source .tr__row--file { padding-left: 66px; }
+  #source .tr__el { left: 49px; }
+  #source .tr__add > span, #source .is__the { display: inline; }
+}
+@media (max-width: 860px) {
+  #source .rl__list { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+}
+@media (max-width: 720px) {
+  /* a phone: the panel is scaled as one to fit (its small type is set larger by as much), and the slots are rows again */
+  #next .nxt__view { min-height: calc(var(--ph, 247px) * var(--z, 1) + 28px); }
+  #next .nxt__list { flex-direction: column; }
+  #next .nxt__it { min-height: 76px; padding: 16px; column-gap: 14px; }
+  #next .nxt__it + .nxt__it { box-shadow: inset 0 1px 0 var(--line); }
+  #next .nxt__it[aria-current="true"]::before { left: 0; right: auto; top: 16px; bottom: 16px; width: 2px; height: auto; border-radius: 0 2px 2px 0; }
+  #next .bay__foot { padding-right: 16px; }   /* the way on ends on the tags' edge */
+  #next .nxt__go { flex: 1 1 100%; height: 44px; margin: 6px 0 2px; font-size: 14px; }
+  /* the steps, one under another: each step, then its picture */
+  #source .how__it { grid-template-columns: minmax(0, 1fr); }
+  #source .how__pic { padding: 0 16px 24px; }
+  #source .how .step, #source .how__it + .how__it .step { padding: 20px 16px 16px; }
+  #source .kd { max-width: none; }
+  #source .tr__row--file { padding-left: 60px; }
+  #source .tr__el { left: 45px; }
+  #source .rl__stage { padding: 22px 16px; }
+  #source .rl__cta .btn { flex: 1 1 auto; height: 44px; }
+}
+@media (max-width: 560px) {
+  #next .nxt { --z: .6; --x: calc(50% - 150px); }   /* until more.js has measured the bay (and if it never runs), the panel still fits a phone */
+}
+@media (max-width: 420px) {
+  #source .tr__add > span, #source .is__the { display: none; }
+}
+@media (min-width: 1000px) and (max-width: 1180px), (max-width: 350px) {
+  /* the narrowest cards (three across a small laptop's screen, or one on the narrowest phones): the folder's names and
+     tags a size smaller, so both still fit */
+  #source .tr { font-size: 12px; }
+  #source .tr__row { gap: 8px; padding-right: 10px; }
+  #source .tr__frame { right: 8px; }
+  #source .tr__add { padding: 3px 4px 3px 5px; font-size: 10px; letter-spacing: .5px; }
+}
+@media (max-width: 350px) {
+  #source .tr__row--file { padding-left: 54px; }
+  #source .tr__el { left: 41px; width: 8px; }
+  #source .is__say { padding: 0 14px; letter-spacing: .5px; }
+  #source .is__lamps { gap: 12px; }
+}
+@keyframes mo-blink { 50% { opacity: 0; } }
