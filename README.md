@@ -37,15 +37,15 @@ Free, open source, and nothing leaves your Mac.</p>
 
 ## Seven segments
 
-| | Segment | What you get |
-|:-:|---|---|
-| ▮ | **[Numbers](https://whatdoesthefoxsay2u.github.io/notch/#numbers)** | Memory, CPU, temperature, fan or swap, and battery at a glance. FREE force-quits what hogs memory. |
-| ⛶ | **[Capture](https://whatdoesthefoxsay2u.github.io/notch/#capture)** | A screenshot, the text off any part of the screen, or a recording with camera, voice and clicks. |
-| ● | **[Dictation](https://whatdoesthefoxsay2u.github.io/notch/#dictation)** | Talk, and it types into the text box you are in. Apple's speech engine, on your Mac. |
-| ◧ | **[Windows](https://whatdoesthefoxsay2u.github.io/notch/#windows)** | Two fingers on a title bar: halves, quarters, fill, minimise, full screen. |
-| ⇪ | **[Keys](https://whatdoesthefoxsay2u.github.io/notch/#keys)** | Caps Lock becomes a hyper key, so every Caps Lock shortcut is yours. |
-| ◐ | **[Mirror](https://whatdoesthefoxsay2u.github.io/notch/#mirror)** | Your camera in the notch, flipped like a mirror, before the call starts. |
-| ≡ | **[Transcribe](https://whatdoesthefoxsay2u.github.io/notch/#transcribe)** | Drop a video, a sound file or a link on the notch and get every word, with speakers named. |
+| Segment | What you get |
+|---|---|
+| **[Numbers](https://whatdoesthefoxsay2u.github.io/notch/#numbers)** | Memory, CPU, temperature, fan or swap, and battery at a glance. FREE force-quits what hogs memory. |
+| **[Capture](https://whatdoesthefoxsay2u.github.io/notch/#capture)** | A screenshot, the text off any part of the screen, or a recording with camera, voice and clicks. |
+| **[Dictation](https://whatdoesthefoxsay2u.github.io/notch/#dictation)** | Talk, and it types into the text box you are in. Apple's speech engine, on your Mac. |
+| **[Windows](https://whatdoesthefoxsay2u.github.io/notch/#windows)** | Two fingers on a title bar: halves, quarters, fill, minimise, full screen. |
+| **[Keys](https://whatdoesthefoxsay2u.github.io/notch/#keys)** | Caps Lock becomes a hyper key, so every Caps Lock shortcut is yours. |
+| **[Mirror](https://whatdoesthefoxsay2u.github.io/notch/#mirror)** | Your camera in the notch, flipped like a mirror, before the call starts. |
+| **[Transcribe](https://whatdoesthefoxsay2u.github.io/notch/#transcribe)** | Drop a video, a sound file or a link on the notch and get every word, with speakers named. |
 
 Want an eighth? [Build one](https://whatdoesthefoxsay2u.github.io/notch/#next): the code is small, plain Swift, and [MIT](LICENSE).
 
