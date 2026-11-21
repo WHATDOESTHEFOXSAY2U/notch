@@ -1,20 +1,63 @@
 <div align="center">
 
-<img src="docs/images/icon.png" width="96" alt="">
+<img src="docs/images/icon.png" width="88" alt="">
 
-# Notch
+<h1>Notch</h1>
 
-Useful tools, right in your MacBook's notch.<br>
-Gauges, screen tools, dictation and transcripts. Free, open source, and nothing leaves your Mac.
+<p><b>Useful tools, right in your MacBook's notch.</b><br>
+Live system numbers, screen capture, dictation, window snapping, a hyper key, a mirror and transcripts.<br>
+Free, open source, and nothing leaves your Mac.</p>
 
-**[Website](https://whatdoesthefoxsay2u.github.io/notch/)** · **[Download for Mac](https://github.com/WHATDOESTHEFOXSAY2U/notch/releases/latest/download/Notch.dmg)** · [Install](#install) · [Build from source](#build-from-source) · [Contributing](CONTRIBUTING.md)
+<a href="https://whatdoesthefoxsay2u.github.io/notch/"><img src="https://img.shields.io/badge/See_it_in_action-the_Notch_website_%E2%86%92-EF9F27?style=for-the-badge&labelColor=111111" height="38" alt="See it in action: the Notch website"></a>
+
+<a href="https://github.com/WHATDOESTHEFOXSAY2U/notch/releases/latest/download/Notch.dmg"><img src="https://img.shields.io/badge/Download_for_Mac-free-ffffff?style=for-the-badge&labelColor=111111&logo=apple&logoColor=white" height="38" alt="Download Notch for Mac, free"></a>
+
+<sub>Apple silicon · macOS 26 or later · 3.6 MB · no network code · MIT</sub>
+
+<br><br>
+
+<a href="https://whatdoesthefoxsay2u.github.io/notch/"><img src="Website/assets/og.png" width="840" alt="A MacBook screen with the Notch panel open under the notch: five live readings above a row of tools"></a>
 
 </div>
 
+<br>
+
+## Start here
+
+1. **[Visit the website](https://whatdoesthefoxsay2u.github.io/notch/)**: every tool, moving, in your browser. Nothing to install.
+2. **[Download Notch.dmg](https://github.com/WHATDOESTHEFOXSAY2U/notch/releases/latest/download/Notch.dmg)**, or paste this one line into Terminal. It
+   installs Notch into Applications and opens it, with no warning from macOS:
+
+   ```sh
+   curl -fsSL https://raw.githubusercontent.com/WHATDOESTHEFOXSAY2U/notch/main/install.sh | sh
+   ```
+
+3. Move the pointer up into the notch. The panel opens; move away and it closes. Each tool asks for its permission the
+   first time you use it.
+
+## Seven segments
+
+| | Segment | What you get |
+|:-:|---|---|
+| ▮ | **[Numbers](https://whatdoesthefoxsay2u.github.io/notch/#numbers)** | Memory, CPU, temperature, fan or swap, and battery at a glance. FREE force-quits what hogs memory. |
+| ⛶ | **[Capture](https://whatdoesthefoxsay2u.github.io/notch/#capture)** | A screenshot, the text off any part of the screen, or a recording with camera, voice and clicks. |
+| ● | **[Dictation](https://whatdoesthefoxsay2u.github.io/notch/#dictation)** | Talk, and it types into the text box you are in. Apple's speech engine, on your Mac. |
+| ◧ | **[Windows](https://whatdoesthefoxsay2u.github.io/notch/#windows)** | Two fingers on a title bar: halves, quarters, fill, minimise, full screen. |
+| ⇪ | **[Keys](https://whatdoesthefoxsay2u.github.io/notch/#keys)** | Caps Lock becomes a hyper key, so every Caps Lock shortcut is yours. |
+| ◐ | **[Mirror](https://whatdoesthefoxsay2u.github.io/notch/#mirror)** | Your camera in the notch, flipped like a mirror, before the call starts. |
+| ≡ | **[Transcribe](https://whatdoesthefoxsay2u.github.io/notch/#transcribe)** | Drop a video, a sound file or a link on the notch and get every word, with speakers named. |
+
+Want an eighth? [Build one](https://whatdoesthefoxsay2u.github.io/notch/#next): the code is small, plain Swift, and [MIT](LICENSE).
+
+## Everything else
+
+[What it does](#what-it-does) · [Requirements](#requirements) · [Install](#install) ·
+[Build from source](#build-from-source) · [Permissions](#permissions) · [Privacy](#privacy) · [Settings](#settings) ·
+[Uninstall](#uninstall) · [FAQ](#faq) · [Contributing](#contributing) · [License](#license)
+
 ![The panel open under the notch: five gauges, and a row of tools along the bottom](docs/images/panel.png)
 
-Move the pointer up into the notch and the panel opens. Move it away and the panel closes. It is one small app,
-about 3.6 MB, with no outside code.
+It is one small app, about 3.6 MB, with no outside code.
 
 ## What it does
 
