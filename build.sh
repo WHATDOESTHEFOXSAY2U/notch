@@ -29,3 +29,19 @@ swiftc -O -swift-version 5 -target "arm64-apple-macos$MIN_MACOS" $STRICT $(find 
 # such a signature (TN3127; not tested): any program signed the same way under the same id could pass as this app and
 # use those permissions. So the id must be one nobody else uses, and must never change.
 codesign --force --sign - -r="designated => identifier \"$ID\"" "$APP"
+# ./build.sh install then puts the app in /Applications, in place of the copy there, and opens it. The app is moved,
+# not copied, so the Mac holds one Notch: the copy macOS opens at login is the one just built. A running Notch quits
+# the normal way first, so it gives Caps Lock and the Mac's sound back.
+if [ "${1:-}" = install ]; then
+    if pgrep -x "$EXE" >/dev/null; then osascript -e "tell application id \"$ID\" to quit" >/dev/null 2>&1 || true; fi
+    tries=0
+    while pgrep -x "$EXE" >/dev/null; do
+        tries=$((tries + 1))
+        [ "$tries" -le 40 ] || { echo "$NAME is still running: quit it, then run this again."; exit 1; }
+        sleep 0.25
+    done
+    rm -rf "/Applications/$APP"
+    mv "$APP" "/Applications/$APP"
+    open "/Applications/$APP"
+    echo "$NAME is installed in /Applications and open."
+fi

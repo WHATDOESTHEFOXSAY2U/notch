@@ -59,6 +59,8 @@ newer.
 open "Notch.app"
 ```
 
+- `./build.sh install` builds, then moves the app into /Applications in place of the copy there and opens it, so the
+  Mac holds one Notch and the copy macOS opens at login is the one just built.
 - Start it with `open`, never the binary inside it. Otherwise macOS gives the permissions to Terminal.
 - Your build has the same bundle id as a downloaded copy, `local.notch`, so it shares that copy's settings and permissions.
 - A build made on your own Mac opens without the warning a downloaded copy gets.

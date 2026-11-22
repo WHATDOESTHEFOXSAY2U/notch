@@ -128,6 +128,7 @@ open "Notch.app"
 - `build.sh` is one `swiftc` call: no Xcode project, no packages, nothing downloaded. It takes about 45 seconds on an
   M1 Pro.
 - A copy you build opens without the warning, because it was never downloaded.
+- `./build.sh install` builds, then puts the app in /Applications in place of the copy there, and opens it.
 - It has the same bundle id as a downloaded copy, `local.notch`, so the two share their settings and permissions.
 - One copy runs at a time. Opening a second one brings up the first one's Settings, and the second one quits. To try
   your build, quit the other copy first (QUIT Notch in Settings).
