@@ -226,6 +226,7 @@ SET in the panel opens Settings. The drawing at the top shows the panel as you s
 | SWIPE TITLE BARS | off | Swipes and pinches on title bars move, fill, minimise and close windows, as above. Without a trackpad it says NEEDS A TRACKPAD. |
 | PASTE INTO ACTIVE TEXT BOX | on | A finished dictation goes into the text box you are in. Off: it is only copied. |
 | MUTE THE MAC WHILE DICTATING | on | The Mac's sound is off while you talk, so the microphone hears only you. Not while HEAR THE MAC'S SOUND TOO is on. |
+| REMOVE BACKGROUND NOISE | on | macOS cleans the microphone's sound before your words are read: noise and the Mac's own echo are taken out. While you dictate, the microphone modes in the menu bar offer Voice Isolation as well. |
 | HEAR THE MAC'S SOUND TOO | off | Dictation also writes down what the Mac plays. The sound keeps playing. |
 | QUALITY | BALANCED | For recordings: SMALL makes the smallest file, SHARP the cleanest picture. |
 | FRAMES / SEC | 60 | For recordings: at most 30 or 60 frames a second. |

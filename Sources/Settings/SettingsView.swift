@@ -20,6 +20,7 @@ struct SettingsView: View {
     @AppStorage(Prefs.paste) private var paste = true    // a dictation goes into the text box you are in, not only onto the clipboard
     @State private var locked = false     // pasting is wanted, but macOS has not allowed Notch to press keys yet
     @AppStorage(Prefs.hush) private var muteMac = true   // the Mac's own sound is switched off while you dictate
+    @AppStorage(Prefs.clean) private var clean = true    // macOS takes background noise out of the microphone's sound
     @AppStorage(Prefs.hear) private var hear = false     // a dictation also writes down what the Mac plays, which then stays on
     @State private var deaf = false       // hearing the Mac is wanted, but macOS has not allowed it yet
     @AppStorage(Prefs.effects) private var effects = true   // the app's own ticks and clicks
@@ -184,6 +185,11 @@ struct SettingsView: View {
             Text("MUTE THE MAC WHILE DICTATING")
         }
         if hear { note(Text("NOT WHILE HEARING THE MAC")) }   // its sound has to stay on to be heard
+        // macOS's own voice processing: noise and the Mac's echo are taken out before the speech engine listens.
+        row(on: clean) { clean.toggle() } label: {
+            lamp(clean)
+            Text("REMOVE BACKGROUND NOISE")
+        }
         // The other side of a call, or a video, is written down with what you say, and keeps playing.
         // macOS asks for its permission when this is switched on, never in the middle of a call.
         row(on: hear) {

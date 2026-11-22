@@ -6,10 +6,10 @@ import Testing
 // folder of their own that goes after the test: Notch's settings and ~/Library/Preferences are never touched.
 
 @Test func keysAreTheOnesSettingsAreSavedUnder() {
-    #expect([Prefs.hidden, Prefs.incognito, Prefs.effects, Prefs.hyper, Prefs.swipe, Prefs.paste, Prefs.hush, Prefs.hear,
+    #expect([Prefs.hidden, Prefs.incognito, Prefs.effects, Prefs.hyper, Prefs.swipe, Prefs.paste, Prefs.hush, Prefs.hear, Prefs.clean,
               Prefs.quality, Prefs.fps, Prefs.camShape, Prefs.camWidth, Prefs.speakers, Prefs.capsLockIsF18, Prefs.mutedOutput,
               Prefs.welcomed, Prefs.warmedFor, Prefs.toldPasteNeedsAccessibility]
-            == ["hidden", "incognito", "effects", "hyper", "swipe", "paste", "hush", "hear",
+            == ["hidden", "incognito", "effects", "hyper", "swipe", "paste", "hush", "hear", "clean",
                 "quality", "fps", "camShape", "camWidth", "speakers", "capsLockIsF18", "mutedOutput",
                 "welcomed", "warmedFor", "toldPasteNeedsAccessibility"])
     #expect(Prefs.shortcut("SHOT") == "shortcut.SHOT")
@@ -30,6 +30,7 @@ let todaysReads: [String: (UserDefaults) -> Any] = [
     "paste": { $0.object(forKey: "paste") as? Bool != false },             // Paste: on unless switched off
     "hush": { $0.object(forKey: "hush") as? Bool != false },               // Quiet: on unless switched off
     "hear": { $0.bool(forKey: "hear") },
+    "clean": { $0.object(forKey: "clean") as? Bool != false },             // Dictation: on unless switched off
     "quality": { $0.string(forKey: "quality") ?? "BALANCED" },             // Recorder: none saved is BALANCED
     "fps": { $0.integer(forKey: "fps") == 30 ? 30 : 60 },                  // Recorder
     "cam": { $0.bool(forKey: "cam") },                                     // Session

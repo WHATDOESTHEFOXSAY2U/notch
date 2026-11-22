@@ -26,6 +26,8 @@ struct Word {
     @ObservationIgnored private var input = AudioDeviceID(kAudioObjectUnknown)   // the microphone `engine` was made for
     @ObservationIgnored private var watching: NSObjectProtocol?       // tells when `engine` stopped because its microphone changed
     @ObservationIgnored private var rewired = 0                       // how often this dictation's microphone was started again
+    @ObservationIgnored private var cleaned = 0.0                     // when `engine` last had its cleaning switched on or off: macOS then says its microphone changed, which is no news
+    @ObservationIgnored private var warmed = 0                        // how often an engine was got ready since the last dictation: see `warm`
     @ObservationIgnored private let audio = DispatchQueue(label: "notch.dictation", qos: .userInteractive)   // starting and stopping the microphone block, so they happen here, in order
     @ObservationIgnored private var pending = false                   // getting ready, or finishing the last dictation; a key press waits its turn
     @ObservationIgnored private var settled = ""                      // what the recogniser will not change any more
@@ -43,6 +45,19 @@ struct Word {
     func prepare() {
         guard Hardware.canDictate else { return }   // Apple's speech engine does not run on this Mac: nothing to get ready
         Task(priority: .utility) { ready = await Recognizer.setup(fetch: false) }
+        warm()
+    }
+
+    /// Gets the microphone's engine ready before it is needed, when REMOVE BACKGROUND NOISE is on: switching the
+    /// cleaning on takes macOS about a second, which would otherwise be the first second of what you say. Nothing
+    /// listens yet: the microphone stays off, and AirPods stay in the mode they play music in. Only once the
+    /// microphone is allowed, so this never makes macOS ask for it.
+    private func warm() {
+        guard started == nil, warmed < 3, UserDefaults.standard.bool(forKey: Prefs.clean), Hardware.canDictate,
+              AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else { return }
+        warmed += 1   // a microphone that changes each time it is got ready is left alone after three tries, until the next dictation
+        let engine = self.engine.flatMap { input == Dictation.microphone() ? $0 : nil } ?? fresh()
+        audio.async { if Dictation.clean(engine, true) { Task { @MainActor in self.cleaned = CACurrentMediaTime() } } }
     }
 
     /// The key in the panel, a press on the strip, or the global shortcut.
@@ -84,6 +99,7 @@ struct Word {
         fade?.cancel(); copied = nil; done = false; pasted = false
         started = Date()
         let hearing = UserDefaults.standard.bool(forKey: Prefs.hear)   // HEAR THE MAC'S SOUND TOO: what the Mac plays is written down as well
+        let clean = UserDefaults.standard.bool(forKey: Prefs.clean)    // REMOVE BACKGROUND NOISE: macOS cleans the microphone's sound first
         // The start cue is heard first; the Mac's own sound goes off as it ends. While the Mac is heard, its sound stays on.
         DispatchQueue.main.asyncAfter(deadline: .now() + (!incognito && Sound.listen.play() ? Sound.listen.length + 0.03 : 0)) { [self] in
             if started != nil, !hearing { Quiet.begin() }
@@ -94,11 +110,13 @@ struct Word {
         self.recognizer = recognizer
         // A kept engine still listens on the microphone it was made for. If another one is the Mac's microphone now
         // (AirPods put in, or taken out), a new engine is made for it.
-        rewired = 0
+        rewired = 0; warmed = 0
         let engine = self.engine.flatMap { input == Dictation.microphone() ? $0 : nil } ?? fresh()
         audio.async { [loudness] in
+            if Dictation.clean(engine, clean) { Task { @MainActor in self.cleaned = CACurrentMediaTime() } }
             do {
                 try Dictation.open(engine, into: recognizer, loudness: loudness, hearing: hearing, patience: 0)
+                Task { @MainActor in self.watch(engine) }
                 // The microphone runs. The Mac's sound joins as soon as it runs too; if it cannot, the notch says why.
                 if hearing { MacSound.start { line in Task { @MainActor in self.say(line) } } }
             } catch {
@@ -123,23 +141,81 @@ struct Word {
     /// macOS stopped `old` because its microphone changed: another one took over, or the same one now delivers its
     /// sound differently. AirPods do the second every time: they switch to their call mode a moment after their
     /// microphone opens. A stopped engine hears nothing more, so a dictation that is running goes on with a new one;
-    /// the recogniser is the same, and what was said so far is kept.
-    private func changed(_ old: AVAudioEngine) {
+    /// the recogniser is the same, and what was said so far is kept. Also used for a microphone that sends nothing: see `watch`.
+    private func changed(_ old: AVAudioEngine, silent: Bool = false) {
         guard engine === old else { return }
+        // Switching the cleaning on or off makes macOS say this once, a moment later, about a microphone that is as it was.
+        if !silent, CACurrentMediaTime() - cleaned < 2, started == nil || old.isRunning { return }
         engine = nil   // never used again: the next dictation makes its own
-        guard started != nil, let recognizer else { return }
+        guard started != nil, let recognizer else {
+            // Not dictating: the next engine is got ready once the new microphone has settled.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in MainActor.assumeIsolated { self?.warm() } }
+            return
+        }
         // A microphone that keeps changing would start this over and over: after five times the dictation ends.
-        guard rewired < 5 else { Log.failed(.dictation, "the microphone kept changing"); return stop() }
+        guard rewired < 5 else {
+            Log.failed(.dictation, "the microphone kept changing")
+            audio.async {
+                old.inputNode.removeTap(onBus: 0)
+                old.stop()
+            }
+            return stop()
+        }
         rewired += 1
-        let engine = fresh(), hearing = UserDefaults.standard.bool(forKey: Prefs.hear)
+        let engine = fresh(), hearing = UserDefaults.standard.bool(forKey: Prefs.hear), clean = UserDefaults.standard.bool(forKey: Prefs.clean)
         audio.async { [loudness] in
             old.inputNode.removeTap(onBus: 0)
             old.stop()
-            do { try Dictation.open(engine, into: recognizer, loudness: loudness, hearing: hearing, patience: 20) } catch {
+            if Dictation.clean(engine, clean) { Task { @MainActor in self.cleaned = CACurrentMediaTime() } }
+            do {
+                try Dictation.open(engine, into: recognizer, loudness: loudness, hearing: hearing, patience: 20)
+                Task { @MainActor in self.watch(engine) }
+            } catch {
                 Log.failed(.dictation, "the microphone would not start again after it changed", error: error)
                 Task { @MainActor in self.fail(recognizer) }
             }
         }
+    }
+
+    /// A microphone can start without complaint and send nothing. An engine made while AirPods are still connecting
+    /// does this: macOS hands it a device that is gone a moment later, and as the AirPods keep their number it would be
+    /// kept and every later dictation would hear nothing too. So if no sound has come a second and a half after the
+    /// start, `engine` is put aside and the dictation goes on with a new one, as when the microphone changes.
+    private func watch(_ engine: AVAudioEngine) {
+        let since = CACurrentMediaTime()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self, weak engine] in
+            MainActor.assumeIsolated {
+                guard let self, let engine, self.engine === engine, self.started != nil, !self.loudness.heard(since: since) else { return }
+                Log.failed(.dictation, "the microphone sent no sound, so it was started again")
+                self.changed(engine, silent: true)
+            }
+        }
+    }
+
+    /// Switches macOS's voice processing on or off for `engine`'s microphone: with it, background noise and the echo of
+    /// what the Mac plays are taken out before the sound arrives, and the microphone modes in the menu bar (Voice
+    /// Isolation) apply to Notch. True if that changed anything. Takes about a second, so it runs on `audio`, and
+    /// before the engine starts. Other sound is left as loud as it was: macOS would turn it down otherwise.
+    private nonisolated static func clean(_ engine: AVAudioEngine, _ on: Bool) -> Bool {
+        let microphone = engine.inputNode
+        guard microphone.isVoiceProcessingEnabled != on else { return false }
+        do { try microphone.setVoiceProcessingEnabled(on) } catch {
+            Log.failed(.dictation, "the microphone's sound could not be cleaned", error: error)   // the dictation goes on with the sound as it is
+            return false
+        }
+        if on { microphone.voiceProcessingOtherAudioDuckingConfiguration = .init(enableAdvancedDucking: false, duckingLevel: .min) }
+        return true
+    }
+
+    /// The first channel of `sound`, alone. A cleaned microphone sends its one voice on several channels, all the
+    /// same; everything after this reads one.
+    private nonisolated static func mono(_ sound: AVAudioPCMBuffer) -> AVAudioPCMBuffer {
+        guard sound.format.channelCount > 1, let from = sound.floatChannelData,
+              let format = AVAudioFormat(standardFormatWithSampleRate: sound.format.sampleRate, channels: 1),
+              let one = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: max(sound.frameLength, 1)), let to = one.floatChannelData else { return sound }
+        to[0].update(from: from[0], count: Int(sound.frameLength))
+        one.frameLength = sound.frameLength
+        return one
     }
 
     /// Starts `engine`'s microphone and sends what it hears to `recognizer`. Runs on `audio`. A microphone that is in
@@ -156,6 +232,7 @@ struct Word {
         guard format.sampleRate > 0 else { throw CocoaError(.featureUnsupported) }   // 0 when there is no microphone to listen on
         let size = AVAudioFrameCount(format.sampleRate / 10)   // a tenth of a second at a time, the shortest the system offers
         let listen: AVAudioNodeTapBlock = { sound, _ in
+            let sound = Dictation.mono(sound)
             if hearing { MacSound.mix(into: sound) }   // the Mac's sound joins the microphone's before anything reads it
             loudness.take(sound)
             recognizer.hear(sound)
@@ -192,7 +269,12 @@ struct Word {
     }
 
     private func stop() {
-        guard let recognizer, let engine else { return }
+        guard let recognizer else {
+            started = nil
+            Quiet.end()
+            return
+        }
+        let activeEngine = engine
         self.recognizer = nil
         started = nil
         Quiet.end()
@@ -200,8 +282,8 @@ struct Word {
         copied = words.isEmpty ? nil : words.count   // the notch folds at once; COPIED lights up when it is true
         pending = true
         audio.async {
-            engine.inputNode.removeTap(onBus: 0)
-            engine.stop()
+            activeEngine?.inputNode.removeTap(onBus: 0)
+            activeEngine?.stop()
             MacSound.stop()   // the Mac's sound too, if it was being heard
             Task { @MainActor in
                 await recognizer.finish()   // the last words: a fraction of a second

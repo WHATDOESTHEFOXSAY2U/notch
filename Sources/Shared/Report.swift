@@ -93,7 +93,7 @@ extension Report.Facts {
         let settings = UserDefaults.standard, off = Prefs.switchedOff(settings.string(forKey: Prefs.hidden) ?? "")
         // Settings' switches, by short names. START AT LOGIN is kept by macOS, not in Notch's settings.
         let switches = [("HYPER", Prefs.hyper), ("SWIPE", Prefs.swipe), ("PASTE", Prefs.paste), ("MUTE", Prefs.hush),
-                        ("HEAR", Prefs.hear), ("INCOGNITO", Prefs.incognito), ("EFFECTS", Prefs.effects)]
+                        ("HEAR", Prefs.hear), ("CLEAN", Prefs.clean), ("INCOGNITO", Prefs.incognito), ("EFFECTS", Prefs.effects)]
         return Report.Facts(
             name: AppInfo.name, version: AppInfo.version, build: AppInfo.build,
             macOSVersion: Hardware.macOSVersion, macOSBuild: Hardware.macOSBuild, model: Hardware.model, chip: Hardware.chip,

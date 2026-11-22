@@ -16,6 +16,7 @@ enum Prefs {
     static let paste = "paste"           // the text goes into the text box you are in, not only onto the clipboard
     static let hush = "hush"             // the Mac's own sound is switched off while you dictate
     static let hear = "hear"             // what the Mac plays is written down as well
+    static let clean = "clean"           // macOS takes background noise out of the microphone's sound before it is read
     // Recording.
     static let quality = "quality"       // SMALL, BALANCED or SHARP
     static let fps = "fps"               // frames a second: 30 or 60
@@ -40,7 +41,7 @@ enum Prefs {
         hyper: false, swipe: false,
         // 6144 is Control and Option; 6912 is all four modifiers, which is what Caps Lock sends as a hyper key.
         shortcut("SHOT"): "1,6144,⌃⌥S", shortcut("TEXT"): "17,6144,⌃⌥T", shortcut("REC"): "15,6144,⌃⌥R", shortcut("DICT"): "2,6912,⇪D",
-        paste: true, hush: true, hear: false,
+        paste: true, hush: true, hear: false, clean: true,
         quality: "BALANCED", fps: 60,
         option("CAM"): false, option("MIC"): false, option("SOUND"): true, option("CLICKS"): true,
         camShape: 0, camWidth: 0.0,

@@ -17,6 +17,12 @@ final class Loudness: Sendable {
         state.withLock { $0 = (max(loud, $0.value * Float(exp(($0.at - now) / 0.35))), now) }
     }
 
+    /// Whether the microphone has sent anything since `time` (a `CACurrentMediaTime`). Silence counts: a working
+    /// microphone sends a piece every tenth of a second whatever it hears.
+    func heard(since time: CFTimeInterval) -> Bool {
+        state.withLock { $0.at >= time }
+    }
+
     func now() -> Float {
         let (value, at) = state.withLock { $0 }
         return value * Float(exp((at - CACurrentMediaTime()) / 0.35))

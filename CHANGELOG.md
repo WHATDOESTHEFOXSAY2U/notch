@@ -3,6 +3,19 @@
 What changed in each release of Notch, newest first. A version is three numbers, like 1.0.0, and its git tag is
 `v1.0.0`. The part under a version becomes its release notes on GitHub (`release.sh` copies it).
 
+## Unreleased
+
+### Added
+- REMOVE BACKGROUND NOISE, on from the start: macOS cleans the microphone's sound before DICTATE reads it, taking out
+  noise and the echo of what the Mac plays. While you dictate, the microphone modes in the menu bar offer Voice
+  Isolation for Notch as well.
+
+### Fixed
+- DICTATE hears AirPods that were connected just before it started. A dictation started while they were still
+  connecting got a microphone that sent nothing, and every later one kept it, so DICTATE heard nothing until Notch
+  restarted. Now a microphone that sends nothing for a second and a half is started again.
+- A dictation whose microphone kept changing ends instead of staying on with nothing to hear.
+
 ## 0.9.0 - 2026-11-20
 
 The first public version: any Mac with Apple silicon, on macOS 26 or newer.
