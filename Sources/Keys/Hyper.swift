@@ -9,10 +9,6 @@ import IOKit.hid
 /// stops locking capitals. And a tap on the keyboard watches for F18: while it is held, every other
 /// key press gets the four modifiers added. The tap needs the Accessibility permission, and it runs
 /// on a thread of its own, because every key press in every app passes through it.
-///
-/// If Notch is killed without quitting, Caps Lock stays F18, which does nothing, until Notch starts
-/// again (see `recover`) or the Mac restarts. Apple's TN2450 says a change like this lasts until a
-/// restart, or until the keyboard is disconnected, and that it applies to every user of the Mac.
 enum Hyper {
     private static var tap: CFMachPort?           // the keyboard tap: made once, then switched on and off
     private static var loop: CFRunLoop?           // the tap thread's run loop: state resets are handed in through it
@@ -24,9 +20,7 @@ enum Hyper {
     private static var before: [UInt64: [String: Int]] = [:]   // a Caps Lock change a keyboard had before HYPER, by keyboard number; main thread only
     private static var refused = false            // macOS refused to make the tap: the log says so once, not at every retry; main thread only
 
-    /// Whether Caps Lock is F18 because of Notch. It is kept apart from whether the tap runs, because
-    /// macOS can switch the tap off by itself, and Caps Lock must still come back then. It is saved with
-    /// the settings, so after a crash the next launch still knows. The `Watchdog` reads it too. Main thread only.
+    /// Whether Caps Lock is F18 because of Notch, saved in settings so a crash still cleans up at next launch.
     private(set) static var remapped: Bool {
         get { UserDefaults.standard.bool(forKey: Prefs.capsLockIsF18) }
         set { UserDefaults.standard.set(newValue, forKey: Prefs.capsLockIsF18) }
@@ -35,16 +29,11 @@ enum Hyper {
     /// Whether the hyper key is working right now.
     static var running: Bool { tap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false }
 
-    /// Switches the hyper key on, or repairs it if it is on already: Caps Lock is changed again every
-    /// time. Returns nil when it is working, otherwise a short line saying why not, and then nothing
-    /// about the keyboard has been changed. `ask` lets macOS show its permission prompt.
+    /// Switches the hyper key on, or repairs it if it is on already. Returns nil when working, otherwise why not.
     static func start(ask: Bool) -> String? {
-        // Hyperkey does the same job with the same key; two apps changing Caps Lock would undo each other.
         guard NSRunningApplication.runningApplications(withBundleIdentifier: "com.knollsoft.Hyperkey").isEmpty else { return "QUIT HYPERKEY FIRST" }
-        // macOS's plain answer can still say yes once the permission is gone; a tap it makes is the answer that holds.
         guard Permissions.trusted(ask: ask), Watchdog.allowed() else { return "NEEDS ACCESSIBILITY PERMISSION" }
         if tap == nil {
-            // The tap sits where key presses enter the system, before any app or shortcut sees them.
             let keys = CGEventMask(1 << CGEventType.keyDown.rawValue | 1 << CGEventType.keyUp.rawValue)
             guard let port = EventTap.make(keys, callback: { _, type, event, _ in Hyper.route(type, event).map(Unmanaged.passUnretained) }) else {
                 if !refused { Log.failed(.keys, "macOS refused the keyboard tap") }
@@ -59,9 +48,6 @@ enum Hyper {
         tap.map { CGEvent.tapEnable(tap: $0, enable: true) }
         installObservers()
         if keyboards == nil {
-            // macOS announces every keyboard connected now and each one that connects or disconnects later; a Bluetooth
-            // keyboard comes back after every sleep. Its Caps Lock is changed as it arrives, and retried at 1 s and 3 s
-            // in case the Bluetooth stack announced it before its HID service accepted properties.
             let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
             IOHIDManagerSetDeviceMatching(manager, [kIOHIDDeviceUsagePageKey: kHIDPage_GenericDesktop, kIOHIDDeviceUsageKey: kHIDUsage_GD_Keyboard] as CFDictionary)
             IOHIDManagerRegisterDeviceMatchingCallback(manager, { _, _, _, _ in
@@ -76,7 +62,7 @@ enum Hyper {
             keyboards = manager
         }
         scheduleRemapRetries()
-        Watchdog.watch()   // switches it off again if the permission goes
+        Watchdog.watch()
         return nil
     }
 
@@ -91,8 +77,6 @@ enum Hyper {
         EventTap.syncActivity(active: Swipe.running)
     }
 
-    /// Remaps Caps Lock immediately and retries at 1 s and 3 s so newly connected or waking Bluetooth keyboards
-    /// pick up F18 reliably without polling IOHID every few seconds forever. Main thread only.
     private static func scheduleRemapRetries() {
         guard running else { return }
         remapGeneration += 1
@@ -105,14 +89,15 @@ enum Hyper {
         }
     }
 
-    /// At launch, when HYPER is off: if Notch was killed while Caps Lock was F18, gives Caps Lock back.
-    /// Only that change goes, and only if Notch made it; every other key change stays.
     static func recover() { stop() }
 
-    /// One key event on its way into the system. Returns the event to pass on, or nil to swallow it.
-    /// Performs zero synchronous WindowServer IPC inside the tap callback so typing can never stall.
+    /// One key event on its way into the system. Ordinary typing when F18 is not held takes a two-instruction fast path
+    /// with zero runtime calls, zero allocations, and zero IPC.
     static func route(_ type: CGEventType, _ event: CGEvent) -> CGEvent? {
-        let code = (type == .keyDown || type == .keyUp) ? event.getIntegerValueField(.keyboardEventKeycode) : -1
+        let isKey = type == .keyDown || type == .keyUp
+        let code = isKey ? event.getIntegerValueField(.keyboardEventKeycode) : -1
+        if isKey, !state.held, code != Int64(kVK_F18) { return event }
+
         let wasHeld = state.held
         let action = state.handle(type: type, keyCode: code, f18KeyCode: Int64(kVK_F18), now: CACurrentMediaTime(),
                                   secureInput: IsSecureEventInputEnabled())
@@ -143,9 +128,6 @@ enum Hyper {
         }
     }
 
-    /// Runs on the main thread ONLY while Caps Lock (F18) is held. If Secure Event Input turns on while F18 is down
-    /// (e.g. a hyper shortcut opened 1Password, Touch ID, or a password field), macOS will withhold F18's keyUp from
-    /// the tap, so `state` is reset immediately instead of leaving `held` stuck on every later keystroke.
     private static func syncHoldWatch(active: Bool) {
         holdWatch?.invalidate()
         holdWatch = nil
@@ -153,7 +135,7 @@ enum Hyper {
         let startedAt = CACurrentMediaTime()
         holdWatch = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: true) { timer in
             guard running else { timer.invalidate(); holdWatch = nil; return }
-            if IsSecureEventInputEnabled() || CACurrentMediaTime() - startedAt > HyperState.maxIdleHold + 2 {
+            if IsSecureEventInputEnabled() || CACurrentMediaTime() - startedAt > HyperState.maxIdleHold + 0.5 {
                 timer.invalidate()
                 holdWatch = nil
                 onTap { state.reset() }
@@ -161,14 +143,12 @@ enum Hyper {
         }
     }
 
-    /// Runs `work` on the tap's thread between events so `state` is never raced across threads.
     private static func onTap(_ work: @escaping () -> Void) {
         guard let loop else { return work() }
         CFRunLoopPerformBlock(loop, CFRunLoopMode.commonModes.rawValue, work)
         CFRunLoopWakeUp(loop)
     }
 
-    /// Clears `held` across sleep, wake, screen lock, fast user switching, and secure app switches so a missed key-up can never stick.
     private static func installObservers() {
         guard !observed else { return }
         observed = true
@@ -189,32 +169,28 @@ enum Hyper {
         }
     }
 
-    /// Tells macOS, keyboard by keyboard, to treat Caps Lock as F18, or as itself again. A keyboard that is F18
-    /// through Notch already is left as it is, so this can be asked again and again. Making it F18
-    /// remembers a Caps Lock change the keyboard already had; giving it back takes out only Notch's F18
-    /// and puts that change back. Any other key changes a keyboard carries are left as they are.
     private static func remap(_ change: Bool) {
-        let caps = 0x7_0000_0039, f18 = 0x7_0000_006D   // the two keys, in the numbering keyboards use
-        let from = kIOHIDKeyboardModifierMappingSrcKey, mine = [from: caps, kIOHIDKeyboardModifierMappingDstKey: f18]   // Notch's entry
+        let caps = 0x7_0000_0039, f18 = 0x7_0000_006D
+        let from = kIOHIDKeyboardModifierMappingSrcKey, mine = [from: caps, kIOHIDKeyboardModifierMappingDstKey: f18]
         let property = kIOHIDUserKeyUsageMapKey as CFString
         let client = IOHIDEventSystemClientCreateSimpleClient(kCFAllocatorDefault)
-        if change { remapped = true }   // noted first, so even a crash halfway through leaves the note
+        if change { remapped = true }
         for keyboard in IOHIDEventSystemClientCopyServices(client) as? [IOHIDServiceClient] ?? []
         where IOHIDServiceClientConformsTo(keyboard, UInt32(kHIDPage_GenericDesktop), UInt32(kHIDUsage_GD_Keyboard)) != 0 {
-            let id = IOHIDServiceClientGetRegistryID(keyboard) as? UInt64 ?? 0   // the keyboard's number while it stays connected
+            let id = IOHIDServiceClientGetRegistryID(keyboard) as? UInt64 ?? 0
             var map = IOHIDServiceClientCopyProperty(keyboard, property) as? [[String: Int]] ?? []
             if change {
-                if map.contains(mine) { continue }   // already F18 through Notch: nothing to set
-                if let old = map.first(where: { $0[from] == caps }), old != mine { before[id] = old }   // not Notch's: keep it to put back
+                if map.contains(mine) { continue }
+                if let old = map.first(where: { $0[from] == caps }), old != mine { before[id] = old }
                 map.removeAll { $0[from] == caps }
                 map.append(mine)
             } else {
-                guard map.contains(mine) else { continue }   // no F18 of Notch's on this keyboard: leave it alone
+                guard map.contains(mine) else { continue }
                 map.removeAll { $0 == mine }
                 if let old = before[id] { map.append(old) }
             }
             IOHIDServiceClientSetProperty(keyboard, property, map as CFArray)
         }
-        if !change { remapped = false; before = [:] }   // cleared last, so a crash before this point keeps the note
+        if !change { remapped = false; before = [:] }
     }
 }

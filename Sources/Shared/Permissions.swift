@@ -39,7 +39,7 @@ enum Permissions {
         case .microphone: state(AVCaptureDevice.authorizationStatus(for: .audio))
         case .camera: state(AVCaptureDevice.authorizationStatus(for: .video))
         case .screen: screen(record: record(of: kind), works: CGPreflightScreenCaptureAccess())
-        case .accessibility: accessibility(record: record(of: kind), works: AXIsProcessTrusted())
+        case .accessibility: AXIsProcessTrusted() ? .on : accessibility(record: record(of: kind), works: false)
         case .systemAudio: record(of: kind).map(state(record:))
         }
     }

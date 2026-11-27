@@ -154,8 +154,8 @@ in the settings, and which calls are not in Apple's published SDK.
 - `Hyper.swift`: Caps Lock as a hyper key: Caps Lock mapped to F18 on each keyboard, and a key tap that adds ⌃⌥⇧⌘.
 - `HyperState.swift`: pure state machine for the hyper key: Secure Input and idle-hold recovery when an F18 key-up is
   missed, and a circuit breaker for repeated tap timeouts.
-- `Watchdog.swift`: every 3 s while the hyper key or swiping runs, checks Accessibility trust off the main thread; if
-  removed, switches both off and gives Caps Lock back without creating temporary HID event taps.
+- `Watchdog.swift`: listens for macOS Accessibility changes and checks `AXIsProcessTrusted()`; if Accessibility is
+  removed while the hyper key or swiping runs, switches both off and gives Caps Lock back with zero `tccd` IPC spam.
 
 **Windows**
 - `Swipe.swift`: the tap on scrolls and gestures: swipes and pinches on title bars, decided on the tap's thread.
@@ -214,16 +214,15 @@ in the settings, and which calls are not in Apple's published SDK.
 - **SWIPE:** the tap's thread → `Swipe.route` → `begin` (`WindowList.read`, `Spaces.fullScreen`) → at once, or
   after `Bars.ask` → `move` → `Knock.knock` and `Pointer.show` → fingers lift → `Windows.send`.
 - **The hyper key:** its tap's thread → `Hyper.route`: while F18 (Caps Lock) is held, every other key gets ⌃⌥⇧⌘.
-- **The watchdog:** while the hyper key or swiping runs, `Watchdog` makes a test tap every 2 s, on the main thread. If
-  macOS refuses it, it calls `Hyper.stop` and `Swipe.stop`. Their switches stay on, so they start again at the next
-  launch, or from Settings while it is open.
+- **The watchdog:** while the hyper key or swiping runs, `Watchdog` listens to macOS's Accessibility notification and
+  checks `AXIsProcessTrusted()`. If permission is removed, it calls `Hyper.stop` and `Swipe.stop`. Their switches stay
+  on, so they start again at the next launch, or from Settings while it is open.
 
 ## Where code runs
 
 - **The main thread:** everything drawn, `Tools`, `Dictation`'s state, `Transcribe`, `Session`, Settings, the hot keys,
-  the readings' timer, the `Watchdog`'s test tap every 2 s, and the watch on drags (a few numbers read per mouse move
-  while a button is down). It asks another app one thing: before a paste, whether a
-  text box has the keyboard (`Paste`).
+  the readings' timer, `Watchdog`, and the watch on drags (a few numbers read per mouse move while a button is down).
+  It asks another app one thing: before a paste, whether a text box has the keyboard (`Paste`).
 - **Two tap threads**, made by `EventTap.run`, each with its own run loop at the highest priority: the hyper key's
   keyboard tap and swiping's scroll tap. Every key press, or every scroll, in every app passes through them, so they
   never wait for another app. Answers from other queues reach the swipe's thread through its run loop

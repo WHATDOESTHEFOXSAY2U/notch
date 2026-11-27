@@ -71,10 +71,17 @@ final class Recognizer: @unchecked Sendable {
             convert(nil)   // the last few samples the converter still holds
             feed.finish()
         }
+        let timeout = Task { [analyzer, reading] in
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            await analyzer.cancelAndFinishNow()
+            reading?.cancel()
+        }
         do { try await analyzer.finalizeAndFinishThroughEndOfInput() } catch {
             Log.failed(.dictation, "the speech engine would not finish", error: error)
             reading?.cancel()   // it never got going: do not wait for text that will not come
         }
+        timeout.cancel()
         await reading?.value
     }
 

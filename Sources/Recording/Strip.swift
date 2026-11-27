@@ -72,8 +72,11 @@ struct Strip: View {
         .font(mono(11)).tracking(1).foregroundStyle(.white).lineLimit(1).fixedSize()
         .animation(spring, value: started != nil)
         .animation(spring, value: session.switchedOn.contains("CAM"))   // the shape keys unfold
-        .gesture(WindowDragGesture())   // the keys' own presses come first; everything else moves the window
-        .allowsWindowActivationEvents(true)   // the drag works on the first press, though Notch is never the app in front
+        .gesture(
+            DragGesture(minimumDistance: 2)
+                .onChanged { _ in session.dragStrip() }
+                .onEnded { _ in session.endDragStrip() }
+        )   // moves the strip on the first press without activating Notch or stealing keyboard focus
         .frame(maxWidth: .infinity, alignment: .leading)   // the rest of the canvas is empty, and clicks there fall through
     }
 }

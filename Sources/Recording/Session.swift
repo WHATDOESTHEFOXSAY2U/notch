@@ -22,6 +22,7 @@ import AVFoundation
     private var recorder: Recorder?              // that recorder, once it is writing the file
     private var meter: Task<Void, Never>?
     private var clicks: Any?                     // the watch on mouse clicks, while recording
+    private var dragOffset: CGPoint?             // pointer offset inside `strip` while dragging it
 
     /// Puts up the options for `region`. `frame` is the selection overlay that chose it, still on screen.
     init(_ region: Region, frame: Selection, tools: Tools) {
@@ -136,6 +137,18 @@ import AVFoundation
         UserDefaults.standard.set(shape, forKey: Prefs.camShape)
         stage.reshape(shape)
     }
+
+    /// Moves `strip` with the pointer in global screen coordinates without activating Notch.
+    func dragStrip() {
+        let mouse = NSEvent.mouseLocation
+        if let offset = dragOffset {
+            strip.setFrameOrigin(CGPoint(x: mouse.x - offset.x, y: mouse.y - offset.y))
+        } else {
+            dragOffset = CGPoint(x: mouse.x - strip.frame.minX, y: mouse.y - strip.frame.minY)
+        }
+    }
+
+    func endDragStrip() { dragOffset = nil }
 
     /// The pause key: stops taking pictures and sound, or carries on. The file skips the pause, and so does the clock.
     func pause() {

@@ -2,7 +2,7 @@ import CoreGraphics
 
 /// Pure state machine for Caps Lock as a hyper key (F18 down adds ⌃⌥⇧⌘ to other keys).
 /// Kept free of Mach ports, WindowServer IPC, and IOHID so stuck-key recovery across Secure Event Input,
-/// missed key-ups, idle holds, and repeated timeouts can be tested directly without permissions.
+/// missed key-ups, and repeated timeouts can be tested directly without permissions.
 struct HyperState {
     enum Action: Equatable {
         case pass              // pass the event through untouched
@@ -13,12 +13,13 @@ struct HyperState {
     }
 
     private(set) var held = false
-    private var lastActivity = 0.0      // timestamp of F18 keyDown or most recent hyper chord key
+    private var lastF18 = 0.0           // timestamp of the most recent F18 keyDown (initial or auto-repeat)
     private var timeouts: [Double] = [] // timestamps (seconds) of recent tapDisabledByTimeout events
 
-    /// Maximum silent gap (seconds) with zero key activity before a stranded `held` state auto-expires,
-    /// ensuring a dropped F18 keyUp can never leave normal typing poisoned with ⌃⌥⇧⌘.
-    static let maxIdleHold = 6.0
+    /// Maximum seconds since the last F18 keyDown before a stranded `held` state auto-expires.
+    /// Crucially, non-F18 keys never extend `lastF18`, so even continuous typing after a lost F18 keyUp
+    /// recovers automatically in a few seconds instead of staying stuck until the user stops typing.
+    static let maxIdleHold = 3.5
 
     /// More than this many timeouts within `timeoutWindow` seconds trips the breaker instead of endlessly
     /// re-enabling a stalling keyboard tap.
@@ -27,10 +28,10 @@ struct HyperState {
 
     mutating func reset() {
         held = false
-        lastActivity = 0
+        lastF18 = 0
     }
 
-    /// Decides what to do for one keyboard tap event, with zero synchronous IPC inside the tap.
+    /// Decides what to do for one keyboard tap event.
     /// `secureInput` reflects `IsSecureEventInputEnabled()`: while Secure Input is active, macOS withholds
     /// keyUps from event taps, so `held` is never latched across a secure field.
     mutating func handle(
@@ -57,18 +58,17 @@ struct HyperState {
         if keyCode == f18KeyCode {
             if type == .keyDown {
                 held = true
-                lastActivity = now
+                lastF18 = now
             } else if type == .keyUp {
                 reset()
             }
             return .swallow
         }
         if held {
-            if now - lastActivity > HyperState.maxIdleHold {
+            if now - lastF18 > HyperState.maxIdleHold {
                 reset()
                 return .pass
             }
-            lastActivity = now
             return .addHyper
         }
         return .pass

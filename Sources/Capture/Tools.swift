@@ -66,11 +66,16 @@ enum Tool: String {
         Selection.pick(on: screen, stays: tool == .rec, incognito: incognito) { overlay, rect in
             guard let rect else {
                 // Esc. For REC that is also Esc while the options are up; for SHOT and TEXT a running recording carries on.
+                listing?.cancel()
                 if tool == .rec { self.cancel() } else { self.busy = false }
                 return
             }
             let region = Region(rect: rect, screen: screen)
-            guard let listing else { self.session = Session(region, frame: overlay, tools: self); return }
+            guard let listing else {
+                overlay.onStart = { [weak tools = self] in tools?.run(.rec) }
+                self.session = Session(region, frame: overlay, tools: self)
+                return
+            }
             Task {
                 let image: CGImage
                 do { image = try await region.picture(in: try await listing.value) } catch { return self.fail(tool, error) }

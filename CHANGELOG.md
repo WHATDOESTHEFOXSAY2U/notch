@@ -3,6 +3,24 @@
 What changed in each release of Notch, newest first. A version is three numbers, like 1.0.0, and its git tag is
 `v1.0.0`. The part under a version becomes its release notes on GitHub (`release.sh` copies it).
 
+## 0.10.2 - 2026-11-26
+
+### Fixed
+- Closing Settings, finishing a selection, or dragging the recording strip no longer leaves Notch as the focused app
+  with no key window (which silently swallowed typing until another app was clicked), and floating panels no longer
+  hide when Notch deactivates. Settings also responds to ⌘W and ⌘Q.
+- CAPS LOCK IS HYPER KEY takes a zero-overhead fast path on ordinary typing and never extends a missed Caps Lock
+  key-up across subsequent keystrokes, so continuous typing recovers automatically within seconds even if an F18
+  release event is ever dropped.
+- The Accessibility watchdog listens to macOS's Accessibility notification and checks `AXIsProcessTrusted()` directly,
+  eliminating periodic `tccd` IPC traffic in the background.
+- SWIPE TITLE BARS verifies native `AXWindow` attributes and traffic-light bounds directly instead of calling
+  `AXUIElementCopyElementAtPosition`, eliminating Chromium/Electron first-swipe timeouts and DOM accessibility wakeups,
+  working across the top bezel of notched MacBooks in full screen and stationary green-button swipes, and responding
+  crisply to quick two-finger flicks.
+- Simplified notch hover tracking (`FloatingPanel`), full-screen exit Space settling (`Windows`), open-panel process
+  sampling (`Stats`), and speech-engine shutdown timeouts (`Recognizer`).
+
 ## 0.10.1 - 2026-11-26
 
 ### Fixed

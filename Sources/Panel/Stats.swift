@@ -12,7 +12,7 @@ import IOKit.ps
     var charging = false // on mains power
     var pressure = 1     // kernel memory pressure: 1 normal, 2 warning, 4 critical
     var apps: [(app: NSRunningApplication, gb: Double)] = []
-    var open = false { didSet { if open { refresh(); look() } else { quitting = []; owners = [:] }; schedule() } }
+    var open = false { didSet { openTick = 0; if open { refresh(); look() } else { quitting = []; owners = [:] }; schedule() } }
     /// The parts the panel cannot show on this Mac right now, by their names in `Parts`: TEMP without a sensor that
     /// answers, DICT without a microphone or Apple's speech engine, SCRIBE (TRANSCRIBE) without the Scribe app,
     /// CAM (the mirror) without a camera.
@@ -22,6 +22,7 @@ import IOKit.ps
     private var lastTicks = (busy: 0.0, total: 0.0)
     private var quitting: Set<pid_t> = []   // apps asked to quit; hidden from the list right away
     private var owners: [pid_t: pid_t] = [:]   // which app each process belongs to; looked up once per process
+    private var openTick = 0
     private var timer: Timer?
 
     init() {
@@ -63,10 +64,11 @@ import IOKit.ps
             break
         }
 
-        // Fans and apps are only visible while the panel is open, so only read them then.
+        // Fans and apps are only visible while the panel is open; walk all processes once a second rather than 4x/sec.
         if open {
             fan = SMC.fans.compactMap(SMC.shared.read).max() ?? 0
-            apps = topApps()
+            if openTick % 4 == 0 { apps = topApps() }
+            openTick += 1
         }
     }
 

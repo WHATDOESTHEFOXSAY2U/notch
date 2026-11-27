@@ -199,7 +199,7 @@ struct SettingsView: View {
         // macOS asks for its permission when this is switched on, never in the middle of a call.
         row(on: hear) {
             hear.toggle()
-            if hear { MacSound.ask() } else { MacSound.stop() }   // switched off while dictating: the Mac stops being heard at once
+            if hear { Quiet.end(); MacSound.ask() } else { MacSound.stop() }   // switched off while dictating: the Mac stops being heard at once
         } label: {
             lamp(hear)
             Text("HEAR THE MAC'S SOUND TOO")

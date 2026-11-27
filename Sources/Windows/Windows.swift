@@ -181,24 +181,33 @@ enum Windows {
             return queue.asyncAfter(deadline: .now() + pause) { if job.current { minimize(job) } }   // unless a newer swipe came
         }
         // Fresh out of full screen, macOS may still put the window back where it was before as the Space transition
-        // finishes: verify at 0.3 s and 0.65 s and re-apply placement if macOS moved it.
+        // finishes: verify at 0.3 s and 0.65 s with a fresh Desktop `visibleFrame` and re-apply placement if moved.
         guard let placed = place(job), fresh else { return }
         for delay in [0.3, 0.65] {
-            queue.asyncAfter(deadline: .now() + delay) {
-                guard job.current else { return }
-                var currentJob = job
-                if let live = reacquire(currentJob) { currentJob.window = live }
-                guard let now = currentJob.window.frame, !near(now, placed, within: 1) else { return }
-                place(currentJob)
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                let latestRoom = Windows.room(at: job.pointer, fallback: job.target.frame)
+                queue.async {
+                    guard job.current else { return }
+                    var currentJob = job
+                    if latestRoom.width > 0 { currentJob.room = latestRoom }
+                    if let live = reacquire(currentJob) { currentJob.window = live }
+                    let want = targetFrame(for: currentJob)
+                    guard let now = currentJob.window.frame, !near(now, want.width > 0 ? want : placed, within: 1) else { return }
+                    place(currentJob)
+                }
             }
         }
     }
 
     /// Waits for `change` (into or out of full screen) to be done, re-acquiring the window element if the app
-    /// replaced its `AXWindow` when switching between `AXFullScreenWindow` and `AXStandardWindow`.
+    /// replaced its `AXWindow` when switching between `AXFullScreenWindow` and `AXStandardWindow`, and waiting for the
+    /// Space itself to leave full screen before reading Desktop bounds.
     private static func settle(_ job: Job, _ change: Change, then: @escaping (Job, Bool) -> Void) {
         changing[job.id] = change
         var currentJob = job
+        var display = CGDirectDisplayID(0), found = UInt32(0)
+        CGGetDisplaysWithPoint(job.pointer, 1, &display, &found)
+        if found == 0 { display = CGMainDisplayID() }
         var last: CGRect?, there = false
         wait(job, most: 2.5, until: {
             AXUIElementSetMessagingTimeout(currentJob.window, glance)
@@ -212,7 +221,8 @@ enum Windows {
             if fullState == nil {
                 fullState = currentJob.window.string(kAXSubroleAttribute) == "AXFullScreenWindow"
             }
-            there = fullState == change.full
+            let spaceSettled = change.full || !Spaces.fullScreen(on: display) || CACurrentMediaTime() - change.since > 1.2
+            there = (fullState == change.full) && spaceSettled
             guard there, let now = currentJob.window.frame, now != change.away || CACurrentMediaTime() - change.since > 1 else { last = nil; return false }
             defer { last = now }
             return now == last
@@ -284,16 +294,22 @@ enum Windows {
         }
     }
 
+    /// Exact whole-point target frame for `job` inside `job.room`.
+    private static func targetFrame(for job: Job) -> CGRect {
+        let room = job.room, unit = job.place.unit
+        func x(_ part: CGFloat) -> CGFloat { (room.minX + part * room.width).rounded() }
+        func y(_ part: CGFloat) -> CGFloat { (room.minY + part * room.height).rounded() }
+        return CGRect(x: x(unit.minX), y: y(unit.minY), width: x(unit.maxX) - x(unit.minX), height: y(unit.maxY) - y(unit.minY))
+    }
+
     /// Puts the window in its place exactly: each edge on a whole point and shared with the place next to it, the
     /// fewest changes sent (none when it is there already), read back and put right. Returns where it ended.
     @discardableResult
     private static func place(_ job: Job) -> CGRect? {
         let window = job.window, room = job.room, unit = job.place.unit
-        // The edges, each rounded to a whole point by itself. A window on the left and one on the right then share the
-        // very same middle line, with no gap and no overlap; so do top and bottom.
         func x(_ part: CGFloat) -> CGFloat { (room.minX + part * room.width).rounded() }
         func y(_ part: CGFloat) -> CGFloat { (room.minY + part * room.height).rounded() }
-        let want = CGRect(x: x(unit.minX), y: y(unit.minY), width: x(unit.maxX) - x(unit.minX), height: y(unit.maxY) - y(unit.minY))
+        let want = targetFrame(for: job)
         guard room.width > 0, let was = window.frame else { tell("WILL NOT MOVE", "a window did not say where it is, or there was no screen"); return nil }
         // Within a point is there: Chrome and Claude keep an odd height a point short (1070 for 1071), and asking them
         // again only makes them lay out their page for nothing.
