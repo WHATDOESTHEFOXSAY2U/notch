@@ -3,6 +3,15 @@
 What changed in each release of Notch, newest first. A version is three numbers, like 1.0.0, and its git tag is
 `v1.0.0`. The part under a version becomes its release notes on GitHub (`release.sh` copies it).
 
+## 0.10.1 - 2026-11-26
+
+### Fixed
+- Windows in macOS full screen (whether entered with the green button or a swipe up) snap out to left, right, quarters
+  or fill reliably — both immediately without moving the pointer from where it entered full screen, and at any time
+  later from the top band or revealed full-screen title/tab strip (`AXFullScreenWindow` and floating full-screen
+  toolbar layers included). Exiting full screen refreshes the Desktop's usable frame and re-acquires replaced window
+  elements so the window lands cleanly beside the menu bar and Dock.
+
 ## 0.10.0 - 2026-11-26
 
 ### Added

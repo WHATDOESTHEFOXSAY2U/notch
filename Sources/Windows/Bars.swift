@@ -81,10 +81,8 @@ enum Bars {
             }
         }
 
-        // Full-screen revealed title strip: confirm depth is within the top strip and belongs to a full-screen standard window.
+        // Full-screen title band or revealed strip: confirm the app owns a matching full-screen window.
         if target.titleStrip {
-            let stripDepth = point.y - target.frame.minY
-            guard stripDepth >= 0, stripDepth <= TitleBar.maxDepth, !insideTallContent else { return false }
             return verifyFullScreenStrip(in: root, hitWindow: window, for: target, by: deadline)
         }
 
@@ -137,6 +135,7 @@ enum Bars {
             frame: wf
         )
         guard TitleBar.isEligibleWindow(facts) else { return false }
+        if target.continued { return true }
 
         // All three traffic lights share one horizontal row, so reading the first available button's frame
         // measures the exact chrome band in a single IPC call instead of four.
@@ -164,12 +163,14 @@ enum Bars {
         )
     }
 
-    /// Confirms a revealed full-screen title strip belongs to a real full-screen standard window of `root`.
+    /// Confirms a full-screen top band or revealed title strip belongs to a real full-screen window of `root`
+    /// (macOS reports either `AXFullScreenWindow` or `AXStandardWindow` while in native full screen).
     private static func verifyFullScreenStrip(in root: AXUIElement, hitWindow: AXUIElement?, for target: Target, by deadline: Double) -> Bool {
         if let hitWindow {
             AXUIElementSetMessagingTimeout(hitWindow, timeout)
-            if hitWindow.string(kAXSubroleAttribute) == kAXStandardWindowSubrole,
-               hitWindow.bool("AXFullScreen") == true,
+            let full = hitWindow.bool("AXFullScreen") == true || hitWindow.string(kAXSubroleAttribute) == "AXFullScreenWindow"
+            if full,
+               TitleBar.isStandardOrFullScreenSubrole(hitWindow.string(kAXSubroleAttribute), fullScreen: true),
                hitWindow.bool(kAXModalAttribute) != true {
                 return true
             }
@@ -180,9 +181,11 @@ enum Bars {
         for candidate in candidates {
             guard CACurrentMediaTime() < deadline else { return false }
             AXUIElementSetMessagingTimeout(candidate, timeout)
+            let subrole = candidate.string(kAXSubroleAttribute)
+            let full = candidate.bool("AXFullScreen") == true || subrole == "AXFullScreenWindow"
             guard candidate.string(kAXRoleAttribute) == kAXWindowRole,
-                  candidate.string(kAXSubroleAttribute) == kAXStandardWindowSubrole,
-                  candidate.bool("AXFullScreen") == true,
+                  full,
+                  TitleBar.isStandardOrFullScreenSubrole(subrole, fullScreen: true),
                   candidate.bool(kAXModalAttribute) != true else { continue }
             if let numbering = PrivateCalls.windowNumber {
                 var id = CGWindowID(0)

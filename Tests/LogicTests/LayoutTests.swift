@@ -72,6 +72,15 @@ private func standardWindow(frame: CGRect = CGRect(x: 100, y: 100, width: 900, h
     full.sizeSettable = false
     full.hasResizeOrMinimizeButton = false
     #expect(TitleBar.isEligibleWindow(full))
+
+    // Native AppKit windows switch subrole to AXFullScreenWindow while in macOS full screen.
+    var nativeFull = full
+    nativeFull.subrole = "AXFullScreenWindow"
+    #expect(TitleBar.isEligibleWindow(nativeFull))
+    // AXFullScreenWindow is accepted only when fullScreen is true.
+    var nonFullWithFullSubrole = standardWindow()
+    nonFullWithFullSubrole.subrole = "AXFullScreenWindow"
+    #expect(!TitleBar.isEligibleWindow(nonFullWithFullSubrole))
 }
 
 @Test func eligibleWindowRejectsAllSubWindows() {
@@ -159,11 +168,14 @@ private func standardWindow(frame: CGRect = CGRect(x: 100, y: 100, width: 900, h
     #expect(!TitleBar.isTopToolbar(toolbarFrame: bottomBar, windowFrame: window, containing: CGPoint(x: 300, y: 725)))
 }
 
-@Test func disqualifyingRolesRejectScrollAreasTabsButtonsAndSidebars() {
+@Test func disqualifyingRolesRejectScrollAreasAndSidebarsWhileAllowingTitleBarButtonsAndTopTabs() {
     for role in ["AXScrollArea", "AXWebArea", "AXOutline", "AXTable", "AXList", "AXSplitGroup",
-                 "AXTabGroup", "AXRadioButton", "AXButton", "AXTextField", "AXSheet", "AXPopover"] {
+                 "AXTextField", "AXSheet", "AXPopover"] {
         #expect(TitleBar.disqualifyingElementRoles.contains(role), "\(role) must be disqualified")
     }
+    // Resting on the green traffic-light button or a non-scrolling top title-bar tab must still allow swiping.
+    #expect(!TitleBar.disqualifyingElementRoles.contains("AXButton"))
+    #expect(!TitleBar.disqualifyingElementRoles.contains("AXRadioButton"))
 }
 
 @Test func swipeMathRequiresDeliberateTravelAndPreservesPolarConesWithHysteresis() {

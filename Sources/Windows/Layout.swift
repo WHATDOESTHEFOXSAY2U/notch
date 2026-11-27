@@ -27,6 +27,12 @@ enum TitleBar {
     static let standardHeight: CGFloat = 28
     static let maxTitleDepth: CGFloat = 34
     static let maxDepth: CGFloat = 48
+    /// On a full-screen Space, how far from the screen's top edge (covering the notch/menu-bar bezel plus the top
+    /// title/toolbar band where a desktop window's green button sits) or inside a revealed strip a swipe is accepted.
+    static let maxFullScreenTop: CGFloat = 88
+    static let maxFullScreenStripDepth: CGFloat = 64
+    /// Radius (in points) within which a stationary pointer can immediately re-snap a window that just zoomed or filled.
+    static let sameSpotRadius: CGFloat = 20
 
     /// System UI owners whose layer-0 windows are never application windows to snap or resize.
     static let ignoredOwners: Set<String> = [
@@ -36,15 +42,15 @@ enum TitleBar {
     ]
 
     /// Accessibility roles that immediately disqualify the hit element (or any ancestor along its hit chain):
-    /// overlays, scrollable/list/split/web content, tab bars, and interactive controls whose own scrolling,
-    /// dragging, or clicks must never trigger window snapping.
+    /// overlays, scrollable/list/split/web content, and text/menu controls whose own scrolling or gestures must
+    /// never trigger window snapping. Plain buttons and non-scrolling top tabs stay allowed so swiping works across
+    /// the green traffic light and tabbed title bars (while scrollable tab strips are still excluded via `AXScrollArea`).
     static let disqualifyingElementRoles: Set<String> = [
         "AXSheet", "AXPopover", "AXDrawer", "AXMenu", "AXMenuItem", "AXMenuBar",
         "AXScrollArea", "AXScrollBar", "AXWebArea", "AXOutline", "AXTable", "AXList", "AXBrowser", "AXSplitGroup", "AXLayoutArea",
         "AXTextField", "AXTextArea", "AXComboBox", "AXSlider",
         "AXPopUpButton", "AXMenuButton", "AXColorWell",
-        "AXTabGroup", "AXRadioGroup", "AXRadioButton",
-        "AXButton", "AXCheckBox", "AXSegmentedControl", "AXIncrementor", "AXDisclosureTriangle", "AXLink",
+        "AXCheckBox", "AXSegmentedControl", "AXIncrementor", "AXDisclosureTriangle", "AXLink",
     ]
 
     /// Fast pre-filter on a layer-0 `WindowList` entry before asking Accessibility.
@@ -68,11 +74,17 @@ enum TitleBar {
         var frame: CGRect?
     }
 
+    /// macOS switches an AppKit `NSWindow`'s subrole from `AXStandardWindow` to `AXFullScreenWindow` while in native
+    /// full screen; both are genuine top-level application windows when `fullScreen` is true.
+    static func isStandardOrFullScreenSubrole(_ subrole: String?, fullScreen: Bool) -> Bool {
+        subrole == "AXStandardWindow" || (fullScreen && subrole == "AXFullScreenWindow")
+    }
+
     /// True only for a real, top-level, non-modal, movable & resizable standard application window
-    /// (or a full-screen standard window).
+    /// (or a full-screen standard/full-screen window).
     static func isEligibleWindow(_ window: WindowFacts) -> Bool {
         guard window.role == "AXWindow",
-              window.subrole == "AXStandardWindow",
+              isStandardOrFullScreenSubrole(window.subrole, fullScreen: window.fullScreen),
               !window.modal,
               window.parentIsApp,
               !window.hasOpenSheet else { return false }

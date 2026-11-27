@@ -7,7 +7,8 @@ struct Target {
     let frame: CGRect        // where it was, measured from the top left of the main screen
     let fullScreen: Bool     // it was on a full-screen Space
     let filled: Bool         // it took its whole screen but the menu bar and the Dock: a swipe up then means full screen
-    var titleStrip = false   // began on a revealed or waiting full-screen title strip
+    var titleStrip = false   // began on a full-screen top band or revealed title strip
+    var continued = false    // stationary-pointer continuation right after snapping this window
 }
 
 /// Moves other apps' windows, minimises and closes them, and takes them into and out of the Mac's own full screen,
@@ -28,8 +29,11 @@ enum Windows {
 
     /// One swipe's request, with what is needed to finish it later.
     private struct Job {
-        let target: Target, place: Place, room: CGRect, lifted: Double, turn: Int
-        let app: AXUIElement, window: AXUIElement, id: CGWindowID
+        let target: Target, place: Place, pointer: CGPoint, lifted: Double, turn: Int
+        var room: CGRect
+        let app: AXUIElement
+        var window: AXUIElement
+        let id: CGWindowID
         /// No newer swipe on this window has come in since.
         var current: Bool { newest[id] == turn }
     }
@@ -50,23 +54,24 @@ enum Windows {
     }
 
     /// Sends `target` to `place`. `room` is the usable part of the screen the fingers were on, `lifted` when they came up.
-    static func send(_ target: Target, to place: Place, room: CGRect, lifted: Double) {
+    static func send(_ target: Target, to place: Place, pointer: CGPoint = .zero, room: CGRect, lifted: Double) {
         queue.async {
             count += 1
             let app = AXUIElementCreateApplication(target.app)
             AXUIElementSetMessagingTimeout(app, limit)
             var list: CFTypeRef?
             let asked = AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &list)
-            guard asked == .success, let windows = list as? [AXUIElement] else {
+            let windows = (asked == .success ? (list as? [AXUIElement]) : nil) ?? []
+            if windows.isEmpty, !target.fullScreen {
                 return tell(asked == .cannotComplete ? "APP IS BUSY" : "NO WINDOW", "an app did not list its windows", code: asked)
             }
             guard let (window, id) = find(target, among: windows, of: app) else { return }   // closed or disqualified sub-window: do nothing quietly
-            let job = Job(target: target, place: place, room: room, lifted: lifted, turn: count, app: app, window: window, id: id)
+            let job = Job(target: target, place: place, pointer: pointer, lifted: lifted, turn: count, room: room, app: app, window: window, id: id)
             newest[id] = job.turn
             // A window Notch sent into or out of full screen a moment ago may still be on its way: that is waited out
             // first, as the older request would have, and a window that was on its way out is then placed as fresh.
             if let change = changing[id], CACurrentMediaTime() - change.since < 3 {
-                settle(job, change) { _ in go(job, fresh: !change.full) }
+                settle(job, change) { settledJob, _ in go(settledJob, fresh: !change.full) }
             } else {
                 go(job)
             }
@@ -74,34 +79,53 @@ enum Windows {
     }
 
     /// The app's own element for the window the swipe began on, and its number: the one with the window's number,
-    /// or failing that the one with its frame. Only genuine non-modal standard windows are ever returned (never
-    /// dialogs, sheets, popovers, or floating sub-windows). A strip holding a full-screen window's title bar,
-    /// toolbar and tabs stands for that full-screen standard window.
+    /// or failing that the one with its frame. Accepts both `AXStandardWindow` and `AXFullScreenWindow` (which macOS
+    /// sets while an AppKit window is in native full screen).
     private static func find(_ target: Target, among windows: [AXUIElement], of app: AXUIElement) -> (AXUIElement, CGWindowID)? {
         windows.forEach { AXUIElementSetMessagingTimeout($0, limit) }   // the limit is per element, not per app
         var match = PrivateCalls.windowNumber == nil ? nil : windows.first { number(of: $0) == target.number }
         if match == nil { match = windows.first { $0.frame.map { near($0, target.frame, within: 8) } ?? false } }
-        if let match,
-           match.string(kAXRoleAttribute) == kAXWindowRole,
-           match.string(kAXSubroleAttribute) == kAXStandardWindowSubrole,
-           match.bool(kAXModalAttribute) != true,
-           !target.fullScreen || match.bool("AXFullScreen") == true {
-            return (match, target.number)
+        if let match {
+            let subrole = match.string(kAXSubroleAttribute)
+            let isFull = match.bool("AXFullScreen") == true || subrole == "AXFullScreenWindow"
+            if match.string(kAXRoleAttribute) == kAXWindowRole,
+               TitleBar.isStandardOrFullScreenSubrole(subrole, fullScreen: target.fullScreen || isFull),
+               match.bool(kAXModalAttribute) != true,
+               !target.fullScreen || isFull {
+                return (match, target.number)
+            }
         }
         guard target.fullScreen else { return nil }
         let pieces = [match?.frame, target.frame].compactMap { $0 }
         // The main and focused windows first, then all the others: the app's main window may be on another display.
         for full in [kAXMainWindowAttribute, kAXFocusedWindowAttribute].compactMap({ app.element($0, limit: limit) }) + windows {
+            let subrole = full.string(kAXSubroleAttribute)
+            let isFull = full.bool("AXFullScreen") == true || subrole == "AXFullScreenWindow"
             guard full.string(kAXRoleAttribute) == kAXWindowRole,
-                  full.string(kAXSubroleAttribute) == kAXStandardWindowSubrole,
+                  isFull,
+                  TitleBar.isStandardOrFullScreenSubrole(subrole, fullScreen: true),
                   full.bool(kAXModalAttribute) != true,
-                  full.bool("AXFullScreen") == true,
                   let whole = full.frame else { continue }
-            if pieces.contains(where: { $0.isTitleStrip(of: whole) || near($0, whole, within: 4) }) {
+            if pieces.isEmpty || pieces.contains(where: { $0.isTitleStrip(of: whole) || near($0, whole, within: 8) }) {
                 return (full, number(of: full) ?? target.number)
             }
         }
         return nil
+    }
+
+    /// Re-locates `job.id` on `job.app` when an app replaces its `AXWindow` element while leaving full screen.
+    private static func reacquire(_ job: Job) -> AXUIElement? {
+        let windows = (job.app.value(kAXWindowsAttribute) as? [AXUIElement]) ?? []
+        windows.forEach { AXUIElementSetMessagingTimeout($0, limit) }
+        if PrivateCalls.windowNumber != nil, let byID = windows.first(where: { number(of: $0) == job.id }) {
+            return byID
+        }
+        let candidates = [kAXMainWindowAttribute, kAXFocusedWindowAttribute].compactMap { job.app.element($0, limit: limit) } + windows
+        return candidates.first {
+            $0.string(kAXRoleAttribute) == kAXWindowRole
+                && TitleBar.isStandardOrFullScreenSubrole($0.string(kAXSubroleAttribute), fullScreen: true)
+                && $0.bool(kAXModalAttribute) != true
+        }
     }
 
     /// The window server's number for `window`, if it can be had.
@@ -113,7 +137,7 @@ enum Windows {
 
     /// `fresh` means the window has just come out of full screen.
     private static func go(_ job: Job, fresh: Bool = false) {
-        let full = job.window.bool("AXFullScreen") == true
+        let full = job.window.bool("AXFullScreen") == true || job.window.string(kAXSubroleAttribute) == "AXFullScreenWindow"
         switch job.place {
         case .close: close(job)   // where it is, full screen or not: its red button works there, and a document with changes asks there
         case .full: if !full { enter(job) }   // already in full screen: nothing to do
@@ -122,14 +146,29 @@ enum Windows {
             // Out of full screen first. macOS takes most of a second over it, and the window cannot be moved or
             // minimised before that is done.
             let away = job.window.frame
-            let asked = job.window.set("AXFullScreen", kCFBooleanFalse)
+            var asked = job.window.set("AXFullScreen", kCFBooleanFalse)
+            if asked != .success, asked != .cannotComplete,
+               let button = job.window.element(kAXFullScreenButtonAttribute, limit: limit) {
+                asked = AXUIElementPerformAction(button, kAXPressAction as CFString)
+            }
             // Refused outright (not just slow to answer): said at once, as going into full screen does.
             guard asked == .success || asked == .cannotComplete else {
                 return tell(job.place == .minimize ? "WILL NOT MINIMISE" : "WILL NOT MOVE", "a window would not leave full screen", code: asked)
             }
-            settle(job, (CACurrentMediaTime(), false, away)) { done in
+            settle(job, (CACurrentMediaTime(), false, away)) { settledJob, done in
                 guard done else { return tell(job.place == .minimize ? "WILL NOT MINIMISE" : "WILL NOT MOVE", "a window did not leave full screen in time") }
-                act(job, fresh: true)
+                // Once back on the Desktop Space, re-read `visibleFrame` on the main thread so the menu bar and Dock
+                // are accounted for (while on the full-screen Space `visibleFrame` did not include them).
+                DispatchQueue.main.async {
+                    let desktopRoom = Windows.room(at: settledJob.pointer, fallback: settledJob.target.frame)
+                    queue.async {
+                        guard settledJob.current else { return }
+                        var updated = settledJob
+                        if desktopRoom.width > 0 { updated.room = desktopRoom }
+                        if let live = reacquire(updated) { updated.window = live }
+                        act(updated, fresh: true)
+                    }
+                }
             }
         }
     }
@@ -137,41 +176,49 @@ enum Windows {
     /// Minimises or places the window. `fresh` means it has just come out of full screen.
     private static func act(_ job: Job, fresh: Bool) {
         if job.place == .minimize {
-            // macOS undoes a minimise sent while its own way out of full screen is still under way (seen 14 Nov 2026:
-            // the window was in the Dock 0.65 s after the lift and back out at 1.2 s, when that way out ended). Without
-            // a minimise that ends about 0.55 s after the lift, so a window fresh out of full screen waits until 0.7 s.
             let pause = fresh ? 0.7 - (CACurrentMediaTime() - job.lifted) : 0
             guard pause > 0 else { return minimize(job) }
             return queue.asyncAfter(deadline: .now() + pause) { if job.current { minimize(job) } }   // unless a newer swipe came
         }
-        // Fresh out of full screen, macOS may still put the window back where it was before: one look a moment
-        // later, and the place once more only if it did.
+        // Fresh out of full screen, macOS may still put the window back where it was before as the Space transition
+        // finishes: verify at 0.3 s and 0.65 s and re-apply placement if macOS moved it.
         guard let placed = place(job), fresh else { return }
-        queue.asyncAfter(deadline: .now() + 0.3) {
-            guard job.current, let now = job.window.frame, !near(now, placed, within: 1) else { return }
-            place(job)
+        for delay in [0.3, 0.65] {
+            queue.asyncAfter(deadline: .now() + delay) {
+                guard job.current else { return }
+                var currentJob = job
+                if let live = reacquire(currentJob) { currentJob.window = live }
+                guard let now = currentJob.window.frame, !near(now, placed, within: 1) else { return }
+                place(currentJob)
+            }
         }
     }
 
-    /// Waits for `change` (into or out of full screen) to be done, and remembers it meanwhile so a newer request waits
-    /// for it too: until the window says it is in full screen, or out of it, as asked; has left the frame it had before,
-    /// or a second has gone by (on a screen with a notch and no Dock a filled window and a full-screen one have the very
-    /// same frame); and has kept one frame for two looks 50 ms apart. At most 2.5 seconds. Then calls `then` with
-    /// whether it is there (if only the frame never settled, it is there all the same), unless a newer swipe on the
-    /// same window came in meanwhile: then this one just stops, and the newer one waits in its place.
-    private static func settle(_ job: Job, _ change: Change, then: @escaping (Bool) -> Void) {
+    /// Waits for `change` (into or out of full screen) to be done, re-acquiring the window element if the app
+    /// replaced its `AXWindow` when switching between `AXFullScreenWindow` and `AXStandardWindow`.
+    private static func settle(_ job: Job, _ change: Change, then: @escaping (Job, Bool) -> Void) {
         changing[job.id] = change
+        var currentJob = job
         var last: CGRect?, there = false
         wait(job, most: 2.5, until: {
-            AXUIElementSetMessagingTimeout(job.window, glance)
-            defer { AXUIElementSetMessagingTimeout(job.window, limit) }
-            there = job.window.bool("AXFullScreen") == change.full
-            guard there, let now = job.window.frame, now != change.away || CACurrentMediaTime() - change.since > 1 else { last = nil; return false }
+            AXUIElementSetMessagingTimeout(currentJob.window, glance)
+            defer { AXUIElementSetMessagingTimeout(currentJob.window, limit) }
+            var fullState = currentJob.window.bool("AXFullScreen")
+            if fullState == nil, let live = reacquire(currentJob) {
+                currentJob.window = live
+                AXUIElementSetMessagingTimeout(currentJob.window, glance)
+                fullState = currentJob.window.bool("AXFullScreen")
+            }
+            if fullState == nil {
+                fullState = currentJob.window.string(kAXSubroleAttribute) == "AXFullScreenWindow"
+            }
+            there = fullState == change.full
+            guard there, let now = currentJob.window.frame, now != change.away || CACurrentMediaTime() - change.since > 1 else { last = nil; return false }
             defer { last = now }
             return now == last
         }) { done in
             changing[job.id] = nil
-            then(done || there)
+            then(currentJob, done || there)
         }
     }
 
@@ -193,7 +240,7 @@ enum Windows {
         let away = job.window.frame
         let asked = job.window.set("AXFullScreen", kCFBooleanTrue)
         guard asked == .success || asked == .cannotComplete else { return tell("NO FULL SCREEN", "a window would not go full screen", code: asked) }
-        settle(job, (CACurrentMediaTime(), true, away)) { done in if !done { tell("NO FULL SCREEN", "a window did not reach full screen in time") } }
+        settle(job, (CACurrentMediaTime(), true, away)) { _, done in if !done { tell("NO FULL SCREEN", "a window did not reach full screen in time") } }
     }
 
     /// Down into the Dock. Done when the window says it is minimised; said under the notch only if it never is.

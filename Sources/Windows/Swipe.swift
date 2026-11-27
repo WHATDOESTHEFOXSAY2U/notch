@@ -40,6 +40,8 @@ enum Swipe {
     private static var further: CGFloat = 0     // how far up they have gone since that rest
     private static var session = 0              // numbers each active swipe/pinch so a stale-gesture timer only cancels its own
     private static var window = Target(app: 0, number: 0, frame: .zero, fullScreen: false, filled: false)   // the window the swipe began on
+    private static var lastSnap: (app: pid_t, number: CGWindowID, at: CGPoint)?   // lets a stationary pointer re-snap a window that just zoomed or filled
+    private static var spaceSpot: CGPoint?      // pointer position when macOS entered a full-screen Space (e.g. clicking the green button)
     // A swipe or pinch that began in the top section of a candidate window, while `Bars` verifies through Accessibility
     // that it is a genuine top-level standard window's title bar (not a sub-window, dialog, popover, or content):
     // its events are swallowed and kept until the answer comes. "Yes" makes it a swipe from its first event. "No" posts
@@ -98,8 +100,15 @@ enum Swipe {
     private static func installObservers() {
         guard !observed else { return }
         observed = true
-        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { _ in
+        let ws = NSWorkspace.shared.notificationCenter
+        ws.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { _ in
             onTap { reset(repost: false) }
+        }
+        // Remember where the pointer sat when entering a full-screen Space (such as clicking the green button),
+        // so swiping left/right without moving the pointer still snaps the window back out.
+        ws.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { _ in
+            let spot = CGEvent(source: nil)?.location
+            onTap { spaceSpot = spot }
         }
         DistributedNotificationCenter.default().addObserver(forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main) { _ in
             onTap { reset(repost: false) }
@@ -219,32 +228,44 @@ enum Swipe {
         let arrow = Int(CGWindowLevelForKey(.cursorWindow))
         guard let index = list.firstIndex(where: { $0.frame.contains(pointer) && $0.seen && $0.layer < arrow && !($0.layer != 0 && ($0.app == getpid() || $0.frame == screen)) }) else { return .no }
         let top = list[index]
-        guard top.layer == 0, top.app != getpid() else { return .no }
+        guard top.app != getpid(), !TitleBar.ignoredOwners.contains(top.owner) else { return .no }
         let full = Spaces.fullScreen(on: display)
         func tall(_ frame: CGRect) -> Bool { frame.height >= screen.height * 0.85 }   // the screen's height, all but a menu bar and a Dock
-        func target(_ number: CGWindowID, _ frame: CGRect, titleStrip: Bool = false) -> Target {
+        func target(_ number: CGWindowID, _ frame: CGRect, titleStrip: Bool = false, continued: Bool = false) -> Target {
             // Already as wide as the screen and nearly as tall: it has been filled. Never on a full-screen Space: a
             // window there is in full screen (or beside one), and up takes it out of full screen to fill the screen.
             Target(app: top.app, number: number, frame: frame, fullScreen: full,
                    filled: !full && frame.minX <= screen.minX + 1 && frame.width >= screen.width - 2 && tall(frame),
-                   titleStrip: titleStrip)
+                   titleStrip: titleStrip, continued: continued)
         }
-        let depth = pointer.y - top.frame.minY
-        guard depth >= 0, depth <= TitleBar.maxDepth else { return .no }
-        // On a full-screen Space an app's revealed title bar, toolbar and tabs lie in a strip window of their own,
-        // over the top of its full-screen window or just above it (`isTitleStrip`).
-        if full, let under = list[(index + 1)...].first(where: { $0.app == top.app && $0.layer == 0 && top.frame.isTitleStrip(of: $0.frame) && tall($0.frame) }) {
+        // Clear any saved stationary-pointer spot once the pointer moves away from it.
+        if let spot = spaceSpot, hypot(pointer.x - spot.x, pointer.y - spot.y) > TitleBar.sameSpotRadius { spaceSpot = nil }
+        if let prev = lastSnap, hypot(pointer.x - prev.at.x, pointer.y - prev.at.y) > TitleBar.sameSpotRadius { lastSnap = nil }
+
+        // On a full-screen Space an app's revealed title bar / toolbar (`NSToolbarFullScreenWindow` or Chrome's strip)
+        // floats in its own window — often above layer 0 — over or just above the full-screen layer-0 window.
+        if full, pointer.y - top.frame.minY >= 0, pointer.y - top.frame.minY <= TitleBar.maxFullScreenStripDepth,
+           let under = list[(index + 1)...].first(where: { $0.app == top.app && $0.layer == 0 && top.frame.isTitleStrip(of: $0.frame) && tall($0.frame) }) {
             return .ask(target(under.number, under.frame, titleStrip: true))
         }
-        // Reject tiny windows (popups, search bars, tooltips) and system UI owners immediately.
+        guard top.layer == 0 else { return .no }
         guard TitleBar.isCandidateWindow(frame: top.frame, owner: top.owner) else { return .no }
-        // On a full-screen Space's own window (as tall as the screen), its top is its content unless its own
-        // waiting title strip sits right under the pointer at the top edge. Never fall through into content.
+        let depth = pointer.y - top.frame.minY
+
+        // On a full-screen Space's main window, allow swiping from the top band (whether or not the hidden menu bar
+        // was slid down) OR from the exact stationary spot where the green button / full-screen swipe entered full screen.
         if full && tall(top.frame) {
-            let titleBarWaits = list[..<index].contains { $0.app == top.app && !$0.seen && $0.frame.contains(pointer) && $0.frame.isTitleStrip(of: top.frame) }
-            guard titleBarWaits, depth <= TitleBar.standardHeight else { return .no }
+            let inTopBand = (pointer.y - screen.minY <= TitleBar.maxFullScreenTop) || (depth >= 0 && depth <= TitleBar.maxFullScreenStripDepth)
+            let onSameSpot = spaceSpot != nil || (lastSnap?.app == top.app)
+            guard inTopBand || onSameSpot else { return .no }
             return .ask(target(top.number, top.frame, titleStrip: true))
         }
+        // On the Desktop, if Notch just filled/snapped this window and the pointer hasn't moved, let the user
+        // immediately re-snap it (e.g. fill -> left/right) without chasing the moved title bar.
+        if let prev = lastSnap, prev.app == top.app, prev.number == top.number {
+            return .ask(target(top.number, top.frame, continued: true))
+        }
+        guard depth >= 0, depth <= TitleBar.maxDepth else { return .no }
         return .ask(target(top.number, top.frame))
     }
 
@@ -340,11 +361,16 @@ enum Swipe {
     private static func finish(_ place: Place?, at pointer: CGPoint) {
         let target = window, lifted = CACurrentMediaTime(), wasShown = shown
         shown = false
+        if let place, place != .close, place != .minimize {
+            lastSnap = (target.app, target.number, pointer)
+        } else if place != nil {
+            lastSnap = nil
+        }
         DispatchQueue.main.async {
             // The picture comes down before the window moves. The other way round was tried (14 Nov 2026): taking the
             // picture down while the window moved then kept Notch waiting 0.4 s on every second swipe in a quick row.
             if wasShown { Pointer.show(nil, at: .zero) }
-            if let place { Windows.send(target, to: place, room: Windows.room(at: pointer, fallback: target.frame), lifted: lifted) }
+            if let place { Windows.send(target, to: place, pointer: pointer, room: Windows.room(at: pointer, fallback: target.frame), lifted: lifted) }
         }
     }
 
