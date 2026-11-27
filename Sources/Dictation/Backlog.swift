@@ -22,7 +22,7 @@ final class Backlog: @unchecked Sendable {
 
     init(rate: Double) {
         self.rate = rate
-        most = Int(rate * 0.3)
+        most = max(1, Int(rate * 0.3))
         size = most * 2
         ring = .allocate(capacity: size)
     }

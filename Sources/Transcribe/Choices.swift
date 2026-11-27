@@ -38,8 +38,8 @@ struct Choices: View {
             switch step {
             case .keys:
                 HStack(spacing: 0) {
-                    Tile(action: paste) { picture("PASTE", "PASTE LINK") }
-                    Tile(last: true, action: choose) { picture("FILE", "CHOOSE FILE") }
+                    Tile(action: paste) { face("PASTE", "PASTE LINK") }
+                    Tile(last: true, action: choose) { face("FILE", "CHOOSE FILE") }
                 }
                 .frame(height: Choices.tall)
             case .many(let link, _):
@@ -76,14 +76,6 @@ struct Choices: View {
         }
     }
 
-    /// A large key's face: its picture, and under it its name.
-    private func picture(_ glyph: String, _ name: String) -> some View {
-        VStack(spacing: 10) {
-            Glyph(name: glyph)
-            Text(name).font(mono(11)).tracking(2).padding(.leading, 2)   // 2pt on the left balances the tracking after the last letter
-        }
-    }
-
     /// PASTE LINK. One video starts, and the panel folds into the working notch; a channel or a playlist asks how many.
     private func paste() {
         if case .many(let link, let channel) = transcribe.paste() { withAnimation(spring) { step = .many(link, channel: channel) } }
@@ -99,9 +91,17 @@ struct Choices: View {
     }
 }
 
-/// One of the panel's large keys. Like a cell of the function bar, it fills white under the pointer and acts the
-/// moment it is pressed. Every one but the last draws the line to its right.
-private struct Tile<Label: View>: View {
+/// A large key's face: its picture, and under it its name.
+func face(_ glyph: String, _ name: String) -> some View {
+    VStack(spacing: 10) {
+        Glyph(name: glyph)
+        Text(name).font(mono(11)).tracking(2).padding(.leading, 2)   // 2pt on the left balances the tracking after the last letter
+    }
+}
+
+/// One of the panel's large keys, here and for a dropped video (`Sizes`). Like a cell of the function bar, it fills
+/// white under the pointer and acts the moment it is pressed. Every one but the last draws the line to its right.
+struct Tile<Label: View>: View {
     var last = false
     let action: () -> Void
     @ViewBuilder let label: Label

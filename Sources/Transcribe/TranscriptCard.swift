@@ -16,9 +16,17 @@ struct TranscriptCard: View {
     private static let panel = NSPanel(floating: .zero, level: .statusBar)
     static let width: CGFloat = 300    // room for a title, where a shot's card only holds a small picture
 
+    /// Clears any transcript card on screen to prevent overlapping bottom-left cards.
+    static func dismiss() {
+        panel.orderOut(nil)
+        panel.contentView = nil
+    }
+
     /// Slides a card in for `files`, in place of any transcript's card still up.
     static func show(_ files: [URL], title: String, folder: URL, text: String?, words: Int, say: @escaping (String) -> Void) {
         guard let screen = Hardware.notchedScreen ?? NSScreen.screens.first else { return }
+        Card.dismissIfIdle()
+        Restart.dismiss()
         // As for a shot's card: a fixed see-through canvas, wider than the card by its margins, that the card slides inside.
         panel.contentView = FirstClickHost(rootView: TranscriptCard(files: files, title: title, folder: folder, text: text, words: words, say: say))
         panel.setFrame(CGRect(x: screen.visibleFrame.minX, y: screen.visibleFrame.minY, width: Card.edge + width + Card.edge, height: Card.edge + 150), display: true)
@@ -38,7 +46,7 @@ struct TranscriptCard: View {
             HStack(spacing: 0) {
                 if let text {
                     CardKey { Clipboard.put(text, incognito: false); say("COPIED " + Transcript.count(words, "WORD")) } label: { name("COPY") }
-                    CardKey { NSWorkspace.shared.open(files[0]) } label: { name("OPEN") }
+                    if let first = files.first { CardKey { NSWorkspace.shared.open(first) } label: { name("OPEN") } }
                 }
                 CardKey { NSWorkspace.shared.activateFileViewerSelecting(files) } label: { name("SHOW") }
                 // To the Trash, so they can be put back. Red under the pointer, as on a shot's card.

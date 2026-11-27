@@ -84,6 +84,11 @@ struct SettingsView: View {
         }
         // Closing the window or clicking away while a row waits for keys puts the old shortcuts back to work.
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { _ in if setting != nil { listen(for: nil) } }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { note in
+            guard !(note.object is NSPanel) else { return }
+            if setting != nil { listen(for: nil) }
+        }
+        .onDisappear { if setting != nil { listen(for: nil) } }
     }
 
     /// The top of the left pane: a switch for each part of the panel.

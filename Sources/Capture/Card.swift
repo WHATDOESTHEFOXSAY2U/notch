@@ -20,19 +20,32 @@ struct Card: View {
     @State private var began = Date()  // when it started
     @State private var grown = 0       // the bytes of the smaller copy so far
     @State private var small: URL?     // the smaller copy, once it is finished
+    @State private var cancelledAt = Date.distantPast   // stops a double-press on × from trashing the file right after cancelling COMPRESS
     private static let panel = NSPanel(floating: .zero, level: .statusBar)
     static let width: CGFloat = 190, edge: CGFloat = 14   // the restart card has the same width and margin (Restart.swift)
     private static var compressing = false   // a card is compressing: it keeps its place until that ends
+    static var isCompressing: Bool { compressing }
+
+    /// Clears the card immediately if it is not currently compressing, making room for another bottom-left card.
+    static func dismissIfIdle() {
+        guard !compressing else { return }
+        panel.orderOut(nil)
+        panel.contentView = nil
+    }
 
     /// Slides a card in for `file`, in place of any card still up, unless that one is compressing.
-    static func show(_ file: URL, picture: CGImage?, title: String, recording: Bool = false, on screen: NSScreen) {
-        guard !compressing else { return }
+    /// Returns true if the card was shown, false if another compression is currently holding the card.
+    @discardableResult static func show(_ file: URL, picture: CGImage?, title: String, recording: Bool = false, on screen: NSScreen) -> Bool {
+        guard !compressing else { return false }
+        TranscriptCard.dismiss()
+        Restart.dismiss()
         // The window is a fixed see-through canvas, tall enough for the card at its tallest and wider
         // by a margin, for the spring carries the card a few points past its place as it lands.
         // The card slides and grows inside it; clicks on the empty part fall through.
         panel.contentView = FirstClickHost(rootView: Card(file: file, picture: picture, title: title, recording: recording, bytes: weight(of: file)))
         panel.setFrame(CGRect(x: screen.visibleFrame.minX, y: screen.visibleFrame.minY, width: edge + width + edge, height: edge + 190), display: true)
         panel.orderFrontRegardless()
+        return true
     }
 
     var body: some View {
@@ -43,7 +56,7 @@ struct Card: View {
                 Text(title)
                 Spacer(minLength: 0)
                 if small != nil {   // how much smaller the copy is
-                    Text("−\(Int((1 - Double(grown) / Double(max(bytes, 1))) * 100))%").font(mono(11)).tracking(1)
+                    Text("−\(Preset.saved(grown, of: bytes))%").font(mono(11)).tracking(1)
                         .padding(.leading, 5).padding(.trailing, 4).padding(.vertical, 3)   // tracking adds 1pt after the last letter
                         .foregroundStyle(.black).background(.white)
                 }
@@ -72,6 +85,13 @@ struct Card: View {
         .padding([.leading, .bottom], Card.edge)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
         .onAppear { withAnimation(spring) { shown = true } }
+        .onDisappear {
+            if let job {
+                job.cancel()
+                self.job = nil
+                Card.compressing = false
+            }
+        }
     }
 
     private func keys(_ file: URL) -> some View {
@@ -81,6 +101,7 @@ struct Card: View {
             key("SHOW") { NSWorkspace.shared.activateFileViewerSelecting([file]) }
             Spacer(minLength: 0)
             Cross {
+                guard Date().timeIntervalSince(cancelledAt) >= 0.5 else { return }   // ignore a bounce right after cancelling COMPRESS
                 try? FileManager.default.trashItem(at: file, resultingItemURL: nil)   // to the Trash, so it can be put back
                 leave()
             }
@@ -91,16 +112,20 @@ struct Card: View {
 
     /// What takes the keys' place during a compression: the time left, the × that stops it, the ten cells.
     private var working: some View {
-        let left = Int(Date().timeIntervalSince(began) * (1 - part) / max(part, 0.001))
+        let clamped = min(max(part, 0), 1)
+        let left = max(0, Int(Date().timeIntervalSince(began) * (1 - clamped) / max(clamped, 0.001)))
         return VStack(spacing: 0) {
             HStack(spacing: 0) {
-                plain(Text(part > 0.03 ? Format.duration(left) + " LEFT" : " ")).foregroundStyle(gray)
+                plain(Text(clamped > 0.03 ? Format.duration(left) + " LEFT" : " ")).foregroundStyle(gray)
                 Spacer(minLength: 0)
-                Cross { job?.cancel() }
+                Cross {
+                    cancelledAt = Date()
+                    job?.cancel()
+                }
             }
             .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 2) {
-                ForEach(0..<10, id: \.self) { i in Rectangle().fill(i < Int(part * 10) ? .white : unlit) }
+                ForEach(0..<10, id: \.self) { i in Rectangle().fill(i < Int(clamped * 10) ? .white : unlit) }
             }
             .frame(height: 26)
         }
@@ -111,16 +136,20 @@ struct Card: View {
         Key(action: action) { Text(title).fixedSize().padding(.leading, 6).padding(.trailing, 5).padding(.vertical, 3) }
     }
 
-    /// Makes the smaller copy next to the original, under the same name with "small" added.
+    /// Makes the smaller copy next to the original, under the same name with "small" added (numbered if taken).
     private func compress() {
-        let target = file.deletingLastPathComponent().appendingPathComponent(file.deletingPathExtension().lastPathComponent + " small.mp4")
+        guard job == nil, small == nil else { return }
+        let target = Preset.target(for: file) { FileManager.default.fileExists(atPath: $0.path) }
         (part, grown, began) = (0, 0, Date())
+        if !shown { withAnimation(spring) { shown = true } }
         Card.compressing = true
+        let awake = ProcessInfo.processInfo.beginActivity(options: .userInitiated, reason: "Compressing recording")
         job = Task { @MainActor in
+            defer { ProcessInfo.processInfo.endActivity(awake) }
             let made: Bool
             do {
                 try await Compress.run(file, to: target) { now in
-                    if job != nil { (part, grown) = (now, weight(of: target)) }
+                    if job != nil { (part, grown) = (min(max(now, 0), 1), weight(of: target)) }
                 }
                 made = true
             } catch {
@@ -129,7 +158,14 @@ struct Card: View {
             }
             job = nil
             Card.compressing = false
-            if made { (grown, small) = (weight(of: target), target) }   // stopped or failed: the card is as it was
+            if made {
+                let finalBytes = weight(of: target)
+                if finalBytes > 0, finalBytes < bytes {
+                    (grown, small) = (finalBytes, target)
+                } else {
+                    try? FileManager.default.removeItem(at: target)   // a copy that is no smaller is no use to anyone
+                }
+            }   // stopped or failed: the card is as it was
         }
     }
 
@@ -143,10 +179,12 @@ struct Card: View {
         }
     }
 
-    /// Slides the card away, then takes its window down unless a newer card has moved in.
+    /// Slides the card away, then takes its window down unless a newer card has moved in or compression started.
     private func leave() {
+        guard !Card.compressing, job == nil else { return }
         withAnimation(spring) { shown = false } completion: {
-            guard (Card.panel.contentView as? FirstClickHost<Card>)?.rootView.file == file else { return }
+            guard !Card.compressing, job == nil,
+                  (Card.panel.contentView as? FirstClickHost<Card>)?.rootView.file == file else { return }
             Card.panel.orderOut(nil)
             Card.panel.contentView = nil   // lets go of the picture
         }

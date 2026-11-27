@@ -17,6 +17,7 @@ let logic = [
     "Shared/EventCodes.swift",
     "Style/Sounds.swift",   // only the wave is tested: nothing is played
     "Keys/Hotkeys.swift",   // only the labels are read: no shortcut is saved or put to work
+    "Keys/HyperState.swift",   // pure hyper-key state machine: stuck-key recovery and timeout breaker
     "Panel/SMC.swift",      // its keys and arithmetic only: no test opens the SMC
     // In each of these, only the parts that take their facts as arguments are tested: nothing reads the Mac,
     // asks for a permission or writes to the log.
@@ -30,6 +31,7 @@ let logic = [
     "Transcribe/Link.swift",
     "Transcribe/Transcript.swift",
     "Transcribe/Scribe.swift",     // only how its lines are read is tested: Scribe's program is never started
+    "Compress/Preset.swift",       // the arithmetic of a smaller copy: no video is opened or written
 ]
 
 // The rest of Sources is the app's alone. Each of those files is named as left out, or SwiftPM warns about it.

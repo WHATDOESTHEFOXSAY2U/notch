@@ -32,12 +32,16 @@ enum Tool: String {
     func run(_ tool: Tool) {
         // REC with a recording's options up starts it, and with it running stops it, even if REC was switched off meanwhile.
         if tool == .rec, let session {
-            guard session.started == nil else { Task { await stop() }; return }
+            if let started = session.started {
+                guard Date().timeIntervalSince(started) >= 0.3 else { return }   // ignore an accidental bounce on the REC/STOP key
+                Task { await stop() }
+                return
+            }
             session.start(to: desktop("Rec", "mp4"))
             busy = false   // SHOT and TEXT work while recording
             return
         }
-        guard !busy, !Prefs.isSwitchedOff(tool.rawValue) else { return }   // a tool switched off ignores its shortcut too
+        guard !busy, !(tool == .rec && saving != nil), !Prefs.isSwitchedOff(tool.rawValue) else { return }   // a tool switched off ignores its shortcut too; wait for a previous recording to finish saving
         // NSMouseInRect counts the screen's top edge as inside, where the pointer rests when pushed up to the notch.
         guard let screen = NSScreen.screens.first(where: { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }) ?? NSScreen.main else { return }
         // Checking takes about 12 ms each time, so a yes is remembered until Notch quits.
@@ -93,7 +97,9 @@ enum Tool: String {
         guard let (data, small) = saved else { return say("SHOT FAILED") }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setData(data, forType: .png)
-        Card.show(url, picture: small, title: "\(image.width) × \(image.height)", on: region.screen)
+        if !Card.show(url, picture: small, title: "\(image.width) × \(image.height)", on: region.screen) {
+            say("SAVED TO DESKTOP")
+        }
     }
 
     /// `incognito`: no READING and no COPIED line; NO TEXT FOUND is still said.
@@ -117,8 +123,11 @@ enum Tool: String {
                 if let url = await session.end() {
                     let asset = AVURLAsset(url: url), frames = AVAssetImageGenerator(asset: asset)   // the card's picture is the recording's first frame
                     frames.maximumSize = CGSize(width: 712, height: 712)   // pixels; plenty for a 174pt picture on a Retina screen
-                    let length = Int((try? await asset.load(.duration).seconds) ?? 0)   // the file's own length, which is what will play
-                    Card.show(url, picture: try? await frames.image(at: .zero).image, title: Format.duration(length), recording: true, on: session.region.screen)
+                    let seconds = (try? await asset.load(.duration).seconds) ?? 0
+                    let length = seconds.isFinite ? max(0, Int(seconds)) : 0   // the file's own length, which is what will play
+                    if !Card.show(url, picture: try? await frames.image(at: .zero).image, title: Format.duration(length), recording: true, on: session.region.screen) {
+                        say("SAVED TO DESKTOP")
+                    }
                 } else {
                     say("REC FAILED")
                 }
@@ -159,11 +168,17 @@ enum Tool: String {
         }
     }
 
-    /// A new file on the Desktop named like "Shot 2026-11-11 21.54.03.png".
+    /// A new file on the Desktop named like "Shot 2026-11-11 21.54.03.png", numbered if taken in the same second.
     private func desktop(_ name: String, _ type: String) -> URL {
         let stamp = DateFormatter()
         stamp.dateFormat = "yyyy-MM-dd HH.mm.ss"
-        return FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("\(name) \(stamp.string(from: Date())).\(type)")
+        let folder = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0]
+        let base = "\(name) \(stamp.string(from: Date()))"
+        var url = folder.appendingPathComponent("\(base).\(type)"), number = 2
+        while FileManager.default.fileExists(atPath: url.path) {
+            url = folder.appendingPathComponent("\(base) \(number).\(type)")
+            number += 1
+        }
+        return url
     }
 }

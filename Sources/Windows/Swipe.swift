@@ -17,6 +17,8 @@ enum Swipe {
     private static var tap: CFMachPort?
     private static var loop: CFRunLoop?         // the tap thread's run loop: answers from other queues are handed in through it
     private static var refused = false          // macOS refused to make the tap: the log says so once, not at every retry; main thread only
+    private static var observed = false         // sleep and screen-lock observers are installed
+    private static var timeouts: [Double] = []  // timestamps of recent tapDisabledByTimeout events; tap thread only
     // The swipe under way. Only the tap's thread touches these.
     // Times are in seconds on the tap's own clock (CACurrentMediaTime), never the events' own stamps: the trackpad
     // stamps its scrolls in the clock's ticks (24 a microsecond on Apple silicon) and its gestures in nanoseconds.
@@ -26,6 +28,8 @@ enum Swipe {
     private static var travel = CGPoint.zero    // how far the fingers have gone, right and down, kept short so a turn shows at once
     private static var sign: CGFloat = 1        // 1 with "natural scrolling" (the Mac's default), -1 without; read from each swipe's first scroll
     private static var pick: Place?
+    private static var shown = false            // the snap tile has replaced the cursor (waits past tiny finger twitches)
+    private static var anchor = CGPoint.zero    // where the gesture started, for placing the snap tile when it appears
     private static var pinching = false         // a pinch that began on a title bar is under way
     private static var pinched = 0.0            // when its last event came
     private static var squeeze: CGFloat = 0     // how far it has closed: 0 is fingers as they started, about -1 fully together
@@ -34,9 +38,11 @@ enum Swipe {
     private static var filled = false           // the window already filled the screen when the swipe began: up now means full screen
     private static var paused = false           // they rested a moment on "fill": going further up from here means full screen
     private static var further: CGFloat = 0     // how far up they have gone since that rest
+    private static var session = 0              // numbers each active swipe/pinch so a stale-gesture timer only cancels its own
     private static var window = Target(app: 0, number: 0, frame: .zero, fullScreen: false, filled: false)   // the window the swipe began on
-    // A swipe or pinch that began below a title bar, where a toolbar may be, while `Bars` asks the app: its events
-    // are swallowed and kept until the answer comes. "Toolbar" makes it a swipe from its first event. "No" posts
+    // A swipe or pinch that began in the top section of a candidate window, while `Bars` verifies through Accessibility
+    // that it is a genuine top-level standard window's title bar (not a sub-window, dialog, popover, or content):
+    // its events are swallowed and kept until the answer comes. "Yes" makes it a swipe from its first event. "No" posts
     // them again as they were, and the rest of that gesture follows them the same way, so none overtakes another.
     private static var holding: Gesture?
     private static var held: [CGEvent] = []
@@ -47,12 +53,10 @@ enum Swipe {
     private static var postedUpTo: UInt64 = 0   // the newest event stamp among this gesture's events posted again
     private static let mark: Int64 = 0x4E6F_7463   // "Notc", put in every event Notch posts again, so the tap lets it by
     private static let gestureKind = CGEventField(rawValue: 110)!   // which trackpad gesture a gesture event belongs to: 8 is a pinch
-    private static let reach: CGFloat = 22      // points of finger travel before a direction counts
-    private static let bar: CGFloat = 28        // how far down from a window's top edge still counts as its title bar
-    private static let deep: CGFloat = 90       // how far down toolbars and rows of tabs reach
+    private static let reach = SwipeMath.reach                      // points of deliberate finger travel before a direction counts
 
     private enum Gesture { case scroll, pinch }
-    private enum Start { case no, now(Target), ask(Target) }
+    private enum Start { case no, ask(Target) }
 
     /// Whether swiping is working right now.
     static var running: Bool { tap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false }
@@ -74,8 +78,10 @@ enum Swipe {
             tap = port
             EventTap.run(port) { loop = $0 }
         }
-        onTap(reset)
+        onTap { reset(repost: false) }
+        EventTap.syncActivity(active: true)
         tap.map { CGEvent.tapEnable(tap: $0, enable: true) }
+        installObservers()
         Watchdog.watch()   // switches it off again if the permission goes
         return nil
     }
@@ -83,8 +89,21 @@ enum Swipe {
     /// Switches it off. A swipe under way is dropped, and the real pointer comes back.
     static func stop() {
         tap.map { CGEvent.tapEnable(tap: $0, enable: false) }
-        onTap(reset)
+        onTap { reset(repost: false) }
         Pointer.show(nil, at: .zero)
+        EventTap.syncActivity(active: Hyper.running)
+    }
+
+    /// Clears any gesture in flight across sleep or screen lock so the hidden cursor can never stay stuck.
+    private static func installObservers() {
+        guard !observed else { return }
+        observed = true
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { _ in
+            onTap { reset(repost: false) }
+        }
+        DistributedNotificationCenter.default().addObserver(forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main) { _ in
+            onTap { reset(repost: false) }
+        }
     }
 
     /// One scroll or gesture event on its way into the system. Returns the event to pass on, or nil to swallow it.
@@ -92,11 +111,23 @@ enum Swipe {
     static func route(_ type: CGEventType, _ event: CGEvent) -> CGEvent? {
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             // The tap went off in the middle of things: forget the swipe. If macOS did it because the tap
-            // was slow, switch it back on.
-            reset()
+            // was slow, switch it back on unless it is timing out repeatedly.
+            reset(repost: false)
             if type == .tapDisabledByTimeout {
-                tap.map { CGEvent.tapEnable(tap: $0, enable: true) }
-                Log.failed(.windows, "macOS switched the scroll tap off for being slow; it is back on")
+                let now = CACurrentMediaTime()
+                timeouts.removeAll { now - $0 > HyperState.timeoutWindow }
+                timeouts.append(now)
+                if timeouts.count <= HyperState.maxTimeouts {
+                    tap.map { CGEvent.tapEnable(tap: $0, enable: true) }
+                    DispatchQueue.global(qos: .utility).async {
+                        Log.failed(.windows, "macOS switched the scroll tap off for being slow; it is back on")
+                    }
+                } else {
+                    DispatchQueue.main.async {
+                        Swipe.stop()
+                        Log.failed(.windows, "macOS timed out the scroll tap repeatedly; switched off to keep input responsive")
+                    }
+                }
             }
             return event
         }
@@ -118,14 +149,16 @@ enum Swipe {
         }
         if giving == .scroll {
             let since = CACurrentMediaTime() - posted
-            // That scroll is over when nothing has come for a while, or when fingers come down once what was posted
-            // has had time to arrive; until then everything of it follows what was posted, the same way.
-            if since > 0.25 || (touch && since > 0.03) {
+            // End reposting immediately once the rejected scroll finishes or a fresh finger-down gesture begins,
+            // so moving up to the title bar right after scrolling a document never misses the next swipe.
+            if since > 0.25 || (phase == EventCodes.scrollBegan && event.timestamp > postedUpTo) || (touch && since > 0.03) {
                 giving = nil
             } else {
                 if event.timestamp <= postedUpTo { return event }   // a copy Notch posted, back without its marks: let by, never posted twice
                 post(event)
-                if glide == EventCodes.glideEnd { giving = nil }
+                if glide == EventCodes.glideEnd || ((phase == EventCodes.scrollEnded || phase == EventCodes.scrollCancelled) && glide == EventCodes.glideNone) {
+                    giving = nil
+                }
                 return nil
             }
         }
@@ -136,9 +169,6 @@ enum Swipe {
             guard !pinching, holding == nil else { return event }   // a pinch under way, or one held while the app is asked
             switch begin(event) {
             case .no: return event
-            case .now(let target):
-                start(target, at: event)
-                move(event)   // the first event carries finger travel too
             case .ask(let target):
                 hold(.scroll, event, for: target)
             }
@@ -166,11 +196,15 @@ enum Swipe {
         return event
     }
 
-    /// Two fingers have started moving, or pinching. Says whether that is on the title bar of an ordinary window
-    /// (start now), a little lower where it may be a toolbar or a row of tabs (ask the app), or elsewhere (no).
+    /// Two fingers have started moving, or pinching. Quickly filters out anything outside the top section of a
+    /// candidate layer-0 application window (zero delay for normal scrolling anywhere in window bodies, menus,
+    /// the Dock, or tiny popups). Anything inside the top section is verified through `Bars` so sub-windows,
+    /// sheets, dialogs, popovers, and non-title-bar controls are never captured.
     /// With a modifier key held it is never a swipe: those belong to zooming and other apps' own gestures.
     private static func begin(_ event: CGEvent) -> Start {
-        guard event.flags.isDisjoint(with: [.maskCommand, .maskControl, .maskAlternate, .maskShift]) else { return .no }
+        guard event.flags.isDisjoint(with: [.maskCommand, .maskControl, .maskAlternate, .maskShift]),
+              !CGEventSource.buttonState(.combinedSessionState, button: .left),
+              !CGEventSource.buttonState(.combinedSessionState, button: .right) else { return .no }
         let pointer = event.location   // measured from the top left of the main screen, like the window list below
         var display = CGDirectDisplayID(0), found = UInt32(0)
         CGGetDisplaysWithPoint(pointer, 1, &display, &found)
@@ -180,46 +214,48 @@ enum Swipe {
         // The list runs front to back. The first thing under the pointer is what the swipe is on, not counting
         // the see-through sheets that lie over everything: Notch's own panels, and the one the Dock keeps over
         // the whole screen. The pointer's own image is in the list as well, at a level of its own, and is
-        // skipped too, and so is a window that is not drawn at all: a full-screen window's title bar waits in one,
-        // hidden over its top, until the pointer goes to the top of the screen (seen 14 Nov 2026; it still counts as that
-        // window's title bar, below). If what is left is a menu or the Dock itself, this is not a swipe on a title bar.
+        // skipped too, and so is a window that is not drawn at all. If what is left is a menu, popover, modal,
+        // floating panel, or the Dock itself, layer != 0 rejects it immediately.
         let arrow = Int(CGWindowLevelForKey(.cursorWindow))
         guard let index = list.firstIndex(where: { $0.frame.contains(pointer) && $0.seen && $0.layer < arrow && !($0.layer != 0 && ($0.app == getpid() || $0.frame == screen)) }) else { return .no }
         let top = list[index]
         guard top.layer == 0, top.app != getpid() else { return .no }
         let full = Spaces.fullScreen(on: display)
         func tall(_ frame: CGRect) -> Bool { frame.height >= screen.height * 0.85 }   // the screen's height, all but a menu bar and a Dock
-        func target(_ number: CGWindowID, _ frame: CGRect) -> Target {
+        func target(_ number: CGWindowID, _ frame: CGRect, titleStrip: Bool = false) -> Target {
             // Already as wide as the screen and nearly as tall: it has been filled. Never on a full-screen Space: a
             // window there is in full screen (or beside one), and up takes it out of full screen to fill the screen.
             Target(app: top.app, number: number, frame: frame, fullScreen: full,
-                   filled: !full && frame.minX <= screen.minX + 1 && frame.width >= screen.width - 2 && tall(frame))
+                   filled: !full && frame.minX <= screen.minX + 1 && frame.width >= screen.width - 2 && tall(frame),
+                   titleStrip: titleStrip)
         }
-        // On a full-screen Space an app's title bar, toolbar and tabs lie in a strip window of their own, over the
-        // top of its full-screen window or just above it (`isTitleStrip`). All of that strip counts, and the window to act
-        // on is the full-screen one (as tall as the screen, so never another strip in between).
-        if full, let under = list[(index + 1)...].first(where: { $0.app == top.app && $0.layer == 0 && top.frame.isTitleStrip(of: $0.frame) && tall($0.frame) }) {
-            return .now(target(under.number, under.frame))
-        }
-        // The top strip is title bar, except on a full-screen Space's own window (the full-screen window, or one side
-        // of a split view, as tall as the screen): its top is its content. But where its own title bar waits there,
-        // not drawn, until the pointer goes to the top of the screen, the top still counts as title bar: swipes start
-        // there in real use (seen 13 Nov 2026), and earlier versions allowed it. A panel or a settings window there has
-        // its title bar as usual. Below it, as far as toolbars reach, the app is asked what is there.
         let depth = pointer.y - top.frame.minY
-        let titleBarWaits = full && list[..<index].contains { $0.app == top.app && !$0.seen && $0.frame.contains(pointer) && $0.frame.isTitleStrip(of: top.frame) }
-        if depth <= bar, !(full && tall(top.frame)) || titleBarWaits { return .now(target(top.number, top.frame)) }
-        if depth <= deep { return .ask(target(top.number, top.frame)) }
-        return .no
+        guard depth >= 0, depth <= TitleBar.maxDepth else { return .no }
+        // On a full-screen Space an app's revealed title bar, toolbar and tabs lie in a strip window of their own,
+        // over the top of its full-screen window or just above it (`isTitleStrip`).
+        if full, let under = list[(index + 1)...].first(where: { $0.app == top.app && $0.layer == 0 && top.frame.isTitleStrip(of: $0.frame) && tall($0.frame) }) {
+            return .ask(target(under.number, under.frame, titleStrip: true))
+        }
+        // Reject tiny windows (popups, search bars, tooltips) and system UI owners immediately.
+        guard TitleBar.isCandidateWindow(frame: top.frame, owner: top.owner) else { return .no }
+        // On a full-screen Space's own window (as tall as the screen), its top is its content unless its own
+        // waiting title strip sits right under the pointer at the top edge. Never fall through into content.
+        if full && tall(top.frame) {
+            let titleBarWaits = list[..<index].contains { $0.app == top.app && !$0.seen && $0.frame.contains(pointer) && $0.frame.isTitleStrip(of: top.frame) }
+            guard titleBarWaits, depth <= TitleBar.standardHeight else { return .no }
+            return .ask(target(top.number, top.frame, titleStrip: true))
+        }
+        return .ask(target(top.number, top.frame))
     }
 
-    /// Keeps the gesture's events, swallowed, while `Bars` asks the app about the point it began on. The answer
-    /// comes back to this thread. If none has come within a quarter of a second, it is "no": the app gets its events.
+    /// Keeps the gesture's events, swallowed, while `Bars` verifies that the gesture began strictly on the
+    /// top title-bar section of a genuine standard application window. If no answer comes within 0.25 s,
+    /// it is "no" and the app gets its events back.
     private static func hold(_ gesture: Gesture, _ event: CGEvent, for target: Target) {
         holding = gesture; held = [event.copy() ?? event]; waiting = target
         asked += 1
         let question = asked
-        Bars.ask(at: event.location, in: target.app) { bar in onTap { answered(question, bar) } }
+        Bars.ask(at: event.location, for: target) { bar in onTap { answered(question, bar) } }
         DispatchQueue.global(qos: .userInteractive).asyncAfter(deadline: .now() + 0.25) { onTap { answered(question, false) } }
     }
 
@@ -254,11 +290,12 @@ enum Swipe {
         postedUpTo = max(postedUpTo, event.timestamp)
     }
 
-    /// Forgets the swipe under way. Held events go back to the app; the picture comes down and the real pointer back.
-    private static func reset() {
-        give()
+    /// Forgets the swipe under way. Held events optionally go back to the app; the picture comes down and the real pointer back.
+    private static func reset(repost: Bool = true) {
+        if repost { give() } else { holding = nil; waiting = nil; held = [] }
         active = false; coasting = false; pinching = false; giving = nil
         asked += 1   // an answer still on its way is for nothing now
+        session += 1
         hide()
     }
 
@@ -269,74 +306,85 @@ enum Swipe {
         CFRunLoopWakeUp(loop)
     }
 
-    /// The swipe (or pinch) on `target` is Notch's from `event` on: the picture takes the pointer's place.
+    /// The swipe (or pinch) on `target` is Notch's from `event` on; the pointer tile waits until finger travel passes
+    /// `SwipeMath.previewReach` so tiny accidental two-finger brushes never hide the cursor.
     private static func start(_ target: Target, at event: CGEvent, pinch: Bool = false) {
-        window = target; travel = .zero; pick = nil; filled = target.filled
+        window = target; travel = .zero; pick = nil; shown = false; anchor = event.location; filled = target.filled
         paused = false; further = 0; slow = CACurrentMediaTime(); crept = .zero; last = slow
+        session += 1
         // With "natural scrolling" on (the Mac's default) macOS turns a scroll's numbers round so they follow the fingers,
         // and says so in the scroll itself; off, they run the other way. Only a scroll may be asked: asked about any
         // other kind of event, AppKit crashes Notch. A pinch has no use for the sign.
         if event.type == .scrollWheel { sign = NSEvent(cgEvent: event)?.isDirectionInvertedFromDevice == false ? -1 : 1 }
         if pinch { pinching = true; squeeze = 0; pinched = slow } else { active = true; coasting = false }
-        let pointer = event.location
-        DispatchQueue.main.async { Pointer.show(.some(nil), at: pointer) }
+        watchStale(session)
+    }
+
+    /// If a gesture's end event is lost (trackpad hiccup, focus change, sleep), automatically restores the pointer
+    /// after 2.5 seconds of inactivity so the cursor can never stay hidden.
+    private static func watchStale(_ current: Int) {
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 1.0) {
+            onTap {
+                guard session == current, active || pinching else { return }
+                let idle = CACurrentMediaTime() - (pinching ? pinched : last)
+                if idle >= 2.5 {
+                    reset(repost: false)
+                } else {
+                    watchStale(current)
+                }
+            }
+        }
     }
 
     /// The fingers lifted: the picture comes down, the real pointer comes back, and the window goes to `place`.
     private static func finish(_ place: Place?, at pointer: CGPoint) {
-        let target = window, lifted = CACurrentMediaTime()
+        let target = window, lifted = CACurrentMediaTime(), wasShown = shown
+        shown = false
         DispatchQueue.main.async {
             // The picture comes down before the window moves. The other way round was tried (14 Nov 2026): taking the
             // picture down while the window moved then kept Notch waiting 0.4 s on every second swipe in a quick row.
-            Pointer.show(nil, at: .zero)
-            if let place { Windows.send(target, to: place, room: Windows.room(at: pointer), lifted: lifted) }
+            if wasShown { Pointer.show(nil, at: .zero) }
+            if let place { Windows.send(target, to: place, room: Windows.room(at: pointer, fallback: target.frame), lifted: lifted) }
         }
     }
 
-    private static func hide() { DispatchQueue.main.async { Pointer.show(nil, at: .zero) } }
+    private static func hide() {
+        shown = false
+        DispatchQueue.main.async { Pointer.show(nil, at: .zero) }
+    }
 
     /// The fingers moved. Works out which place they point at now, and tells the picture if it changed.
     private static func move(_ event: CGEvent) {
-        let limit = reach * 1.6
-        travel.x += sign * CGFloat(event.getDoubleValueField(.scrollWheelEventPointDeltaAxis2))
-        travel.y += sign * CGFloat(event.getDoubleValueField(.scrollWheelEventPointDeltaAxis1))
-        // Never far past the line, so turning back shows at once. Both directions shrink together, which
-        // keeps the angle: a long sideways swipe that drifts a little stays a half and does not creep into a corner.
-        let longest = max(abs(travel.x), abs(travel.y))
-        if longest > limit { travel.x *= limit / longest; travel.y *= limit / longest }
-        let across = travel.x <= -reach ? -1 : travel.x >= reach ? 1 : 0, down = travel.y <= -reach ? -1 : travel.y >= reach ? 1 : 0
-        var now: Place? = switch (across, down) {
-        case (-1, 0): .left
-        case (1, 0): .right
-        case (0, -1): .fill
-        case (0, 1): .minimize
-        case (-1, -1): .topLeft
-        case (1, -1): .topRight
-        case (-1, 1): .lowLeft
-        case (1, 1): .lowRight
-        default: nil
-        }
+        let dx = sign * CGFloat(event.getDoubleValueField(.scrollWheelEventPointDeltaAxis2))
+        let dy = sign * CGFloat(event.getDoubleValueField(.scrollWheelEventPointDeltaAxis1))
+        travel = SwipeMath.advance(travel, dx: dx, dy: dy)
+        var now = SwipeMath.place(for: travel, current: pick)
         // Up has two stages. The first fills the screen. The second is the Mac's own full screen, reached by
         // swiping up on a window that is filled already, or in one go like this:
         // Full screen is "fill", a rest, then further up: it has to be meant. A rest is a tenth of a second in
         // which the fingers stop or all but stop (resting fingers still tremble, so events keep arriving).
         // Only travel after that rest counts, so one long swipe up never gets there.
-        let up = -sign * CGFloat(event.getDoubleValueField(.scrollWheelEventPointDeltaAxis1))
+        let up = -dy
         let across2 = CGFloat(event.getDoubleValueField(.scrollWheelEventPointDeltaAxis2))
         let time = CACurrentMediaTime()
         if now == .fill, pick == .fill || pick == .full {
             if !paused, time >= slow + 0.1 { paused = true; further = 0 }
-            // Moving: any rest starts again from here. Moving is five points since the last start, signs kept, so a
-            // rest is less than that in a tenth of a second: about 50 points a second or slower. (Event by event, a
-            // slow swipe's point or less at a time would look like a rest.)
             crept.x += across2; crept.y += up
             if abs(crept.x) + abs(crept.y) >= 5 { slow = time; crept = .zero }
             if paused { further = min(max(further + up, 0), reach * 2) }
-            if paused, further >= reach * 1.4 || (pick == .full && further >= reach * 0.7) { now = .full }   // easier to stay in than to get in
+            if paused, further >= reach * 1.1 || (pick == .full && further >= reach * 0.55) { now = .full }   // easier to stay in than to get in
         } else {
             paused = false; further = 0; slow = time; crept = .zero
         }
         if now == .fill, filled { now = .full }
+        if !shown, hypot(travel.x, travel.y) >= SwipeMath.previewReach {
+            shown = true
+            pick = now
+            if now != nil { Knock.knock(twice: now?.whole == true) }
+            let startPoint = anchor
+            DispatchQueue.main.async { Pointer.show(.some(now), at: startPoint) }
+            return
+        }
         change(to: now)
     }
 
@@ -346,7 +394,13 @@ enum Swipe {
         guard now != pick else { return }
         pick = now
         Knock.knock(twice: now?.whole == true)   // felt at once: knocks have a queue of their own, so nothing here waits for them
-        DispatchQueue.main.async { Pointer.show(.some(now), at: nil) }
+        if shown {
+            DispatchQueue.main.async { Pointer.show(.some(now), at: nil) }
+        } else {
+            shown = true
+            let startPoint = anchor
+            DispatchQueue.main.async { Pointer.show(.some(now), at: startPoint) }
+        }
     }
 
     /// A trackpad gesture that is not scrolling. A pinch that begins on a title bar and closes far enough
@@ -364,7 +418,7 @@ enum Swipe {
         }
         if giving == .pinch {
             let since = CACurrentMediaTime() - posted
-            if since > 0.25 || (phase == .began && since > 0.03) {
+            if since > 0.25 || (phase == .began && event.timestamp > postedUpTo) || (phase == .began && since > 0.03) {
                 giving = nil
             } else {
                 if event.timestamp <= postedUpTo { return event }   // a copy Notch posted, back without its marks: let by
@@ -377,7 +431,6 @@ enum Swipe {
             if pinching { pinching = false; hide() }   // the last pinch's end went missing: its picture must not stay up
             switch begin(event) {
             case .no: return event
-            case .now(let target): start(target, at: event, pinch: true)
             case .ask(let target): hold(.pinch, event, for: target)
             }
             return nil
@@ -386,7 +439,16 @@ enum Swipe {
         pinched = CACurrentMediaTime()
         if phase == .changed {
             squeeze += gesture.magnification
-            change(to: squeeze <= -0.3 || (pick == .close && squeeze <= -0.15) ? .close : nil)
+            let now = SwipeMath.pinchPlace(squeeze: squeeze, current: pick)
+            if !shown, squeeze <= SwipeMath.pinchPreview {
+                shown = true
+                pick = now
+                if now != nil { Knock.knock(twice: true) }
+                let startPoint = anchor
+                DispatchQueue.main.async { Pointer.show(.some(now), at: startPoint) }
+            } else {
+                change(to: now)
+            }
         } else if phase == .ended || phase == .cancelled {
             pinching = false
             finish(phase == .ended ? pick : nil, at: event.location)

@@ -24,16 +24,21 @@ import AppKit
     var done: String?       // what the notch says for two seconds after the last one: "2,431 WORDS", "10 FILES"
     var near = false        // a recording or a link is being dragged close to the notch
     var over = false        // and is on it now
+    var video = false       // what is dragged is one video the notch can also compress: it will ask which
     /// The notch has widened to catch what is being dragged.
     var dropping: Bool { near || over }
 
     @ObservationIgnored var say: (String) -> Void = { _ in }     // shows a short line under the notch
+    @ObservationIgnored var compresses: (NSPasteboard) -> Bool = { _ in false }   // whether a drag carries one video COMPRESS takes (`Shrink.video`)
     @ObservationIgnored private var waiting: [Entry] = []
     @ObservationIgnored private var job: Task<Void, Never>?      // works through `waiting`, one at a time
     @ObservationIgnored private var run = Run()
     @ObservationIgnored private var halted = false               // STOP was pressed, and Scribe's program is still going away
     @ObservationIgnored private var fade: Task<Void, Never>?     // the two-second clock of the DONE band
+    @ObservationIgnored private var releaseWatch: Task<Void, Never>? // clears `near`/`over` if CoreDrag consumes mouseUp or Esc cancels a drag
     @ObservationIgnored private var drags = (down: 0, seen: 0, wanted: false)   // see `dragged`
+    @ObservationIgnored private var dragMonitor: Any?            // global drag monitor, installed once
+    @ObservationIgnored private var localUpMonitor: Any?         // catches a mouse-up over a Notch window so `near` never sticks
 
     /// One thing waiting its turn.
     private enum Entry {
@@ -77,13 +82,18 @@ import AppKit
     /// The answer to "how many": that many of a channel's newest, or of a playlist's first. Nil is ALL.
     func take(_ link: String, count: Int?) { add([.list(link, limit: count ?? Transcribe.most)]) }
 
-    /// A file picked from CHOOSE FILE's list.
+    /// A file picked from CHOOSE FILE's list, or a dropped video once TRANSCRIBE is chosen for it.
     func take(_ file: URL) { add([.recording(file.path, title: nil, file: nil)]) }
 
-    /// Whether what `board` carries is something to transcribe: video or sound files, or a link. Nothing else makes
-    /// the notch react, and nothing does while TRANSCRIBE is switched off or Scribe is not on this Mac.
+    /// Whether TRANSCRIBE can be offered at all: switched on, and Scribe on this Mac.
+    var ready: Bool { !Prefs.isSwitchedOff("SCRIBE") && Scribe.program != nil }
+
+    /// Whether what `board` carries is something for the notch: video or sound files or a link, to transcribe, or one
+    /// video to compress. Nothing else makes the notch react. When Scribe is not installed yet, a dropped audio file or
+    /// link is still caught so the notch can tell what is needed instead of silently ignoring the drop.
     func takes(_ board: NSPasteboard) -> Bool {
-        !Prefs.isSwitchedOff("SCRIBE") && Scribe.program != nil && !entries(on: board).isEmpty
+        video = compresses(board)
+        return video || (!Prefs.isSwitchedOff("SCRIBE") && !entries(on: board).isEmpty)
     }
 
     /// What was dragged has been dropped on the notch. False if there was nothing in it to transcribe.
@@ -105,8 +115,13 @@ import AppKit
     /// Watches drags everywhere on the Mac, so that the notch widens as a recording or a link is dragged close to it,
     /// before it is on the notch itself. Only where the pointer is and what kind of thing is dragged are looked at.
     func watchDrags() {
-        NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
+        guard dragMonitor == nil else { return }
+        dragMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
             MainActor.assumeIsolated { self?.dragged(event.type) }   // macOS hands these over on the main thread
+        }
+        localUpMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
+            MainActor.assumeIsolated { self?.near = false }
+            return event
         }
     }
 
@@ -125,7 +140,7 @@ import AppKit
     /// Puts recordings in line and starts on them, unless one is already in hand.
     private func add(_ entries: [Entry]) {
         guard !entries.isEmpty, !Prefs.isSwitchedOff("SCRIBE") else { return }
-        guard Scribe.program != nil else { return say("NEEDS SCRIBE") }
+        guard Scribe.program != nil else { return say("TRANSCRIBE NEEDS THE SCRIBE APP") }
         fade?.cancel()
         done = nil
         waiting += entries
@@ -254,22 +269,50 @@ import AppKit
                             text: one ? run.last.text : nil, words: run.last.words) { [weak self] line in self?.say(line) }
     }
 
-    /// A mouse button went down, moved or came up somewhere on the Mac. The drag clipboard keeps what the last drag
-    /// carried, so only a change in it since the button went down means something is being dragged now. What it
-    /// carries is looked at once per drag; after that only the pointer's place is.
+    /// A mouse button went down, moved or came up somewhere on the Mac. Checks pointer proximity to the notch first
+    /// so ordinary mouse drags elsewhere on screen never query the drag pasteboard, and watches mouse-button release
+    /// so `near` never sticks when CoreDrag consumes mouse-up or Esc cancels a drag.
     private func dragged(_ event: NSEvent.EventType) {
-        let board = NSPasteboard(name: .drag)
         switch event {
         case .leftMouseDown:
-            drags.down = board.changeCount
+            if near { near = false }
+            drags.down = NSPasteboard(name: .drag).changeCount
         case .leftMouseDragged:
+            guard let screen = Hardware.notchedScreen ?? NSScreen.screens.first else { return }
+            let mouse = NSEvent.mouseLocation
+            let close = abs(mouse.x - screen.frame.midX) < Transcribe.reach.width && screen.frame.maxY - mouse.y < Transcribe.reach.height
+            guard close else {
+                if near { near = false }
+                return
+            }
+            let board = NSPasteboard(name: .drag)
             guard board.changeCount != drags.down else { return }
             if board.changeCount != drags.seen { (drags.seen, drags.wanted) = (board.changeCount, takes(board)) }
-            guard drags.wanted, let screen = Hardware.notchedScreen ?? NSScreen.screens.first else { return }
-            let mouse = NSEvent.mouseLocation
-            near = abs(mouse.x - screen.frame.midX) < Transcribe.reach.width && screen.frame.maxY - mouse.y < Transcribe.reach.height
+            guard drags.wanted else {
+                if near { near = false }
+                return
+            }
+            if !near {
+                near = true
+                watchRelease()
+            }
         default:
             near = false
+        }
+    }
+
+    private func watchRelease() {
+        guard releaseWatch == nil else { return }
+        releaseWatch = Task {
+            while near || over, !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(120))
+                if NSEvent.pressedMouseButtons & 1 == 0 {
+                    near = false
+                    over = false
+                    break
+                }
+            }
+            releaseWatch = nil
         }
     }
 }

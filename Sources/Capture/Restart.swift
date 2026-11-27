@@ -9,9 +9,17 @@ struct Restart: View {
     @State private var hot = false     // the pointer is on the card: the countdown waits
     private static let panel = NSPanel(floating: .zero, level: .statusBar)
 
+    /// Clears the restart card if another bottom-left card takes its place.
+    static func dismiss() {
+        panel.orderOut(nil)
+        panel.contentView = nil
+    }
+
     /// Slides the card in at the bottom-left of `screen`, unless it is up already.
     static func show(on screen: NSScreen) {
         guard !panel.isVisible else { return }
+        Card.dismissIfIdle()
+        TranscriptCard.dismiss()
         panel.contentView = FirstClickHost(rootView: Restart())
         panel.setFrame(CGRect(x: screen.visibleFrame.minX, y: screen.visibleFrame.minY, width: Card.edge + Card.width + Card.edge, height: Card.edge + 190), display: true)
         panel.orderFrontRegardless()

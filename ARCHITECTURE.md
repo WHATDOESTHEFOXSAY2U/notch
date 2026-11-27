@@ -23,7 +23,8 @@ in the settings, and which calls are not in Apple's published SDK.
   crash left it muted (`Quiet.recover`); the speech engine looked up (`Dictation.prepare`); the hyper key started if
   switched on, or Caps Lock given back if a crash left it as F18 (`Hyper.recover`); `Swipe.say` pointed at
   `Tools.say`; swiping started if switched on; `Transcribe.say` pointed at `Tools.say`, and its watch on drags started
-  (`Transcribe.watchDrags`); then the warm helper (`Launch.warmTextModel`): only with TEXT on, and
+  (`Transcribe.watchDrags`); `Shrink.say` pointed at `Tools.say`, and its watch on presses started
+  (`Shrink.watchPresses`); then the warm helper (`Launch.warmTextModel`): only with TEXT on, and
   only when macOS has changed since it last ran to the end (`Prefs.warmedFor`), a second Notch, started with
   `warm`, reads one picture so macOS prepares its text model before the first TEXT.
 - Quitting waits until a recording's file is finished (`applicationShouldTerminate`), then gives Caps Lock and the
@@ -36,7 +37,7 @@ in the settings, and which calls are not in Apple's published SDK.
 
 **App**
 - `main.swift`: start-up only; the warm helper's way out; one copy at a time.
-- `AppDelegate.swift`: makes `Stats`, `Tools`, `Dictation`, `Transcribe` and the notch panel; wires the shortcuts and the status
+- `AppDelegate.swift`: makes `Stats`, `Tools`, `Dictation`, `Transcribe`, `Shrink` and the notch panel; wires the shortcuts and the status
   line; starts the hyper key and swiping if they are on; the Settings window; placing the panel, on the notch or, on
   a screen without one, on a 140-point stand-in at the top centre; the welcome card; quitting.
 - `Launch.swift`: another copy already running, if there is one; whether the warm helper runs, and starting it.
@@ -49,7 +50,8 @@ in the settings, and which calls are not in Apple's published SDK.
 - `EventCodes.swift`: named numbers for Esc, the trackpad gesture event and the scroll phases.
 - `EventTap.swift`: makes a tap on input events and runs it on a thread of its own.
 - `FloatingPanel.swift`: the see-through panel every window but Settings is; the host that lets the first click land;
-  the window levels of a recording.
+  `NotchHost` and `NotchHover`, which bind the notch's tracking rectangle strictly to the physical notch when closed
+  and to the open black shape while expanded; the window levels of a recording.
 - `Format.swift`: a length of time ("1:01:05") and a file size ("9.1 MB").
 - `Hardware.swift`: what this Mac is and has: model, chip, macOS, screens and notch, microphone, camera, the speech
   engine, trackpads.
@@ -70,8 +72,8 @@ in the settings, and which calls are not in Apple's published SDK.
 
 **Panel**
 - `Console.swift`: the black shape on the notch: closed, open, dictating, the COPIED band, transcribing (the meter, the
-  band that catches a drop, DONE), the line under the notch. A line too long for the notch widens the shape, as the
-  COPIED band does, then takes a second line.
+  band that catches a drop, DONE), a dropped video (its choices, the meter, the copy made), the line under the notch.
+  A line too long for the notch widens the shape, as the COPIED band does, then takes a second line.
 - `Readouts.swift`: the open panel: the gauges, the mirror and the function bar, or TRANSCRIBE's choices once it is
   pressed; `Parts`, the parts' names. A cell of the bar whose name is wider than its share widens under the pointer.
 - `Stats.swift`: the readings (memory, CPU, temperature, fan, swap, battery) and FREE's heaviest apps; what this Mac
@@ -99,7 +101,17 @@ in the settings, and which calls are not in Apple's published SDK.
 - `ReadText.swift`: reads the text in a picture with Vision, keeping lines, indents and columns; `warmReader`.
 - `TextLayout.swift`: the arithmetic of text reading: columns, indents, arrows.
 - `Card.swift`: the card a finished SHOT or REC shows at the bottom left: COPY, SHOW, ×, and COMPRESS.
-- `Compress.swift`: the smaller copy of a recording.
+
+**Compress**
+- `Compress.swift`: the smaller copy of a video, written by the Mac's own encoders (HEVC, or H.264 for WhatsApp): of a
+  recording, from its card, and of a video dropped on the notch; what a copy would weigh, from a few seconds of it
+  compressed as a trial.
+- `Preset.swift`: the three sizes, BEST, BALANCED and WHATSAPP, and their arithmetic: the picture each keeps, the
+  bits WhatsApp's limit leaves, a copy's weight from its trial pieces, where the copy goes.
+- `Shrink.swift`: COMPRESS for a dropped video: the video the notch asks about and its sizes as they are worked out,
+  the copy being written, the copy just made; stopping.
+- `Sizes.swift`: the panel for a dropped video: TRANSCRIBE and COMPRESS, then the three sizes (`Sizes`); the one line
+  for the copy once it is made, with SHOW IN FINDER (`Shrunk`).
 
 **Recording**
 - `Session.swift`: one recording, from the options strip to the finished file.
@@ -133,22 +145,27 @@ in the settings, and which calls are not in Apple's published SDK.
   list of recordings, the SPEAKERS switch.
 - `Meter.swift`: what the notch shows while a recording is worked on, and the STOP key under the pointer (`Meter`);
   the line across the notch for a drop and for DONE (`Band`).
-- `Catch.swift`: catches what is dragged onto the black shape, if it is something to transcribe.
+- `Catch.swift`: catches what is dragged onto the black shape, if it is something to transcribe or one video to
+  compress; the video goes to `Shrink`, which asks what to do with it.
 - `TranscriptCard.swift`: the card a finished transcript shows at the bottom left: COPY, OPEN, SHOW, ×.
 
 **Keys**
 - `Hotkeys.swift`: the global shortcuts (Carbon hot keys): stored, labelled, registered; SHORTCUT TAKEN.
 - `Hyper.swift`: Caps Lock as a hyper key: Caps Lock mapped to F18 on each keyboard, and a key tap that adds ⌃⌥⇧⌘.
-- `Watchdog.swift`: every 2 s while the hyper key or swiping runs, makes a test tap; if macOS refuses it, switches both
-  off and gives Caps Lock back.
+- `HyperState.swift`: pure state machine for the hyper key: Secure Input and idle-hold recovery when an F18 key-up is
+  missed, and a circuit breaker for repeated tap timeouts.
+- `Watchdog.swift`: every 3 s while the hyper key or swiping runs, checks Accessibility trust off the main thread; if
+  removed, switches both off and gives Caps Lock back without creating temporary HID event taps.
 
 **Windows**
 - `Swipe.swift`: the tap on scrolls and gestures: swipes and pinches on title bars, decided on the tap's thread.
-- `Windows.swift`: moves, minimises, closes and full-screens other apps' windows through Accessibility.
+- `Windows.swift`: moves, minimises, closes and full-screens other apps' standard windows through Accessibility.
 - `Place.swift`: where a swipe can send a window: a rectangle of the screen, and a colour for the picture.
-- `Layout.swift`: whether a window is the title strip of a full-screen window.
+- `Layout.swift`: whether a window is the title strip of a full-screen window, `TitleBar` rules restricting swipes
+  strictly to the top title-bar section of real top-level resizable standard windows (never sub-windows, tabs, sidebars
+  or content), and `SwipeMath` polar swipe cones and hysteresis.
 - `Pointer.swift`: the small picture that stands in for the pointer during a swipe.
-- `Bars.swift`: asks an app whether a point is on a toolbar or a row of tabs.
+- `Bars.swift`: verifies through Accessibility that a point is strictly on the top section of a real standard window.
 - `WindowList.swift`: the windows on screen, front to back, from the window server.
 - `Spaces.swift`: whether a display shows a full-screen Space.
 - `Knock.swift`: the knocks felt in the trackpad.
@@ -156,8 +173,8 @@ in the settings, and which calls are not in Apple's published SDK.
 
 ## How the parts talk
 
-- **Four objects keep the state.** `AppDelegate` makes `Stats`, `Tools`, `Dictation` and `Transcribe` once. The
-  panel's views are rebuilt every time it opens, so nothing lasting lives in them. The four (and a recording's
+- **Five objects keep the state.** `AppDelegate` makes `Stats`, `Tools`, `Dictation`, `Transcribe` and `Shrink` once.
+  The panel's views are rebuilt every time it opens, so nothing lasting lives in them. The five (and a recording's
   `Session`) are `@Observable`: the views read them and call their methods.
 - **One line under the notch.** Everything the notch says goes through `Tools.say(_:stays:)`, which sets
   `Tools.status` for 2 seconds (or, with `stays`, until the next line); `Console` shows it. `Dictation.say`,
@@ -188,6 +205,12 @@ in the settings, and which calls are not in Apple's published SDK.
   Scribe's program and reads its lines → `Transcribe.working` → `Meter` on the notch → the text written to a file →
   when nothing waits, `Transcribe.done` (the DONE band) and `TranscriptCard.show`. A channel or a playlist is first
   opened out into its recordings (`Scribe.list`). STOP: `Transcribe.stop` cancels the task, which ends the program.
+- **COMPRESS, for a dropped video:** one video file (mov, mp4, m4v) dropped on the shape → `Catch` → `Shrink.offer`
+  → `Shrink.asking` → `Sizes` on the notch: TRANSCRIBE (`Transcribe.take`, as above) or COMPRESS, then a size.
+  Meanwhile `Compress.estimate` works out what each size would weigh. A size pressed → `Shrink.compress` →
+  `Compress.run` → `Shrink.working` → `Meter` on the notch → `Shrink.done` → `Shrunk`, until SHOW IN FINDER is pressed,
+  the pointer has been and gone, or 30 seconds pass. STOP: `Shrink.stop` cancels the task and removes the unfinished
+  copy. Several files, a sound file or a link go to TRANSCRIBE as before.
 - **SWIPE:** the tap's thread → `Swipe.route` → `begin` (`WindowList.read`, `Spaces.fullScreen`) → at once, or
   after `Bars.ask` → `move` → `Knock.knock` and `Pointer.show` → fingers lift → `Windows.send`.
 - **The hyper key:** its tap's thread → `Hyper.route`: while F18 (Caps Lock) is held, every other key gets ⌃⌥⇧⌘.

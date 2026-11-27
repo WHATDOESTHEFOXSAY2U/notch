@@ -47,3 +47,27 @@ import Testing
         #expect(!Hardware.isMicrophone(transport: transport))
     }
 }
+
+@Test func notchEntryAcceptsOnlyTheClosedNotchAndNeverNearbyScreenArea() {
+    let screen = CGRect(x: 0, y: 0, width: 1512, height: 982)
+    let notch = CGSize(width: 185, height: 32)   // midX = 756, notch spans x = 663.5...848.5, y = 950...982
+    // Inside the physical notch, including pushed flush against the top screen edge (y == maxY).
+    #expect(Hardware.inNotchEntry(mouse: CGPoint(x: 756, y: 982), screen: screen, notch: notch))
+    #expect(Hardware.inNotchEntry(mouse: CGPoint(x: 756, y: 960), screen: screen, notch: notch))
+    #expect(Hardware.inNotchEntry(mouse: CGPoint(x: 670, y: 952), screen: screen, notch: notch))
+    // Nearby points inside the 500×135 open-panel footprint must NEVER trigger opening when closed.
+    #expect(!Hardware.inNotchEntry(mouse: CGPoint(x: 756, y: 945), screen: screen, notch: notch))   // 5 pt below the notch
+    #expect(!Hardware.inNotchEntry(mouse: CGPoint(x: 756, y: 880), screen: screen, notch: notch))   // over browser tabs / toolbar
+    #expect(!Hardware.inNotchEntry(mouse: CGPoint(x: 560, y: 970), screen: screen, notch: notch))   // menu bar beside the notch
+    #expect(!Hardware.inNotchEntry(mouse: CGPoint(x: 664, y: 970), screen: screen, notch: notch))   // outer 3 pt corner margin
+}
+
+@Test func notchActiveMatchesCurrentExpandedPanelAndCushion() {
+    let screen = CGRect(x: 0, y: 0, width: 1512, height: 982)
+    let panel = CGSize(width: 500, height: 134)   // spans x = 506...1006, y = 848...982 (plus 4 pt cushion)
+    #expect(Hardware.inNotchActive(mouse: CGPoint(x: 756, y: 982), screen: screen, panel: panel))
+    #expect(Hardware.inNotchActive(mouse: CGPoint(x: 510, y: 850), screen: screen, panel: panel))
+    #expect(Hardware.inNotchActive(mouse: CGPoint(x: 1009, y: 845), screen: screen, panel: panel))  // within 4 pt cushion
+    #expect(!Hardware.inNotchActive(mouse: CGPoint(x: 756, y: 840), screen: screen, panel: panel))  // below open panel
+    #expect(!Hardware.inNotchActive(mouse: CGPoint(x: 495, y: 920), screen: screen, panel: panel))  // left of open panel
+}

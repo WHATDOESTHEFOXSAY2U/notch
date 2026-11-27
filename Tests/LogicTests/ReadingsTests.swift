@@ -10,7 +10,7 @@ import Testing
 func memoryInUse(_ vm: vm_statistics64) -> Double {
     var mem = 0.0
     // Copied from Panel/Stats.swift:
-    let pages = vm.internal_page_count - vm.purgeable_count + vm.wire_count + vm.compressor_page_count
+    let pages = (vm.internal_page_count > vm.purgeable_count ? vm.internal_page_count - vm.purgeable_count : 0) + vm.wire_count + vm.compressor_page_count
     mem = Double(pages) * Double(vm_kernel_page_size) / Double(ProcessInfo.processInfo.physicalMemory) * 100
     // End of copy.
     return mem
@@ -51,6 +51,15 @@ func pages(inUse percent: Int, purgeable: natural_t = 0, free: natural_t = 0) ->
 
 @Test func memoryLeavesOutPurgeableAndFreePages() {
     #expect(abs(memoryInUse(pages(inUse: 50, purgeable: 10_000, free: 50_000)) - 50) < 0.001)
+}
+
+@Test func memoryDoesNotUnderflowWhenPurgeableExceedsInternal() {
+    var vm = vm_statistics64()
+    vm.internal_page_count = 100
+    vm.purgeable_count = 500
+    vm.wire_count = 1_000
+    vm.compressor_page_count = 0
+    #expect(memoryInUse(vm) >= 0)
 }
 
 @Test func cpuIsTheShareOfNewTicksSpentBusy() {

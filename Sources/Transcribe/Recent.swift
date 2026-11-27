@@ -25,11 +25,17 @@ enum Recent {
                 found.append((file, fact.addedToDirectoryDate ?? fact.creationDate ?? .distantPast))
             }
         }
-        var files: [File] = []
-        for recording in found.sorted(by: { $0.since > $1.since }).prefix(count) {
-            let seconds = try? await AVURLAsset(url: recording.url).load(.duration).seconds
-            files.append(File(url: recording.url, length: seconds.flatMap { $0.isFinite && $0 >= 1 ? Int($0) : nil }))
+        let candidates = Array(found.sorted(by: { $0.since > $1.since }).prefix(count))
+        return await withTaskGroup(of: (Int, Int?).self) { group in
+            for (index, recording) in candidates.enumerated() {
+                group.addTask {
+                    let seconds = try? await AVURLAsset(url: recording.url).load(.duration).seconds
+                    return (index, seconds.flatMap { $0.isFinite && $0 >= 1 ? Int($0) : nil })
+                }
+            }
+            var lengths = [Int?](repeating: nil, count: candidates.count)
+            for await (index, length) in group { lengths[index] = length }
+            return candidates.enumerated().map { File(url: $1.url, length: lengths[$0]) }
         }
-        return files
     }
 }

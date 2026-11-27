@@ -19,8 +19,8 @@ struct Region {
         let scale = CGFloat(filter.pointPixelScale)   // 2 on the built-in display
         let config = SCStreamConfiguration()
         config.sourceRect = rect
-        config.width = Int(rect.width * scale)
-        config.height = Int(rect.height * scale)
+        config.width = max(2, Int(rect.width * scale))
+        config.height = max(2, Int(rect.height * scale))
         return (filter, config)
     }
 

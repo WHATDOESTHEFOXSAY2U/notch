@@ -7,6 +7,7 @@ struct Target {
     let frame: CGRect        // where it was, measured from the top left of the main screen
     let fullScreen: Bool     // it was on a full-screen Space
     let filled: Bool         // it took its whole screen but the menu bar and the Dock: a swipe up then means full screen
+    var titleStrip = false   // began on a revealed or waiting full-screen title strip
 }
 
 /// Moves other apps' windows, minimises and closes them, and takes them into and out of the Mac's own full screen,
@@ -35,12 +36,17 @@ enum Windows {
 
     /// The usable part of the screen at `pointer` (no menu bar, no Dock), measured from the top left of the main
     /// screen, as windows are placed. AppKit's screens are read on the main thread, so this is called there.
-    static func room(at pointer: CGPoint) -> CGRect {
+    static func room(at pointer: CGPoint, fallback: CGRect = .zero) -> CGRect {
         guard let main = NSScreen.screens.first else { return .zero }
         let height = main.frame.height
-        let screen = NSScreen.screens.first { CGRect(x: $0.frame.minX, y: height - $0.frame.maxY, width: $0.frame.width, height: $0.frame.height).contains(pointer) } ?? main
-        let room = screen.visibleFrame
-        return CGRect(x: room.minX, y: height - room.maxY, width: room.width, height: room.height)
+        func quartz(_ frame: CGRect) -> CGRect {
+            CGRect(x: frame.minX, y: height - frame.maxY, width: frame.width, height: frame.height)
+        }
+        let center = CGPoint(x: fallback.midX, y: fallback.midY)
+        let screen = NSScreen.screens.first { quartz($0.frame).insetBy(dx: -1, dy: -1).contains(pointer) }
+            ?? (fallback.width > 0 ? NSScreen.screens.first { quartz($0.frame).contains(center) } : nil)
+            ?? main
+        return quartz(screen.visibleFrame)
     }
 
     /// Sends `target` to `place`. `room` is the usable part of the screen the fingers were on, `lifted` when they came up.
@@ -54,7 +60,7 @@ enum Windows {
             guard asked == .success, let windows = list as? [AXUIElement] else {
                 return tell(asked == .cannotComplete ? "APP IS BUSY" : "NO WINDOW", "an app did not list its windows", code: asked)
             }
-            guard let (window, id) = find(target, among: windows, of: app) else { return tell("NO WINDOW", "a window was not among its app's windows") }
+            guard let (window, id) = find(target, among: windows, of: app) else { return }   // closed or disqualified sub-window: do nothing quietly
             let job = Job(target: target, place: place, room: room, lifted: lifted, turn: count, app: app, window: window, id: id)
             newest[id] = job.turn
             // A window Notch sent into or out of full screen a moment ago may still be on its way: that is waited out
@@ -68,23 +74,34 @@ enum Windows {
     }
 
     /// The app's own element for the window the swipe began on, and its number: the one with the window's number,
-    /// or failing that the one with its frame. A strip holding a full-screen window's title bar, toolbar and tabs
-    /// stands for that window (`isTitleStrip`: as wide as the window, over its top or just above it).
-    /// Anything narrower there (a panel, a settings window) stays itself.
+    /// or failing that the one with its frame. Only genuine non-modal standard windows are ever returned (never
+    /// dialogs, sheets, popovers, or floating sub-windows). A strip holding a full-screen window's title bar,
+    /// toolbar and tabs stands for that full-screen standard window.
     private static func find(_ target: Target, among windows: [AXUIElement], of app: AXUIElement) -> (AXUIElement, CGWindowID)? {
         windows.forEach { AXUIElementSetMessagingTimeout($0, limit) }   // the limit is per element, not per app
         var match = PrivateCalls.windowNumber == nil ? nil : windows.first { number(of: $0) == target.number }
-        if match == nil { match = windows.first { $0.frame.map { near($0, target.frame, within: 3) } ?? false } }
-        if let match, match.string(kAXSubroleAttribute) == kAXStandardWindowSubrole, !target.fullScreen || match.bool("AXFullScreen") == true {
+        if match == nil { match = windows.first { $0.frame.map { near($0, target.frame, within: 8) } ?? false } }
+        if let match,
+           match.string(kAXRoleAttribute) == kAXWindowRole,
+           match.string(kAXSubroleAttribute) == kAXStandardWindowSubrole,
+           match.bool(kAXModalAttribute) != true,
+           !target.fullScreen || match.bool("AXFullScreen") == true {
             return (match, target.number)
         }
+        guard target.fullScreen else { return nil }
         let pieces = [match?.frame, target.frame].compactMap { $0 }
         // The main and focused windows first, then all the others: the app's main window may be on another display.
         for full in [kAXMainWindowAttribute, kAXFocusedWindowAttribute].compactMap({ app.element($0, limit: limit) }) + windows {
-            guard full.bool("AXFullScreen") == true, let whole = full.frame else { continue }
-            if pieces.contains(where: { $0.isTitleStrip(of: whole) }) { return (full, number(of: full) ?? target.number) }
+            guard full.string(kAXRoleAttribute) == kAXWindowRole,
+                  full.string(kAXSubroleAttribute) == kAXStandardWindowSubrole,
+                  full.bool(kAXModalAttribute) != true,
+                  full.bool("AXFullScreen") == true,
+                  let whole = full.frame else { continue }
+            if pieces.contains(where: { $0.isTitleStrip(of: whole) || near($0, whole, within: 4) }) {
+                return (full, number(of: full) ?? target.number)
+            }
         }
-        return match.map { ($0, target.number) }
+        return nil
     }
 
     /// The window server's number for `window`, if it can be had.
@@ -248,41 +265,47 @@ enum Windows {
             guard let value = AXValueCreate(.cgPoint, &origin) else { return .failure }
             return window.set(kAXPositionAttribute, value)
         }
-        // Whichever goes first, the window is for a moment its new size in its old place, or its old size in its new
-        // place. macOS trims a window that sticks out of the screen, so the step that keeps it more inside goes first.
+        // Battle-tested Size -> Position -> Size sequence: if macOS clamped the first resize while the window sat at
+        // its old origin (or clamped the move while it still had its old size), the post-move resize applies the exact
+        // target size cleanly in one pass without failing when a heavy app reflows asynchronously.
         let resize = !near(was.size, want.size, within: 1), reposition = !near(was.origin, want.origin)   // a size a point short is the app's own
         if overflow(CGRect(origin: was.origin, size: want.size), room) <= overflow(CGRect(origin: want.origin, size: was.size), room) {
             if resize { size(want.size) }
             if reposition { move(want.origin) }
+            if resize && reposition { size(want.size) }
         } else {
             if reposition { move(want.origin) }
             if resize { size(want.size) }
         }
-        guard var got = window.frame else { return nil }   // no answer after the move
-        if !near(got.size, want.size, within: 1) {   // refused while it stuck out, or trimmed on the way: once more, now that it is in place
+        var got = window.frame
+        if got == nil {
+            usleep(40_000)   // give a reflowing Electron/web window a moment to answer before reading back
+            got = window.frame
+        }
+        guard var currentFrame = got else { return want }
+        if !near(currentFrame.size, want.size, within: 1) {
             size(want.size)
-            got = window.frame ?? got
+            currentFrame = window.frame ?? currentFrame
         }
         var at = want.origin
         // A point short is not a size of the app's own: macOS keeps a window a point above the Dock when it is sized
         // down to it, and Chrome and Claude keep odd heights a point short. The window then stays on its place's
         // lines, so it meets its neighbours exactly (moved down a point instead, a lower quarter left a gap above it).
-        if !near(got.size, want.size, within: 1) {
+        if !near(currentFrame.size, want.size, within: 1) {
             // The app keeps a size of its own (a smallest size, or whole lines of text). Its outer edges still go flush
             // with the screen's, so any difference is in the middle; but never past the screen's edges, and when it is
             // too big to fit, its top and left edges stay on the screen.
-            at.x = unit.maxX == 1 && unit.minX > 0 ? x(1) - got.width : x(unit.minX)
-            at.y = unit.maxY == 1 && unit.minY > 0 ? y(1) - got.height : y(unit.minY)
-            at = CGPoint(x: max(x(0), min(at.x, x(1) - got.width)), y: max(y(0), min(at.y, y(1) - got.height)))
+            at.x = unit.maxX == 1 && unit.minX > 0 ? x(1) - currentFrame.width : x(unit.minX)
+            at.y = unit.maxY == 1 && unit.minY > 0 ? y(1) - currentFrame.height : y(unit.minY)
+            at = CGPoint(x: max(x(0), min(at.x, x(1) - currentFrame.width)), y: max(y(0), min(at.y, y(1) - currentFrame.height)))
         }
         var answer = AXError.success   // the app's answer to the last move
-        if !near(got.origin, at) {   // also puts right an origin that the app or macOS moved on the way
+        if !near(currentFrame.origin, at) {   // also puts right an origin that the app or macOS moved on the way
             answer = move(at)
-            guard let last = window.frame else { return nil }   // no answer after the last move
-            got = last
+            if let last = window.frame { currentFrame = last }
         }
-        if !near(got.origin, at, within: 1) { tell("WILL NOT MOVE", "a window would not move", code: answer) }
-        return got
+        if !near(currentFrame.origin, at, within: 1) { tell("WILL NOT MOVE", "a window would not move", code: answer) }
+        return currentFrame
     }
 
     /// How far `frame` sticks out of `room`, all four sides added up.

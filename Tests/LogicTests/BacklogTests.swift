@@ -46,6 +46,15 @@ import Testing
     #expect(backlog.waiting == 0)
 }
 
+@Test func backlogHandlesTinyRateSafely() {
+    let backlog = Backlog(rate: 1)   // Int(1 * 0.3) == 0 without max(1, ...)
+    let sample: [Float] = [0.5]
+    sample.withUnsafeBufferPointer { backlog.write($0.baseAddress!, frames: 1, channels: 1) }
+    var out: [Float] = [0]
+    #expect(out.withUnsafeMutableBufferPointer { backlog.read(into: $0.baseAddress!, wanted: 1) } == 1)
+    #expect(out == [0.5])
+}
+
 // The checks of the mixer rig, as tests. Synthetic sound only: no microphone, no tap, nothing audible. Each case feeds the Mac's sound the way Core Audio would (pieces of `chunk` frames on the Mac's own clock,
 // through the same AudioBufferList call the tap's IO block makes) and takes microphone buffers of 0.1 s the way
 // AVAudioEngine would (on the microphone's clock, each up to 20 ms late), then checks what `mix` added to each buffer.

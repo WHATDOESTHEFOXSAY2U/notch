@@ -27,7 +27,10 @@ func textBoxActive(in app: NSRunningApplication) -> Bool? {
     let element = AXUIElementCreateApplication(app.processIdentifier)
     AXUIElementSetMessagingTimeout(element, 0.3)   // a busy app is not waited for
     guard let focus = element.value(kAXFocusedUIElementAttribute) else { return nil }
-    return CFGetTypeID(focus) == AXUIElementGetTypeID() && (focus as! AXUIElement).isTextBox   // an answer that is not an element is not a text box
+    guard CFGetTypeID(focus) == AXUIElementGetTypeID() else { return false }
+    let focused = focus as! AXUIElement
+    AXUIElementSetMessagingTimeout(focused, 0.2)   // timeout is per element; without it a hung app blocks the main thread for 6 s
+    return focused.isTextBox
 }
 
 /// Pastes what is on the clipboard into the app in front, the way pressing Command-V does, unless
@@ -40,7 +43,9 @@ func pasteIntoTextBox() -> Bool? {
     guard Permissions.trusted(), let front = NSWorkspace.shared.frontmostApplication, front.processIdentifier != getpid() else { return false }
     let box = textBoxActive(in: front)
     guard box != false else { return false }
-    let source = CGEventSource(stateID: .combinedSessionState)
+    // Private state keeps synthetic ⌘V isolated from physical modifiers (such as ⇪ right after releasing ⇪D)
+    // and never mutates the system's combined session modifier state.
+    let source = CGEventSource(stateID: .privateState)
     for down in [true, false] {
         let key = CGEvent(keyboardEventSource: source, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: down)
         key?.flags = .maskCommand

@@ -3,7 +3,8 @@ import SwiftUI
 /// The small pictures on the panel's function bar. Each is drawn on a 16-point grid from straight
 /// lines and solid blocks, so it stays sharp at any screen scale and needs no image files.
 /// Names match the Settings tokens: SHOT, TEXT, REC, DICT, SCRIBE (transcribe), CAM (the mirror), TOP (free memory), SET.
-/// PASTE and FILE are the two large keys the panel shows once TRANSCRIBE is pressed.
+/// PASTE and FILE are the two large keys the panel shows once TRANSCRIBE is pressed; SMALL is COMPRESS, the large key
+/// beside TRANSCRIBE once a video is dropped on the notch.
 /// X is the cross that closes or throws away. FILM (the camera in a recording), SOUND, CLICKS, PAUSE,
 /// PLAY and STOP belong to the strip beside a recording; its microphone is DICT and its start key is REC.
 /// WIDE, SQUARE and ROUND are the camera's shapes, in the same strip.
@@ -51,6 +52,10 @@ private struct Strokes: Shape {
             block(2, 3.5, 12, 9)
         case ("FILE", true):    // and the triangle that plays it
             line(6.5, 5.75, 10.5, 8, 6.5, 10.25)
+        case ("SMALL", false):  // the top and the right side of a large picture,
+            line(5, 1.5, 14.5, 1.5, 14.5, 11)
+        case ("SMALL", true):   // and the small one it becomes, in its corner
+            block(1.5, 7.5, 7, 7)
         case ("CAM", false):    // a hollow block and its solid reflection across a line
             line(8, 1.5, 8, 14.5); block(2, 5.5, 3.5, 5)
         case ("CAM", true):

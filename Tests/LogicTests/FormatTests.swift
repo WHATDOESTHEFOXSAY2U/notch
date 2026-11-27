@@ -4,6 +4,7 @@ import Testing
 // Format.swift: how a length of time and a file's size read on the strip and the card.
 
 @Test func durationsReadLikeAClock() {
+    #expect(Format.duration(-5) == "0:00")
     #expect(Format.duration(0) == "0:00")
     #expect(Format.duration(7) == "0:07")
     #expect(Format.duration(600) == "10:00")

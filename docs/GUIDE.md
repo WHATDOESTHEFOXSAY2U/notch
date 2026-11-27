@@ -25,6 +25,14 @@ Back to the [front page](../README.md).
   A channel or a playlist asks how many to take. The notch shows how far it is; point at it for STOP TRANSCRIBING. The
   text is saved as a file, each speaker named while SPEAKERS is on, and a card offers COPY, OPEN and SHOW. The work is
   done on your Mac by [Scribe](https://github.com/WHATDOESTHEFOXSAY2U/scribe), a separate app.
+- **COMPRESS.** Makes a smaller copy of any video, for sending. Drag one video (mov, mp4 or m4v) onto the notch and
+  it asks: TRANSCRIBE or COMPRESS. COMPRESS shows three sizes, each with what the copy will weigh and how much smaller
+  that is, worked out from a few seconds of your video, so within a fifth or so. BEST keeps the picture as it is and
+  looks the same. BALANCED fits it into 1080p. WHATSAPP makes a 720p copy that stays under WhatsApp's 64 MB limit for
+  a video, in the kind of file every phone plays; a video longer than about 13 minutes cannot stay under it, and the
+  row says so. The notch shows how far it is; point at it for STOP COMPRESSING. When the copy is made, the notch
+  shows its size, how much smaller it is, and SHOW IN FINDER. The copy goes next to your video, named like
+  `Trip small.mp4`. Your video is never changed. This needs no Scribe: it is done by your Mac's own video chip.
 - **MIRROR.** Your camera, flipped like a mirror, inside the panel. The camera is on only while the mirror shows.
 - **FREE.** The four apps using the most memory, their helpers included. Press one to force-quit it. Unsaved work in
   that app is lost.
@@ -54,9 +62,9 @@ app again. A short line under the notch says what happened (COPIED 120 CHARS) or
 - DICTATE needs a microphone and Apple's on-device speech engine, which Apple does not list by Mac; without either,
   DICTATE hides. It listens in your Mac's language when the engine has it, and in US English otherwise.
 - MIC in a recording needs a microphone, and MIRROR and CAM a camera. Each hides without one.
-- TRANSCRIBE needs the [Scribe](https://github.com/WHATDOESTHEFOXSAY2U/scribe) app; without it, TRANSCRIBE hides. Links also need yt-dlp, which
-  Scribe's installer adds. A channel or a playlist needs a Scribe that can list one (`scribe --list`): an older one
-  gets UPDATE SCRIBE.
+- TRANSCRIBE needs the [Scribe](https://github.com/WHATDOESTHEFOXSAY2U/scribe) app; until it is installed, pressing
+  TRANSCRIBE says so. Links also need yt-dlp, which Scribe's installer adds. A channel or a playlist needs a Scribe
+  that can list one (`scribe --list`): an older one gets UPDATE SCRIBE.
 
 So far Notch is used every day on a 14-inch MacBook Pro (M1 Pro) with macOS 27. Not tried yet: macOS 26, Macs
 without a notch, other chips, desktop Macs. If you have one of those, a report helps: open an issue and paste
@@ -172,6 +180,8 @@ Good to know:
 - **TRANSCRIBE** has no permission of its own. CHOOSE FILE looks in your Desktop, Downloads and Movies folders for
   recordings, and macOS may ask once for each; so may a file dropped from one of them, and the folder the texts are
   saved in.
+- **COMPRESS** has no permission of its own either. The copy goes into the folder your video is in, and macOS may ask
+  once for that folder.
 
 ## Privacy
 
@@ -187,7 +197,9 @@ Good to know:
   still has no network code: it only starts Scribe and reads what it prints. (The first time ever, Scribe fetches its
   speech models, about 1 GB.)
 - **Files it writes:** shots and recordings on your Desktop, named like `Shot 2026-11-16 18.30.00.png`,
-  `Rec 2026-11-16 18.30.00.mp4` and, from COMPRESS, `Rec 2026-11-16 18.30.00 small.mp4`. Transcripts, as text files
+  `Rec 2026-11-16 18.30.00.mp4` and, from COMPRESS, `Rec 2026-11-16 18.30.00 small.mp4`. The smaller copy of a video
+  you drop on the notch, next to that video, or in Downloads when its folder cannot be written to; while it works out
+  the sizes, a few seconds of the video in the Mac's temporary folder, removed at once. Transcripts, as text files
   named after their recordings, in the folder Scribe saves to: Documents/Scribe, until you choose another in Scribe.
   A channel's go in a folder of its name there. Nothing else. It keeps no history of what you dictate, read or copy.
 - **The Mac's log.** When something fails, such as a window that will not move or a recording that stops, Notch
@@ -305,8 +317,8 @@ COPY REPORT from Settings into it: it lists the sensors found.
 **FAN shows SWAP.** The fourth gauge shows the fastest fan while one spins, and swap (memory moved to disk, in GB)
 while none does. Apple silicon fans often rest, and some Macs have none.
 
-**TRANSCRIBE is missing.** It shows only while the [Scribe](https://github.com/WHATDOESTHEFOXSAY2U/scribe) app is installed: in Applications, or
-as the `scribe` command its installer leaves. Install it, and TRANSCRIBE is there the next time the panel opens.
+**TRANSCRIBE says TRANSCRIBE NEEDS THE SCRIBE APP.** Install the [Scribe](https://github.com/WHATDOESTHEFOXSAY2U/scribe)
+app in Applications (or as the `scribe` command its installer leaves), and TRANSCRIBE works right away.
 
 **TRANSCRIBE says UPDATE SCRIBE, or NEEDS YT-DLP.** A channel or a playlist needs a Scribe that can list one; update
 Scribe. Links need yt-dlp: in Terminal, `brew install yt-dlp`. Files on your Mac need neither.

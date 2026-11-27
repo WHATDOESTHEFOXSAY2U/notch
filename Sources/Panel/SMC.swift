@@ -32,6 +32,7 @@ struct SMC {
 
     private init() {
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AppleSMC"))
+        guard service != 0 else { return }
         let opened = IOServiceOpen(service, mach_task_self_, 0, &connection)
         IOObjectRelease(service)
         if opened != KERN_SUCCESS { Log.failed(.panel, "the SMC would not open", code: Int(opened)) }
@@ -45,6 +46,7 @@ struct SMC {
 
     /// One call, one 80-byte block each way. Nil if the call itself failed.
     private func call(_ input: [UInt8]) -> [UInt8]? {
+        guard connection != 0 else { return nil }
         var output = [UInt8](repeating: 0, count: 80), size = 80
         return IOConnectCallStructMethod(connection, 2, input, 80, &output, &size) == kIOReturnSuccess ? output : nil
     }

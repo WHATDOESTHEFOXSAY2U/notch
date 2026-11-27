@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// What the notch shows while TRANSCRIBE works, built like one wide gauge. Beside the notch: what is being done, in
+/// What the notch shows while TRANSCRIBE works, or COMPRESS on a dropped video, built like one wide gauge. Beside the notch: what is being done, in
 /// grey, and how far it is, in white. Under it: the gauges' own segments from edge to edge, then the recording's name
 /// and, with several, which one it is. The words, the segments and the name share one left edge, and the number
 /// and the segments one right edge.
@@ -11,6 +11,7 @@ struct Meter: View {
     let working: Transcribe.Working
     let notch: CGSize
     @Binding var stopping: Bool        // the STOP key is showing; `Console` widens the shape by it
+    var halt = "STOP TRANSCRIBING"     // the STOP key's words
     let stop: () -> Void
     @State private var armed = false   // the pointer has been off the strip since it appeared
 
@@ -40,7 +41,7 @@ struct Meter: View {
             .frame(height: notch.height)
 
             if stopping {
-                Text("STOP TRANSCRIBING").tracking(2).padding(.leading, 2)   // 2pt on the left balances the tracking after the last letter
+                Text(halt).tracking(2).padding(.leading, 2)   // 2pt on the left balances the tracking after the last letter
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity).frame(height: Meter.under)
                     .background(.white)

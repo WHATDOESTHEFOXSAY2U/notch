@@ -14,6 +14,8 @@ struct Console: View {
     let tools: Tools
     let dictation: Dictation
     let transcribe: Transcribe
+    let shrink: Shrink
+    let hover: NotchHover
     let notch: CGSize
     @State private var open = false
     @State private var stopping = false   // TRANSCRIBE's strip is offering its STOP key, and is as wide as the panel for it
@@ -31,14 +33,20 @@ struct Console: View {
         // onto the notch, the strip while it works, and DONE for two seconds after the last recording.
         let spoken = voice || copied != nil
         let catching = !spoken && transcribe.dropping
-        let working = spoken || catching ? nil : transcribe.working
-        let finished = spoken || catching || working != nil ? nil : transcribe.done
-        let taken = spoken || catching || working != nil || finished != nil   // something other than the panel has the notch
-        let radius: CGFloat = taken ? 11 : open ? 14 : 10
+        // A video dropped on the notch is asked about first: TRANSCRIBE or COMPRESS, then which size (`Sizes`). COMPRESS
+        // has the meter while it writes the copy, in front of a transcription going on behind it, and one line for
+        // the copy once it is made (`Shrunk`).
+        let asking = spoken || catching ? nil : shrink.asking
+        let working = spoken || catching || asking != nil ? nil : shrink.working ?? transcribe.working
+        let made = spoken || catching || asking != nil || working != nil ? nil : shrink.done
+        let finished = spoken || catching || asking != nil || working != nil || made != nil ? nil : transcribe.done
+        let taken = spoken || catching || asking != nil || working != nil || made != nil || finished != nil   // something other than the panel has the notch
+        let radius: CGFloat = asking != nil ? 14 : taken ? 11 : open ? 14 : 10
         let shape = UnevenRoundedRectangle(bottomLeadingRadius: radius, bottomTrailingRadius: radius)
         let closed = closedWidth
         let width = voice ? notch.width + 2 * Wings.wing : copied != nil ? notch.width + 2 * Copied.wing
             : catching || finished != nil ? notch.width + 2 * Band.wing
+            : asking != nil ? panelWidth : made != nil ? notch.width + 2 * Shrunk.wing
             : working != nil ? (stopping ? panelWidth : notch.width + 2 * Meter.wing) : open ? panelWidth : closed
 
         VStack(spacing: 0) {
@@ -49,10 +57,23 @@ struct Console: View {
                 Copied(words: copied, done: dictation.done, pasted: dictation.pasted, notch: notch).transition(.opacity)
                 if let status = tools.status { line(status, in: width) }   // a line said as the dictation ended, such as why it was not pasted
             } else if catching {
-                Band(left: "DROP TO", right: "TRANSCRIBE", notch: notch).transition(.opacity)
+                // One video the Mac can compress is not started on: the notch will ask what to do with it.
+                Band(left: transcribe.video ? "DROP" : "DROP TO", right: transcribe.video ? "VIDEO" : "TRANSCRIBE", notch: notch).transition(.opacity)
+            } else if let asking {
+                Color.clear.frame(height: notch.height)   // the camera housing
+                Sizes(shrink: shrink, video: asking, transcribe: transcribe.ready ? { shrink.dismiss(); transcribe.take(asking.file) } : nil)
+                    .allowsHitTesting(true)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
             } else if let working {
-                Meter(working: working, notch: notch, stopping: $stopping) { transcribe.stop() }.transition(.opacity)
+                let compressing = shrink.working != nil
+                Meter(working: working, notch: notch, stopping: $stopping, halt: compressing ? "STOP COMPRESSING" : "STOP TRANSCRIBING") {
+                    compressing ? shrink.stop() : transcribe.stop()
+                }
+                .transition(.opacity)
                 if let status = tools.status { line(status, in: width) }   // what another tool has to say meanwhile
+            } else if let made {
+                Shrunk(made: made, notch: notch) { shrink.reveal() }.transition(.opacity)
+                if let status = tools.status { line(status, in: width) }
             } else if let finished {
                 Band(left: "DONE", right: finished, counted: true, notch: notch).transition(.opacity)
                 if let status = tools.status { line(status, in: width) }
@@ -62,6 +83,7 @@ struct Console: View {
                 Color.clear.frame(height: notch.height - (open ? 0 : 1))
                 if open {
                     Readouts(stats: stats, tools: tools, dictation: dictation, transcribe: transcribe, colors: colors, switchedOff: switchedOff)
+                        .allowsHitTesting(open)
                         .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
                 } else if let status = tools.status {
                     line(status, in: width)   // what a tool just did wins for its 2 seconds, then the warning line
@@ -73,30 +95,45 @@ struct Console: View {
         .clipShape(shape)
         .overlay { if catching { shape.strokeBorder(.white, lineWidth: 1) } }   // the outline that says: let go here
         .contentShape(shape)
-        // A recording or a link dragged onto the black shape is caught for TRANSCRIBE; anything else passes (`Catch`).
-        .onDrop(of: [.fileURL, .url, .plainText], delegate: Catch(transcribe: transcribe))
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { size in
+            hover.update(expanded: open || asking != nil || made != nil, size: size)
+        }
+        // A recording or a link dragged onto the black shape is caught for TRANSCRIBE, and a video for COMPRESS as
+        // well; anything else passes (`Catch`).
+        .onDrop(of: [.fileURL, .url, .plainText], delegate: Catch(transcribe: transcribe, shrink: shrink))
         .overlay(alignment: .bottom) {
             // The warning line floats just under the notch by itself, with no black behind it.
             if !open, !taken, tools.status == nil, let alert {
-                Rectangle().fill(alert).frame(width: 44, height: 2).offset(y: 6)
+                Rectangle().fill(alert).frame(width: 44, height: 2).offset(y: 6).allowsHitTesting(false)
             }
         }
-        .onHover { inside in
-            // The dictation strip looks after the pointer itself, and so does TRANSCRIBE's, which offers STOP under it.
-            guard dictation.started == nil || incognito, transcribe.working == nil else { return }
+        .onChange(of: hover.exits) { _, _ in
+            shrink.left()   // folds dropped-video choices even when opened by a drop rather than a hover
+        }
+        .onChange(of: hover.inside) { _, inside in
+            if !inside { shrink.left() }
+            // The dictation strip looks after the pointer itself, and so does the meter, which offers STOP under it.
+            guard dictation.started == nil || incognito, transcribe.working == nil, shrink.working == nil else { return }
+            if inside, tools.busy || transcribe.dropping { return }
             stats.open = inside
             withAnimation(spring) { open = inside }
         }
+        .onChange(of: open || asking != nil || made != nil) { _, expanded in
+            hover.update(expanded: expanded)
+        }
         .onChange(of: open) { _, now in (now ? Sound.open : Sound.close).play() }
-        .onChange(of: tools.busy || tools.status != nil || voice || transcribe.working != nil || transcribe.dropping) { _, taken in
+        .onChange(of: tools.busy || tools.status != nil || voice || transcribe.working != nil || shrink.working != nil || transcribe.dropping) { _, taken in
             guard taken else { return }   // a tool, a dictation or TRANSCRIBE takes over, or has something to say: close, as if the pointer had left
+            hover.close()
             stats.open = false
             withAnimation(spring) { open = false }
         }
         .animation(spring, value: voice)
         .animation(spring, value: copied != nil)
         .animation(spring, value: catching)
+        .animation(spring, value: asking != nil)
         .animation(spring, value: working != nil)
+        .animation(spring, value: made != nil)
         .animation(spring, value: finished != nil)
         .animation(spring, value: closed)   // a line too long for the notch widens the shape as the COPIED band does
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

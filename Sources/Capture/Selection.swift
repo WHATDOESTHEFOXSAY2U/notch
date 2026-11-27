@@ -4,7 +4,12 @@ import SwiftUI
 /// A borderless panel can't normally take the keyboard; this one can, so Esc reaches it.
 /// Being a non-activating panel, it does so without pulling you out of the app you're in.
 private final class SelectionPanel: NSPanel {
+    var resigned: (() -> Void)?
     override var canBecomeKey: Bool { !ignoresMouseEvents }   // not once it is only the frame around a recording
+    override func resignKey() {
+        super.resignKey()
+        resigned?()
+    }
 }
 
 /// Dims one screen and lets you drag out a rectangle with a crosshair. For a recording it then stays:
@@ -33,6 +38,11 @@ final class Selection: NSView {
         view.incognito = incognito
         view.done = done
         view.panel = panel
+        // Never leave a key-capable selection overlay stranded eating keystrokes if focus moves away (⌘Tab, Spotlight, etc.).
+        panel.resigned = { [weak view] in
+            guard let view, view.step == .picking else { return }
+            view.finish(nil)
+        }
         panel.contentView = view
         panel.ignoresMouseEvents = false   // take clicks even where the overlay is fully see-through
         panel.makeKeyAndOrderFront(nil)
@@ -41,22 +51,39 @@ final class Selection: NSView {
     }
 
     /// Turns the chosen outline into the frame of a running recording: the dim lifts, the outline goes
-    /// red, and the window shrinks to the frame and lets clicks and keys through to the apps below.
+    /// red, the key-capable selection panel is completely closed so macOS cleanly restores keyboard focus,
+    /// and the frame moves into a fresh panel that can never become key or intercept events.
     func record() {
-        guard let panel else { return }
+        guard let old = panel else { return }
         let outer = box.insetBy(dx: -3, dy: -3)   // room for the corner brackets
+        let frame = CGRect(x: old.frame.minX + outer.minX, y: old.frame.maxY - outer.maxY, width: outer.width, height: outer.height)
         step = .recording
-        panel.ignoresMouseEvents = true
-        panel.orderOut(nil)   // the only way to hand the keyboard back; it returns in the same instant, never as key again
-        panel.setFrame(CGRect(x: panel.frame.minX + outer.minX, y: panel.frame.maxY - outer.maxY, width: outer.width, height: outer.height), display: false)
+        (old as? SelectionPanel)?.resigned = nil
+        old.ignoresMouseEvents = true
+        old.contentView = nil
+        old.resignKey()
+        old.orderOut(nil)
+        old.close()
+        NSCursor.arrow.set()
+
+        let border = NSPanel(floating: frame, level: .screenSaver)
+        border.ignoresMouseEvents = true
         box.origin = CGPoint(x: 3, y: 3)
+        border.contentView = self
+        panel = border
         needsDisplay = true
-        panel.orderFrontRegardless()
+        border.orderFrontRegardless()
     }
 
     /// Takes the overlay off the screen without calling `done`.
     func close() {
-        panel?.orderOut(nil)
+        if let old = panel {
+            (old as? SelectionPanel)?.resigned = nil
+            old.contentView = nil
+            old.resignKey()
+            old.orderOut(nil)
+            old.close()
+        }
         NSCursor.arrow.set()
         panel = nil
         done = nil

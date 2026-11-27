@@ -139,7 +139,7 @@ private final class CameraTile: NSView {
         addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))   // for the handle
         let saved = UserDefaults.standard.double(forKey: Prefs.camWidth)
         resize(to: saved > 0 ? saved : min(max(area.width / 5, 96), 240), around: CGPoint(x: area.maxX, y: 0))
-        frame.origin = CGPoint(x: max(0, area.maxX - 6 - frame.width), y: min(6, area.height - frame.height))
+        frame.origin = CGPoint(x: max(0, area.maxX - 6 - frame.width), y: max(0, min(6, area.height - frame.height)))
     }
     required init?(coder _: NSCoder) { nil }
 
@@ -191,7 +191,7 @@ private final class CameraTile: NSView {
         guard let pull else { return }
         let anchor = CGPoint(x: pull.x > 0 ? frame.minX : frame.maxX, y: pull.y > 0 ? frame.minY : frame.maxY)
         let room = min(pull.x > 0 ? area.width - anchor.x : anchor.x, (pull.y > 0 ? area.height - anchor.y : anchor.y) / tall)   // as far as the region lets it grow
-        let w = min(max(abs(point.x - anchor.x), 64), room).rounded(.down), h = (w * tall).rounded(.down)
+        let w = max(1, min(max(abs(point.x - anchor.x), 64), room)).rounded(.down), h = max(1, (w * tall).rounded(.down))
         settle(CGRect(x: pull.x > 0 ? anchor.x : anchor.x - w, y: pull.y > 0 ? anchor.y : anchor.y - h, width: w, height: h))
     }
 

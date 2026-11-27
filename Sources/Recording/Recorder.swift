@@ -39,7 +39,7 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate {
     private var gap = CMTime.zero                 // the time spent paused so far: taken off every timestamp written after
     private var metered = SCStreamOutputType.audio
     private let peak = OSAllocatedUnfairLock(initialState: Float(0))
-    private var lost: (() -> Void)?               // called if the system ends the capture by itself
+    private let lost = OSAllocatedUnfairLock<(() -> Void)?>(initialState: nil)   // called if the system ends the capture by itself
 
     /// Starts watching `region`. `sound` adds what the Mac is playing, `mic` the microphone (as a second
     /// sound track). `keeping` lists Notch windows that belong in the picture; see `Region.source`.
@@ -52,8 +52,8 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate {
         // The encoder wants even pixel sizes. The rectangle loses the odd pixel too, or the picture
         // would be squeezed to fit and go soft (only happens on non-Retina screens).
         let scale = CGFloat(filter.pointPixelScale)
-        config.width &= ~1
-        config.height &= ~1
+        config.width = max(2, config.width & ~1)
+        config.height = max(2, config.height & ~1)
         config.sourceRect.size = CGSize(width: CGFloat(config.width) / scale, height: CGFloat(config.height) / scale)
         config.minimumFrameInterval = CMTime(value: 1, timescale: settings.integer(forKey: Prefs.fps) == 30 ? 30 : 60)   // at most this many frames a second
         config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange   // the encoder's own format, so nothing is converted
@@ -96,8 +96,13 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate {
             input.expectsMediaDataInRealTime = true
             try stream.addStreamOutput(self, type: type, sampleHandlerQueue: queue)
         }
-        self.lost = lost
-        try await stream.startCapture()
+        self.lost.withLock { $0 = lost }
+        do {
+            try await stream.startCapture()
+        } catch {
+            self.lost.withLock { $0 = nil }
+            throw error
+        }
         self.stream = stream
     }
 
@@ -156,7 +161,9 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate {
             // The sound arrives as plain 32-bit numbers between -1 and 1; the meter wants the largest.
             var length = 0, bytes: UnsafeMutablePointer<CChar>?, top: Float = 0
             CMBlockBufferGetDataPointer(data, atOffset: 0, lengthAtOffsetOut: &length, totalLengthOut: nil, dataPointerOut: &bytes)
-            bytes?.withMemoryRebound(to: Float.self, capacity: length / 4) { vDSP_maxmgv($0, 1, &top, vDSP_Length(length / 4)) }
+            if length >= 4, let bytes {
+                bytes.withMemoryRebound(to: Float.self, capacity: length / 4) { vDSP_maxmgv($0, 1, &top, vDSP_Length(length / 4)) }
+            }
             let loudest = min(top, 1)
             peak.withLock { $0 = max($0, loudest) }
         }
@@ -192,14 +199,18 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate {
     /// The system or the user (from the menu bar) ended the capture. Only the system's reason goes in the Mac's log.
     func stream(_: SCStream, didStopWithError error: Error) {
         if (error as? SCStreamError)?.code != .userStopped { Log.failed(.recording, "macOS stopped the recording", error: error) }
-        DispatchQueue.main.async { self.lost?() }
+        let handler = lost.withLock { handler in
+            defer { handler = nil }
+            return handler
+        }
+        if let handler { DispatchQueue.main.async(execute: handler) }
     }
 
     /// Ends the recording. Returns the finished file, or nil if nothing playable was made
     /// (which is also how a prepared recording that was never started is called off).
     func stop() async -> URL? {
         let end = CMClockGetTime(CMClockGetHostTimeClock())
-        lost = nil
+        lost.withLock { $0 = nil }
         try? await stream?.stopCapture()
         stream = nil
         let (writer, rolled): (AVAssetWriter?, Bool) = queue.sync {

@@ -3,18 +3,47 @@
 What changed in each release of Notch, newest first. A version is three numbers, like 1.0.0, and its git tag is
 `v1.0.0`. The part under a version becomes its release notes on GitHub (`release.sh` copies it).
 
-## Unreleased
+## 0.10.0 - 2026-11-26
 
 ### Added
+- COMPRESS for any video: drop a video on the notch and it asks TRANSCRIBE or COMPRESS. COMPRESS offers three sizes,
+  each with what the copy will weigh and how much smaller that is, worked out from a few seconds of the video: BEST
+  (the same picture, looks the same), BALANCED (1080p) and WHATSAPP (720p, in the kind of file every phone plays, under
+  WhatsApp's limit for a video). The notch shows how far it is and offers STOP COMPRESSING under the pointer; when the
+  copy is made, one line shows its size, how much smaller it is, and SHOW IN FINDER. The copy goes next to the
+  original, named like `Trip small.mp4`; the original is never touched. An iPhone's HDR video keeps its colours.
+
 - REMOVE BACKGROUND NOISE, on from the start: macOS cleans the microphone's sound before DICTATE reads it, taking out
   noise and the echo of what the Mac plays. While you dictate, the microphone modes in the menu bar offer Voice
   Isolation for Notch as well.
 
+### Changed
+- A video dropped on the notch is no longer transcribed at once: the notch asks first. Sound files, links and several
+  files dropped together go to TRANSCRIBE as before.
+- A video can be dropped on the notch without the Scribe app: the notch then offers the sizes at once.
+- TRANSCRIBE stays visible in the panel before the Scribe app is installed, and says what is needed when pressed or
+  when a sound file or link is dropped on the notch.
+- COMPRESS on a recording's card now keeps a tall recording upright at 1080 × 1920 instead of fitting it into 1080
+  points of height.
+
 ### Fixed
+- The closed notch no longer opens when the pointer is merely near it after an earlier expansion. Its tracking area
+  collapses back to the physical notch immediately on close and verifies the pointer's screen coordinates.
+- SWIPE TITLE BARS acts strictly on the top title-bar strip and empty top toolbars of resizable standard windows —
+  never on tabs, buttons, sidebars, scroll views, sub-windows or page content — and uses calmer travel thresholds and
+  polar direction cones so slight finger twitches neither hide the pointer nor misfire.
+- Window snapping verifies title bars in a few milliseconds instead of timing out on busy apps, places windows cleanly
+  across constrained and multi-display layouts, and never drops the next swipe after scrolling a page.
+- The keyboard stays responsive: the Accessibility watchdog no longer creates temporary HID event taps every few
+  seconds, the hyper-key tap makes no WindowServer calls while typing, a Caps Lock release missed during Secure Input
+  (password fields, Touch ID, 1Password) no longer leaves ⌃⌥⇧⌘ stuck on later keys, and selection overlays release
+  keyboard focus cleanly when switching apps.
+- Dragging a file near the notch and letting go elsewhere or pressing Esc no longer leaves the drop band open.
 - DICTATE hears AirPods that were connected just before it started. A dictation started while they were still
   connecting got a microphone that sent nothing, and every later one kept it, so DICTATE heard nothing until Notch
   restarted. Now a microphone that sends nothing for a second and a half is started again.
 - A dictation whose microphone kept changing ends instead of staying on with nothing to hear.
+- CAPS LOCK IS HYPER KEY works on a Bluetooth keyboard that connects or wakes while Notch runs.
 
 ## 0.9.0 - 2026-11-20
 

@@ -93,8 +93,13 @@ struct Readouts: View {
                     }
                 }
                 if shows("DICT") { Cell(name: "DICTATE", share: share) { dictation.toggle() } rest: { Glyph(name: "DICT") } }
-                // TRANSCRIBE starts nothing by itself: it turns the panel into its two keys, PASTE LINK and CHOOSE FILE.
-                if shows("SCRIBE") { Cell(name: "TRANSCRIBE", share: share) { withAnimation(spring) { scribing = true } } rest: { Glyph(name: "SCRIBE") } }
+                // TRANSCRIBE turns the panel into PASTE LINK and CHOOSE FILE, or tells what is needed if Scribe is not installed yet.
+                if shows("SCRIBE") {
+                    Cell(name: "TRANSCRIBE", share: share) {
+                        guard Scribe.program != nil else { return tools.say("TRANSCRIBE NEEDS THE SCRIBE APP") }
+                        withAnimation(spring) { scribing = true }
+                    } rest: { Glyph(name: "SCRIBE") }
+                }
                 if shows("CAM") { Cell(name: "MIRROR", share: share) { withAnimation(spring) { mirror.toggle() } } rest: { Glyph(name: "CAM") } }
                 if shows("TOP") { Cell(name: "FREE", share: share) { freeing = true } rest: { Glyph(name: "TOP") } }
                 Cell(name: "SET", share: share, last: true) { (NSApp.delegate as? AppDelegate)?.showSettings() } rest: { Glyph(name: "SET") }

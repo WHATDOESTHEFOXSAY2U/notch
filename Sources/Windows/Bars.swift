@@ -1,64 +1,223 @@
 import AppKit
 
-/// Whether a swipe that began a little below a window's title bar began on one of its bars: its toolbar, or a row of
-/// tabs, where a swipe moves the window as it does on the title bar. Anywhere else there, it is the app's own scroll.
-/// Only the app can say, through Accessibility, and that can take a moment, so it is asked here, on a queue of its
-/// own, and never on the trackpad's tap.
+/// Verifies through Accessibility that a gesture began strictly on the top title-bar section of a real,
+/// top-level, resizable application window — and never on a sub-window (sheet, dialog, popover, floating panel,
+/// child window, or fixed-size settings/about window), an interactive control (search/URL text box, menu, scrollbar),
+/// or inside window content below the top section.
 ///
-/// Browsers and apps built on Chromium (Chrome, Edge, Brave, Arc, and apps such as Claude) switch on accessibility for
+/// Runs on a queue of its own (`notch.bars`), never on the trackpad's tap.
+///
+/// Browsers and apps built on Chromium (Chrome, Edge, Brave, Arc, and Electron apps) switch on accessibility for
 /// all their web pages, for good, when the role of the area that holds a page is asked; from then on every change on
-/// a page costs them more. So of each thing only its size is asked first: anything taller than a bar is the window's
-/// content (a page, a list, a document), and its role is never asked.
+/// a page costs them more. So for any non-window element along the hit chain, its size is asked first: anything taller
+/// than a bar is marked as tall content and its role is never asked.
 enum Bars {
     private static let queue = DispatchQueue(label: "notch.bars", qos: .userInteractive)
-    private static let tallest: CGFloat = 100   // no toolbar or row of tabs is taller than this; the area that holds a page always is
+    private static let tallest: CGFloat = 90   // no title bar or top toolbar is taller than this; content containers always are
+    private static let timeout: Float = 0.08   // per-question messaging timeout: fast enough never to stall, generous enough for busy apps
 
-    /// Asks whether `point` (measured from the top left of the main screen) is on a bar of one of `app`'s windows, and
-    /// gives the answer to `answer`, on this queue. Anything slow, unclear or failing is "no": the scroll stays the app's.
-    static func ask(at point: CGPoint, in app: pid_t, answer: @escaping (Bool) -> Void) {
-        let deadline = CACurrentMediaTime() + 0.2
-        queue.async { answer(bar(at: point, in: app, by: deadline)) }
+    /// Asks whether `point` (measured from the top left of the main screen) is strictly on the top section of
+    /// `target`'s standard application window, and gives the answer to `answer`, on this queue. Anything slow,
+    /// unclear, failing, or belonging to a sub-window, interactive control, or content area is "no".
+    static func ask(at point: CGPoint, for target: Target, answer: @escaping (Bool) -> Void) {
+        let deadline = CACurrentMediaTime() + 0.22
+        queue.async { answer(verify(at: point, for: target, by: deadline)) }
     }
 
-    private static func bar(at point: CGPoint, in app: pid_t, by deadline: Double) -> Bool {
-        guard CACurrentMediaTime() < deadline else { return false }   // it waited behind a slow question: the fingers have moved on
-        let root = AXUIElementCreateApplication(app)
-        AXUIElementSetMessagingTimeout(root, 0.05)   // a twentieth of a second per question, no more
+    private static func verify(at point: CGPoint, for target: Target, by deadline: Double) -> Bool {
+        guard CACurrentMediaTime() < deadline else { return false }
+        let root = AXUIElementCreateApplication(target.app)
+        AXUIElementSetMessagingTimeout(root, timeout)
         var hit: AXUIElement?
         let found = AXUIElementCopyElementAtPosition(root, Float(point.x), Float(point.y), &hit)
-        guard found == .success, var element = hit else { return false }
-        for _ in 0..<6 {   // the thing itself, then what holds it, and so on up
+        guard found == .success, let start = hit else { return false }
+
+        // Walk up from the hit element to find the window, checking non-tall ancestors for disqualifying roles
+        // (buttons, tabs, text fields, menus, sheets, popovers, scroll areas, lists) and noting whether we pass
+        // through a tall content container.
+        var element = start
+        var window: AXUIElement?
+        var insideTallContent = false
+        var directToolbarFrame: CGRect?
+
+        for _ in 0..<24 {
             guard CACurrentMediaTime() < deadline else { return false }
-            AXUIElementSetMessagingTimeout(element, 0.05)
-            let got = element.values([kAXSizeAttribute, kAXParentAttribute])   // its size and its holder, in one question; not its role
+            AXUIElementSetMessagingTimeout(element, timeout)
+            let got = element.values([kAXSizeAttribute, kAXParentAttribute])   // size and parent only; never role on tall content
             let holder = got[1].flatMap { CFGetTypeID($0) == AXUIElementGetTypeID() ? ($0 as! AXUIElement) : nil }
-            // The window itself (what holds it is the app). A toolbar of macOS's own answers so on its bare part, or
-            // with the window's title beside its buttons (seen 14 Nov 2026): the window's own parts are looked at instead.
-            if let holder, CFEqual(holder, root) { return toolbar(in: element, at: point, by: deadline) }
+            if let holder, CFEqual(holder, root) {
+                window = element
+                break
+            }
             var size = CGSize.zero
             if let extent = got[0], CFGetTypeID(extent) == AXValueGetTypeID(), AXValueGetValue(extent as! AXValue, .cgSize, &size) {
-                guard size.height <= tallest else { return false }   // the window's content: a page, a list, a document
-                let role = element.string(kAXRoleAttribute)        // small enough to be a bar: now its role may be asked
-                if role == kAXToolbarRole || role == kAXTabGroupRole { return true }   // a browser's row of tabs counts too
+                if size.height > tallest {
+                    insideTallContent = true
+                    break   // jump straight to the owning window via kAXWindowAttribute below
+                }
+                if let role = element.string(kAXRoleAttribute) {
+                    if TitleBar.disqualifyingElementRoles.contains(role) { return false }
+                    if role == kAXToolbarRole, let holder, let parentOfHolder = holder.element(kAXParentAttribute, limit: timeout), CFEqual(parentOfHolder, root) {
+                        directToolbarFrame = element.frame
+                    }
+                }
             }
-            // Not a bar itself, or it does not say how big it is (its role is then not asked): on to what holds it.
-            guard let holder else { return false }
+            guard let holder else { break }
             element = holder
+        }
+
+        // If we broke out on tall content (e.g. Electron custom titlebar inside root view), jump directly to the owning AXWindow.
+        if window == nil {
+            guard CACurrentMediaTime() < deadline else { return false }
+            AXUIElementSetMessagingTimeout(start, timeout)
+            window = start.element(kAXWindowAttribute, limit: timeout) ?? element.element(kAXWindowAttribute, limit: timeout)
+            var current = element
+            for _ in 0..<16 where window == nil {
+                guard CACurrentMediaTime() < deadline else { return false }
+                AXUIElementSetMessagingTimeout(current, timeout)
+                guard let holder = current.element(kAXParentAttribute, limit: timeout) else { break }
+                if CFEqual(holder, root) { window = current; break }
+                current = holder
+            }
+        }
+
+        // Full-screen revealed title strip: confirm depth is within the top strip and belongs to a full-screen standard window.
+        if target.titleStrip {
+            let stripDepth = point.y - target.frame.minY
+            guard stripDepth >= 0, stripDepth <= TitleBar.maxDepth, !insideTallContent else { return false }
+            return verifyFullScreenStrip(in: root, hitWindow: window, for: target, by: deadline)
+        }
+
+        guard let window, CACurrentMediaTime() < deadline else { return false }
+        AXUIElementSetMessagingTimeout(window, timeout)
+
+        // Fetch all window eligibility attributes in a single batched IPC call (keeps total verification to ~3 IPC calls).
+        let attrs = [
+            kAXRoleAttribute, kAXSubroleAttribute, kAXModalAttribute, kAXParentAttribute,
+            kAXPositionAttribute, kAXSizeAttribute, "AXFullScreen",
+            kAXCloseButtonAttribute, kAXMinimizeButtonAttribute, kAXZoomButtonAttribute, kAXFullScreenButtonAttribute,
+            "AXSheets",
+        ]
+        let values = window.values(attrs)
+        let role = values[0] as? String
+        let subrole = values[1] as? String
+        let modal = (values[2] as? Bool) == true
+        let parent = values[3].flatMap { CFGetTypeID($0) == AXUIElementGetTypeID() ? ($0 as! AXUIElement) : nil }
+        let parentIsApp = parent.map { CFEqual($0, root) } ?? false
+        let windowFrame = frame(position: values[4], size: values[5])
+        let fullScreen = (values[6] as? Bool) == true
+        let closeButton = asElement(values[7])
+        let minimizeButton = asElement(values[8])
+        let zoomButton = asElement(values[9])
+        let fullScreenButton = asElement(values[10])
+        let hasOpenSheet = (values[11] as? [AnyObject])?.isEmpty == false
+
+        // Confirm the AX window actually matches the CGWindowList target under the pointer.
+        if let numbering = PrivateCalls.windowNumber {
+            var id = CGWindowID(0)
+            guard numbering(window, &id) == .success, id == target.number else { return false }
+        } else if let wf = windowFrame {
+            guard abs(wf.minX - target.frame.minX) <= 8, abs(wf.minY - target.frame.minY) <= 8,
+                  abs(wf.width - target.frame.width) <= 8, abs(wf.height - target.frame.height) <= 8 else { return false }
+        }
+
+        guard let wf = windowFrame else { return false }
+
+        let facts = TitleBar.WindowFacts(
+            role: role,
+            subrole: subrole,
+            modal: modal,
+            parentIsApp: parentIsApp,
+            hasOpenSheet: hasOpenSheet,
+            fullScreen: fullScreen,
+            positionSettable: fullScreen || window.settable(kAXPositionAttribute),
+            sizeSettable: fullScreen || window.settable(kAXSizeAttribute),
+            hasCloseButton: closeButton != nil,
+            hasResizeOrMinimizeButton: minimizeButton != nil || zoomButton != nil || fullScreenButton != nil,
+            frame: wf
+        )
+        guard TitleBar.isEligibleWindow(facts) else { return false }
+
+        // All three traffic lights share one horizontal row, so reading the first available button's frame
+        // measures the exact chrome band in a single IPC call instead of four.
+        var buttonFrames: [CGRect] = []
+        if let button = closeButton ?? zoomButton ?? minimizeButton ?? fullScreenButton, CACurrentMediaTime() < deadline {
+            AXUIElementSetMessagingTimeout(button, timeout)
+            if let bf = button.frame { buttonFrames.append(bf) }
+        }
+        let chromeHeight = TitleBar.chromeHeight(windowMinY: wf.minY, buttonFrames: buttonFrames)
+        let depth = point.y - wf.minY
+
+        // Check whether the pointer lies on a genuine top-anchored native AXToolbar direct child of the window.
+        var onTopToolbar = false
+        if let tf = directToolbarFrame {
+            onTopToolbar = TitleBar.isTopToolbar(toolbarFrame: tf, windowFrame: wf, containing: point)
+        } else if !insideTallContent && depth > chromeHeight && depth <= TitleBar.maxDepth {
+            onTopToolbar = hasTopToolbar(in: window, windowFrame: wf, at: point, by: deadline)
+        }
+
+        return TitleBar.isInTopSection(
+            depth: depth,
+            chromeHeight: chromeHeight,
+            onTopToolbar: onTopToolbar,
+            insideTallContent: insideTallContent
+        )
+    }
+
+    /// Confirms a revealed full-screen title strip belongs to a real full-screen standard window of `root`.
+    private static func verifyFullScreenStrip(in root: AXUIElement, hitWindow: AXUIElement?, for target: Target, by deadline: Double) -> Bool {
+        if let hitWindow {
+            AXUIElementSetMessagingTimeout(hitWindow, timeout)
+            if hitWindow.string(kAXSubroleAttribute) == kAXStandardWindowSubrole,
+               hitWindow.bool("AXFullScreen") == true,
+               hitWindow.bool(kAXModalAttribute) != true {
+                return true
+            }
+        }
+        guard CACurrentMediaTime() < deadline else { return false }
+        var candidates: [AXUIElement] = [kAXMainWindowAttribute, kAXFocusedWindowAttribute].compactMap { root.element($0, limit: timeout) }
+        if let list = root.value(kAXWindowsAttribute) as? [AXUIElement] { candidates += list }
+        for candidate in candidates {
+            guard CACurrentMediaTime() < deadline else { return false }
+            AXUIElementSetMessagingTimeout(candidate, timeout)
+            guard candidate.string(kAXRoleAttribute) == kAXWindowRole,
+                  candidate.string(kAXSubroleAttribute) == kAXStandardWindowSubrole,
+                  candidate.bool("AXFullScreen") == true,
+                  candidate.bool(kAXModalAttribute) != true else { continue }
+            if let numbering = PrivateCalls.windowNumber {
+                var id = CGWindowID(0)
+                if numbering(candidate, &id) == .success, id == target.number { return true }
+            }
+            if let wf = candidate.frame, abs(wf.minX - target.frame.minX) <= 8, abs(wf.width - target.frame.width) <= 8 {
+                return true
+            }
         }
         return false
     }
 
-    /// Whether a part of `window` that holds `point` is a toolbar or a row of tabs. Of each part its frame is asked
-    /// first; only a part that holds the point and is no taller than a bar is asked its role.
-    private static func toolbar(in window: AXUIElement, at point: CGPoint, by deadline: Double) -> Bool {
+    /// Checks direct children of `window` for a native top-anchored `AXToolbar` containing `point`.
+    private static func hasTopToolbar(in window: AXUIElement, windowFrame: CGRect, at point: CGPoint, by deadline: Double) -> Bool {
         guard let parts = window.value(kAXChildrenAttribute) as? [AXUIElement] else { return false }
         for part in parts {
             guard CACurrentMediaTime() < deadline else { return false }
-            AXUIElementSetMessagingTimeout(part, 0.05)
-            guard let frame = part.frame, frame.height <= tallest, frame.contains(point) else { continue }
-            let role = part.string(kAXRoleAttribute)
-            if role == kAXToolbarRole || role == kAXTabGroupRole { return true }
+            AXUIElementSetMessagingTimeout(part, timeout)
+            guard let pf = part.frame, TitleBar.isTopToolbar(toolbarFrame: pf, windowFrame: windowFrame, containing: point) else { continue }
+            if part.string(kAXRoleAttribute) == kAXToolbarRole { return true }
         }
         return false
+    }
+
+    private static func asElement(_ ref: CFTypeRef?) -> AXUIElement? {
+        guard let ref, CFGetTypeID(ref) == AXUIElementGetTypeID() else { return nil }
+        return (ref as! AXUIElement)
+    }
+
+    private static func frame(position: CFTypeRef?, size: CFTypeRef?) -> CGRect? {
+        var origin = CGPoint.zero, extent = CGSize.zero
+        guard let position, let size,
+              CFGetTypeID(position) == AXValueGetTypeID(), CFGetTypeID(size) == AXValueGetTypeID(),
+              AXValueGetValue(position as! AXValue, .cgPoint, &origin),
+              AXValueGetValue(size as! AXValue, .cgSize, &extent) else { return nil }
+        return CGRect(origin: origin, size: extent)
     }
 }

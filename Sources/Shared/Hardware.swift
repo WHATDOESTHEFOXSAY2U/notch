@@ -40,6 +40,26 @@ enum Hardware {
         return top > 0 && sides > 0 ? CGSize(width: width - sides, height: top) : nil
     }
 
+    /// Whether `mouse` (in AppKit screen coordinates, origin bottom-left) lies strictly inside the closed notch's
+    /// trigger zone at the top center of `screen`. Inset by 3 pt on each side so neighboring menu-bar items never
+    /// open the panel, and inclusive of the top screen edge (`maxY`) where macOS pins a pushed-up pointer.
+    static func inNotchEntry(mouse: CGPoint, screen: CGRect, notch: CGSize) -> Bool {
+        guard screen.width > 0, notch.width > 0, notch.height > 0 else { return false }
+        let halfWidth = max(30, (notch.width - 6) / 2)
+        return abs(mouse.x - screen.midX) <= halfWidth
+            && mouse.y >= screen.maxY - notch.height
+            && mouse.y <= screen.maxY + 2
+    }
+
+    /// Whether `mouse` (in AppKit screen coordinates) lies inside the currently expanded panel of `panel` size
+    /// hanging from the top center of `screen`, with a small 4 pt edge cushion so resting on the bottom bar never flickers.
+    static func inNotchActive(mouse: CGPoint, screen: CGRect, panel: CGSize) -> Bool {
+        guard screen.width > 0, panel.width > 0, panel.height > 0 else { return false }
+        return abs(mouse.x - screen.midX) <= panel.width / 2 + 4
+            && mouse.y >= screen.maxY - panel.height - 4
+            && mouse.y <= screen.maxY + 2
+    }
+
     /// One screen, as COPY REPORT describes it.
     struct Display {
         var size: CGSize      // in points

@@ -15,8 +15,12 @@ import IOKit.hid
 /// restart, or until the keyboard is disconnected, and that it applies to every user of the Mac.
 enum Hyper {
     private static var tap: CFMachPort?           // the keyboard tap: made once, then switched on and off
-    private static var keyboards: IOHIDManager?   // announces keyboards as they connect, so their Caps Lock is changed too
-    private static var held = false               // Caps Lock is down; only the tap's thread touches this
+    private static var loop: CFRunLoop?           // the tap thread's run loop: state resets are handed in through it
+    private static var keyboards: IOHIDManager?   // announces keyboards as they connect or disconnect
+    private static var observed = false           // sleep, wake, lock and session observers are installed
+    private static var state = HyperState()       // only the tap's thread touches this
+    private static var holdWatch: Timer?          // runs on main thread ONLY while F18 is held, to catch Secure Input transitions
+    private static var remapGeneration = 0        // coalesces delayed Bluetooth keyboard remap retries; main thread only
     private static var before: [UInt64: [String: Int]] = [:]   // a Caps Lock change a keyboard had before HYPER, by keyboard number; main thread only
     private static var refused = false            // macOS refused to make the tap: the log says so once, not at every retry; main thread only
 
@@ -48,32 +52,57 @@ enum Hyper {
                 return "KEYBOARD TAP REFUSED"
             }
             tap = port
-            EventTap.run(port)
+            EventTap.run(port) { loop = $0 }
         }
-        held = false
+        onTap { state.reset() }
+        EventTap.syncActivity(active: true)
         tap.map { CGEvent.tapEnable(tap: $0, enable: true) }
+        installObservers()
         if keyboards == nil {
-            // macOS announces every keyboard connected now and each one that connects later; a Bluetooth
-            // keyboard comes back after every sleep. Its Caps Lock is changed as it arrives, and once more
-            // a second later, in case the announcement came before the keyboard was ready. No key is read this way.
+            // macOS announces every keyboard connected now and each one that connects or disconnects later; a Bluetooth
+            // keyboard comes back after every sleep. Its Caps Lock is changed as it arrives, and retried at 1 s and 3 s
+            // in case the Bluetooth stack announced it before its HID service accepted properties.
             let manager = IOHIDManagerCreate(kCFAllocatorDefault, IOOptionBits(kIOHIDOptionsTypeNone))
             IOHIDManagerSetDeviceMatching(manager, [kIOHIDDeviceUsagePageKey: kHIDPage_GenericDesktop, kIOHIDDeviceUsageKey: kHIDUsage_GD_Keyboard] as CFDictionary)
             IOHIDManagerRegisterDeviceMatchingCallback(manager, { _, _, _, _ in
-                if Hyper.running { Hyper.remap(true) }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1) { if Hyper.running { Hyper.remap(true) } }
+                Hyper.onTap { Hyper.state.reset() }
+                Hyper.scheduleRemapRetries()
+            }, nil)
+            IOHIDManagerRegisterDeviceRemovalCallback(manager, { _, _, _, _ in
+                Hyper.onTap { Hyper.state.reset() }
             }, nil)
             IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
+            IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
             keyboards = manager
         }
-        remap(true)
+        scheduleRemapRetries()
         Watchdog.watch()   // switches it off again if the permission goes
         return nil
     }
 
     /// Switches it off and gives Caps Lock back, also when macOS has already switched the tap off by itself.
     static func stop() {
+        remapGeneration += 1
+        holdWatch?.invalidate()
+        holdWatch = nil
         tap.map { CGEvent.tapEnable(tap: $0, enable: false) }
+        onTap { state.reset() }
         if remapped { remap(false) }
+        EventTap.syncActivity(active: Swipe.running)
+    }
+
+    /// Remaps Caps Lock immediately and retries at 1 s and 3 s so newly connected or waking Bluetooth keyboards
+    /// pick up F18 reliably without polling IOHID every few seconds forever. Main thread only.
+    private static func scheduleRemapRetries() {
+        guard running else { return }
+        remapGeneration += 1
+        let gen = remapGeneration
+        remap(true)
+        for delay in [1.0, 3.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                if remapGeneration == gen, running { remap(true) }
+            }
+        }
     }
 
     /// At launch, when HYPER is off: if Notch was killed while Caps Lock was F18, gives Caps Lock back.
@@ -81,26 +110,87 @@ enum Hyper {
     static func recover() { stop() }
 
     /// One key event on its way into the system. Returns the event to pass on, or nil to swallow it.
+    /// Performs zero synchronous WindowServer IPC inside the tap callback so typing can never stall.
     static func route(_ type: CGEventType, _ event: CGEvent) -> CGEvent? {
-        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            // The tap went off, so Caps Lock counts as released. If macOS did it because the tap was slow,
-            // switch it back on. `stop` switching it off arrives here too, and that one must stay off.
-            held = false
-            if type == .tapDisabledByTimeout {
-                tap.map { CGEvent.tapEnable(tap: $0, enable: true) }
+        let code = (type == .keyDown || type == .keyUp) ? event.getIntegerValueField(.keyboardEventKeycode) : -1
+        let wasHeld = state.held
+        let action = state.handle(type: type, keyCode: code, f18KeyCode: Int64(kVK_F18), now: CACurrentMediaTime(),
+                                  secureInput: IsSecureEventInputEnabled())
+        let nowHeld = state.held
+        if wasHeld != nowHeld {
+            DispatchQueue.main.async { syncHoldWatch(active: nowHeld) }
+        }
+        switch action {
+        case .pass:
+            return event
+        case .swallow:
+            return nil
+        case .addHyper:
+            event.flags.formUnion([.maskControl, .maskAlternate, .maskShift, .maskCommand])
+            return event
+        case .reenable:
+            tap.map { CGEvent.tapEnable(tap: $0, enable: true) }
+            DispatchQueue.global(qos: .utility).async {
                 Log.failed(.keys, "macOS switched the keyboard tap off for being slow; it is back on")
             }
-        } else if event.getIntegerValueField(.keyboardEventKeycode) == kVK_F18 {
-            // Caps Lock itself: remember whether it is down, and let nothing else see it.
-            held = type == .keyDown
-            return nil
-        } else if held {
-            event.flags.formUnion([.maskControl, .maskAlternate, .maskShift, .maskCommand])
+            return event
+        case .tripTimeoutLimit:
+            DispatchQueue.main.async {
+                Hyper.stop()
+                Log.failed(.keys, "macOS timed out the keyboard tap repeatedly; switched off to keep the keyboard responsive")
+            }
+            return event
         }
-        return event
     }
 
-    /// Tells macOS, keyboard by keyboard, to treat Caps Lock as F18, or as itself again. Making it F18
+    /// Runs on the main thread ONLY while Caps Lock (F18) is held. If Secure Event Input turns on while F18 is down
+    /// (e.g. a hyper shortcut opened 1Password, Touch ID, or a password field), macOS will withhold F18's keyUp from
+    /// the tap, so `state` is reset immediately instead of leaving `held` stuck on every later keystroke.
+    private static func syncHoldWatch(active: Bool) {
+        holdWatch?.invalidate()
+        holdWatch = nil
+        guard active, running else { return }
+        let startedAt = CACurrentMediaTime()
+        holdWatch = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: true) { timer in
+            guard running else { timer.invalidate(); holdWatch = nil; return }
+            if IsSecureEventInputEnabled() || CACurrentMediaTime() - startedAt > HyperState.maxIdleHold + 2 {
+                timer.invalidate()
+                holdWatch = nil
+                onTap { state.reset() }
+            }
+        }
+    }
+
+    /// Runs `work` on the tap's thread between events so `state` is never raced across threads.
+    private static func onTap(_ work: @escaping () -> Void) {
+        guard let loop else { return work() }
+        CFRunLoopPerformBlock(loop, CFRunLoopMode.commonModes.rawValue, work)
+        CFRunLoopWakeUp(loop)
+    }
+
+    /// Clears `held` across sleep, wake, screen lock, fast user switching, and secure app switches so a missed key-up can never stick.
+    private static func installObservers() {
+        guard !observed else { return }
+        observed = true
+        let ws = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.willSleepNotification, NSWorkspace.sessionDidResignActiveNotification, NSWorkspace.sessionDidBecomeActiveNotification] {
+            ws.addObserver(forName: name, object: nil, queue: .main) { _ in onTap { state.reset() } }
+        }
+        ws.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { _ in
+            if IsSecureEventInputEnabled() { onTap { state.reset() } }
+        }
+        ws.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
+            onTap { state.reset() }
+            scheduleRemapRetries()
+        }
+        let dist = DistributedNotificationCenter.default()
+        for name in ["com.apple.screenIsLocked", "com.apple.screenIsUnlocked"] {
+            dist.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { _ in onTap { state.reset() } }
+        }
+    }
+
+    /// Tells macOS, keyboard by keyboard, to treat Caps Lock as F18, or as itself again. A keyboard that is F18
+    /// through Notch already is left as it is, so this can be asked again and again. Making it F18
     /// remembers a Caps Lock change the keyboard already had; giving it back takes out only Notch's F18
     /// and puts that change back. Any other key changes a keyboard carries are left as they are.
     private static func remap(_ change: Bool) {
@@ -114,6 +204,7 @@ enum Hyper {
             let id = IOHIDServiceClientGetRegistryID(keyboard) as? UInt64 ?? 0   // the keyboard's number while it stays connected
             var map = IOHIDServiceClientCopyProperty(keyboard, property) as? [[String: Int]] ?? []
             if change {
+                if map.contains(mine) { continue }   // already F18 through Notch: nothing to set
                 if let old = map.first(where: { $0[from] == caps }), old != mine { before[id] = old }   // not Notch's: keep it to put back
                 map.removeAll { $0[from] == caps }
                 map.append(mine)

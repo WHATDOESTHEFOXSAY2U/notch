@@ -85,9 +85,10 @@ import AVFoundation
             do {
                 let recorder = Recorder()
                 // The stage is the one Notch window kept in the picture. The screens are listed here, now that it is up.
-                try await recorder.prepare(region, in: try await SCShareableContent.current, keeping: [stage.windowNumber], mic: mic, sound: sound) {
+                try await recorder.prepare(region, in: try await SCShareableContent.current, keeping: [stage.windowNumber], mic: mic, sound: sound) { [weak session = self] in
                     // The system ended the capture: finish the file anyway, or take the options down.
-                    if self.started == nil { self.tools.cancel() } else { Task { await self.tools.stop() } }
+                    guard let session else { return }
+                    if session.started == nil { session.tools.cancel() } else { Task { await session.tools.stop() } }
                 }
                 return recorder
             } catch {
@@ -101,6 +102,7 @@ import AVFoundation
 
     /// START: the file begins at `url`, the dim lifts and the frame turns red.
     func start(to url: URL) {
+        guard started == nil else { return }
         started = Date()
         Sound.heldBack = true
         frame.record()
@@ -154,11 +156,14 @@ import AVFoundation
         Sound.heldBack = false
         meter?.cancel()
         clicks.map(NSEvent.removeMonitor)
+        clicks = nil
         frame.close()
         strip.orderOut(nil)
         strip.contentView = nil   // the strip's view holds on to this session; without this neither would ever be freed
+        strip.close()
         stage.camera = false
         stage.orderOut(nil)
+        stage.close()
         return await ready?.value?.stop()
     }
 }

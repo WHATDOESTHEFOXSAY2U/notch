@@ -68,3 +68,9 @@ func saved(from event: NSEvent) -> String {
     #expect(saved(from: press(kVK_Space, " ", [.shift, .command])) == "49,768,⇧⌘SPACE")
     #expect(saved(from: press(kVK_LeftArrow, "\u{F702}", [.control, .option])) == "123,6144,⌃⌥←")
 }
+
+@MainActor @Test func malformedStoredShortcutDoesNotCrash() {
+    #expect(label(of: "") == "")
+    #expect(label(of: "only-one-part") == "")
+    #expect(label(of: "1,6144") == "")
+}

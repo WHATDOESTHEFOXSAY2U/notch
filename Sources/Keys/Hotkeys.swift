@@ -19,7 +19,10 @@ import Carbon.HIToolbox
     }
 
     /// How a tool's shortcut reads in Settings, e.g. "⌃⌥S".
-    static func label(_ tool: String) -> String { String(stored(tool)[2]) }
+    static func label(_ tool: String) -> String {
+        let parts = stored(tool)
+        return parts.count == 3 ? String(parts[2]) : ""
+    }
 
     /// Stores a new shortcut from a key press and puts it to work at once.
     static func save(_ tool: String, from event: NSEvent) {
@@ -51,7 +54,10 @@ import Carbon.HIToolbox
             InstallEventHandler(GetEventDispatcherTarget(), { _, event, _ in
                 var id = EventHotKeyID()
                 GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &id)
-                MainActor.assumeIsolated { Hotkeys.actions[Hotkeys.tools[Int(id.id)]]?() }   // hot keys always arrive on the main thread
+                MainActor.assumeIsolated {
+                    let index = Int(id.id)
+                    if Hotkeys.tools.indices.contains(index) { Hotkeys.actions[Hotkeys.tools[index]]?() }
+                }   // hot keys always arrive on the main thread
                 return noErr
             }, 1, &spec, nil, nil)
             listening = true
@@ -60,8 +66,9 @@ import Carbon.HIToolbox
         taken = []
         for (index, tool) in tools.enumerated() {
             let parts = stored(tool)
+            guard parts.count >= 2, let code = UInt32(parts[0]), let mods = UInt32(parts[1]) else { continue }
             var ref: EventHotKeyRef?
-            let status = RegisterEventHotKey(UInt32(parts[0]) ?? 0, UInt32(parts[1]) ?? 0, EventHotKeyID(signature: 0x4E544348 /* "NTCH" */, id: UInt32(index)), GetEventDispatcherTarget(), 0, &ref)
+            let status = RegisterEventHotKey(code, mods, EventHotKeyID(signature: 0x4E544348 /* "NTCH" */, id: UInt32(index)), GetEventDispatcherTarget(), 0, &ref)
             // Refused, so these keys will do nothing: an earlier tool here already has them, or macOS would not allow them.
             if status != noErr {
                 taken.insert(tool)

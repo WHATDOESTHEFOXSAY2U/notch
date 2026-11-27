@@ -37,7 +37,7 @@ import IOKit.ps
     func refresh() {
         // Memory, counted the way Activity Monitor does: app + wired + compressed.
         let vm = host(HOST_VM_INFO64, vm_statistics64())
-        let pages = vm.internal_page_count - vm.purgeable_count + vm.wire_count + vm.compressor_page_count
+        let pages = (vm.internal_page_count > vm.purgeable_count ? vm.internal_page_count - vm.purgeable_count : 0) + vm.wire_count + vm.compressor_page_count
         mem = Double(pages) * Double(vm_kernel_page_size) / Double(ProcessInfo.processInfo.physicalMemory) * 100
         pressure = Int(sysctl("kern.memorystatus_vm_pressure_level", Int32(1)))
         swap = Double(sysctl("vm.swapusage", xsw_usage()).xsu_used) / 1e9
@@ -70,14 +70,13 @@ import IOKit.ps
         }
     }
 
-    /// Looks, as the panel opens, for what DICT, TRANSCRIBE and the mirror need: a microphone and Apple's speech
-    /// engine, the Scribe app, and a camera. Any of them can come or go at any time. Away from the main thread, since
-    /// the first look at the microphones takes about a tenth of a second and the panel is opening meanwhile.
+    /// Looks, as the panel opens, for what DICT and the mirror need: a microphone and Apple's speech engine, and a
+    /// camera. TRANSCRIBE stays visible in the bar even before Scribe is installed so every Mac discovers it and sees
+    /// what is needed when pressed. Away from the main thread, since the first microphone look takes ~0.1 s.
     private func look() {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             var lacking: Set<String> = []
             if !Hardware.hasMicrophone || !Hardware.canDictate { lacking.insert("DICT") }
-            if Scribe.program == nil { lacking.insert("SCRIBE") }
             if !Hardware.hasCamera { lacking.insert("CAM") }
             DispatchQueue.main.async { self?.lacking = lacking }
         }
