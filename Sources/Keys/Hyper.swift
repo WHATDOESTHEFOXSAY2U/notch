@@ -119,9 +119,6 @@ enum Hyper {
         case .addHyper:
             event.flags.formUnion([.maskControl, .maskAlternate, .maskShift, .maskCommand])
             return event
-        case .disable:
-            DispatchQueue.main.async { Hyper.stop() }
-            return event
         case .reenable:
             tap.map { CGEvent.tapEnable(tap: $0, enable: true) }
             DispatchQueue.global(qos: .utility).async {

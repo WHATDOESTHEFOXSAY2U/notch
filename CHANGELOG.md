@@ -3,12 +3,18 @@
 What changed in each release of Notch, newest first. A version is three numbers, like 1.0.0, and its git tag is
 `v1.0.0`. The part under a version becomes its release notes on GitHub (`release.sh` copies it).
 
+## 0.10.4 - 2026-11-27
+
+### Fixed
+- CAPS LOCK IS HYPER KEY stays enabled at launch when CoreGraphics delivers the initial `tapDisabledByUserInput`
+  notification queued by `EventTap.make` before enabling the tap.
+
 ## 0.10.3 - 2026-11-27
 
 ### Fixed
 - CAPS LOCK IS HYPER KEY no longer calls `IOHIDManagerOpen`, so Notch never attaches a raw kernel `IOHIDLibUserClient`
   handle to the built-in SPI keyboard (`AppleHIDTransportHIDDevice`) or external keyboards across sleep/reset cycles,
-  and cleanly unschedules keyboard matching and restores Caps Lock if macOS disables the tap.
+  and cleanly unschedules keyboard matching when stopped.
 - Closed-panel temperature polling samples `AppleSMC` every 10 seconds (and skips it altogether when `TEMP` is switched
   off) instead of every 2 seconds, cutting background kernel SMC analytics noise by 80%.
 

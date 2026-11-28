@@ -53,7 +53,7 @@ private let keyA: Int64 = 0
 @Test func tapDisabledClearsHeldAndCircuitBreakerStopsFreezeLoops() {
     var state = HyperState()
     #expect(state.handle(type: .keyDown, keyCode: f18, f18KeyCode: f18, now: 1) == .swallow)
-    #expect(state.handle(type: .tapDisabledByUserInput, keyCode: -1, f18KeyCode: f18, now: 2) == .disable)
+    #expect(state.handle(type: .tapDisabledByUserInput, keyCode: -1, f18KeyCode: f18, now: 2) == .pass)
     #expect(!state.held)
 
     for i in 1...HyperState.maxTimeouts {
