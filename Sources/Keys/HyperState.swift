@@ -8,6 +8,7 @@ struct HyperState {
         case pass              // pass the event through untouched
         case swallow           // swallow F18 itself
         case addHyper          // attach ⌃⌥⇧⌘ to the event and pass through
+        case disable           // tap disabled by macOS user input: stop and restore Caps Lock
         case reenable          // tap disabled by timeout: re-enable (rate-limited)
         case tripTimeoutLimit  // too many timeouts in a short window: stop instead of looping freezes
     }
@@ -49,7 +50,7 @@ struct HyperState {
         }
         if type == .tapDisabledByUserInput {
             reset()
-            return .pass
+            return .disable
         }
         if secureInput {
             reset()

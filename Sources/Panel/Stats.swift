@@ -12,7 +12,7 @@ import IOKit.ps
     var charging = false // on mains power
     var pressure = 1     // kernel memory pressure: 1 normal, 2 warning, 4 critical
     var apps: [(app: NSRunningApplication, gb: Double)] = []
-    var open = false { didSet { openTick = 0; if open { refresh(); look() } else { quitting = []; owners = [:] }; schedule() } }
+    var open = false { didSet { openTick = 0; closedTick = 0; if open { refresh(); look() } else { quitting = []; owners = [:] }; schedule() } }
     /// The parts the panel cannot show on this Mac right now, by their names in `Parts`: TEMP without a sensor that
     /// answers, DICT without a microphone or Apple's speech engine, SCRIBE (TRANSCRIBE) without the Scribe app,
     /// CAM (the mirror) without a camera.
@@ -23,6 +23,7 @@ import IOKit.ps
     private var quitting: Set<pid_t> = []   // apps asked to quit; hidden from the list right away
     private var owners: [pid_t: pid_t] = [:]   // which app each process belongs to; looked up once per process
     private var openTick = 0
+    private var closedTick = 0
     private var timer: Timer?
 
     init() {
@@ -51,7 +52,11 @@ import IOKit.ps
             lastTicks = (busy, total)
         }
 
-        temp = SMC.found.compactMap(SMC.shared.read).max()
+        if Prefs.switchedOff(UserDefaults.standard.string(forKey: Prefs.hidden) ?? "").contains("TEMP") {
+            temp = nil
+        } else if open || closedTick % 5 == 0 {
+            temp = SMC.found.compactMap(SMC.shared.read).max()
+        }
 
         // Battery: the first power source that reports a capacity.
         let power = IOPSCopyPowerSourcesInfo().takeRetainedValue()
@@ -69,6 +74,8 @@ import IOKit.ps
             fan = SMC.fans.compactMap(SMC.shared.read).max() ?? 0
             if openTick % 4 == 0 { apps = topApps() }
             openTick += 1
+        } else {
+            closedTick += 1
         }
     }
 

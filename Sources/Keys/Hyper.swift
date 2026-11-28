@@ -57,8 +57,10 @@ enum Hyper {
             IOHIDManagerRegisterDeviceRemovalCallback(manager, { _, _, _, _ in
                 Hyper.onTap { Hyper.state.reset() }
             }, nil)
+            // Schedule matching notifications without calling IOHIDManagerOpen: opening devices attaches a raw
+            // kernel IOHIDLibUserClient directly to the built-in SPI keyboard (AppleHIDTransportHIDDevice), which
+            // Hyper never reads input reports from and should never hold across sleep/reset cycles.
             IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
-            IOHIDManagerOpen(manager, IOOptionBits(kIOHIDOptionsTypeNone))
             keyboards = manager
         }
         scheduleRemapRetries()
@@ -71,6 +73,10 @@ enum Hyper {
         remapGeneration += 1
         holdWatch?.invalidate()
         holdWatch = nil
+        if let manager = keyboards {
+            IOHIDManagerUnscheduleFromRunLoop(manager, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
+            keyboards = nil
+        }
         tap.map { CGEvent.tapEnable(tap: $0, enable: false) }
         onTap { state.reset() }
         if remapped { remap(false) }
@@ -112,6 +118,9 @@ enum Hyper {
             return nil
         case .addHyper:
             event.flags.formUnion([.maskControl, .maskAlternate, .maskShift, .maskCommand])
+            return event
+        case .disable:
+            DispatchQueue.main.async { Hyper.stop() }
             return event
         case .reenable:
             tap.map { CGEvent.tapEnable(tap: $0, enable: true) }
