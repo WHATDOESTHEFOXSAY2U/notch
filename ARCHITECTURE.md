@@ -133,9 +133,9 @@ in the settings, and which calls are not in Apple's published SDK.
 
 **Transcribe**
 - `Transcribe.swift`: TRANSCRIBE: takes a pasted link, a chosen file or a drop; the recordings waiting their turn;
-  what the notch shows of the one in hand; saving each text; stopping; the watch on drags near the notch.
+  what the notch shows of the one in hand; saving each `.txt` transcript on the Desktop; stopping; the watch on drags near the notch.
 - `Scribe.swift`: the separate app that does the work: where its program is, starting it for one recording or for a
-  channel's list, reading the lines it prints, ending it; where it keeps its texts.
+  channel's list, reading the lines it prints, ending it.
 - `Transcript.swift`: what Scribe hands back, and what Notch makes of it: the text, the file's name, the word
   count, the folder's name on the card, a failure as one line.
 - `Link.swift`: a web link found in a piece of text; one video told from a channel or a playlist; a video or sound
@@ -299,7 +299,6 @@ Public calls used in ways Apple does not document:
 
 ## Files Notch writes
 
-Shots and recordings on the Desktop; transcripts, as text files, in the folder Scribe saves to (read from Scribe's
-own settings, `local.scribe`; Documents/Scribe until one is chosen there); its settings, through macOS; the text
+Shots, recordings, and transcripts (`.txt` files) on the Desktop; its settings, through macOS; the text
 model macOS compiles for it, in `~/Library/Caches/local.notch`; and, at real failures, lines in the Mac's log under the
 subsystem `local.notch`. Nothing else.

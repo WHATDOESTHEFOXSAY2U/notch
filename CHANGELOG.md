@@ -3,6 +3,13 @@
 What changed in each release of Notch, newest first. A version is three numbers, like 1.0.0, and its git tag is
 `v1.0.0`. The part under a version becomes its release notes on GitHub (`release.sh` copies it).
 
+## 0.10.5 - 2026-11-28
+
+### Changed
+- TRANSCRIBE now saves finished `.txt` transcripts directly on your Desktop (numbered rather than overwriting if a file
+  with that name is already there, and grouped in a folder on the Desktop for channels or playlists), just like SHOT
+  and REC — so the transcript stays on your Desktop automatically even if you take no action before the card dismisses.
+
 ## 0.10.4 - 2026-11-27
 
 ### Fixed

@@ -35,6 +35,17 @@ struct Transcript: Decodable, Equatable {
         return name.isEmpty || name.hasPrefix(".") ? "Untitled" : name
     }
 
+    /// Where `name` goes inside `folder`, as a `.txt` file: numbered (`name 2.txt`, `name 3.txt`) when a file of that
+    /// name is already there, so an existing transcript on the Desktop is never overwritten.
+    static func target(in folder: URL, name: String, taken: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) }) -> URL {
+        var file = folder.appendingPathComponent(name + ".txt"), number = 2
+        while taken(file) {
+            file = folder.appendingPathComponent("\(name) \(number).txt")
+            number += 1
+        }
+        return file
+    }
+
     /// A folder as the card names it: "DESKTOP", "DOCUMENTS / SCRIBE". Inside the home folder it is the way from
     /// there; anywhere else, the last two folders of the path.
     static func place(_ folder: String, home: String) -> String {

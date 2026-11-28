@@ -22,9 +22,9 @@ Back to the [front page](../README.md).
   call, a video.
 - **TRANSCRIBE.** Writes down what is said in a video or a sound file. Press it, then PASTE LINK for the link on your
   clipboard, or CHOOSE FILE for one of your newest recordings. Or drag a video, a sound file or a link onto the notch.
-  A channel or a playlist asks how many to take. The notch shows how far it is; point at it for STOP TRANSCRIBING. The
-  text is saved as a file, each speaker named while SPEAKERS is on, and a card offers COPY, OPEN and SHOW. The work is
-  done on your Mac by [Scribe](https://github.com/WHATDOESTHEFOXSAY2U/scribe), a separate app.
+  The notch shows how far it is; point at it for STOP TRANSCRIBING. The transcript is saved right on your Desktop as a
+  `.txt` file (even if you ignore the card), each speaker named while SPEAKERS is on, and a card offers COPY, OPEN and
+  SHOW. The work is done on your Mac by [Scribe](https://github.com/WHATDOESTHEFOXSAY2U/scribe), a separate app.
 - **COMPRESS.** Makes a smaller copy of any video, for sending. Drag one video (mov, mp4 or m4v) onto the notch and
   it asks: TRANSCRIBE or COMPRESS. COMPRESS shows three sizes, each with what the copy will weigh and how much smaller
   that is, worked out from a few seconds of your video, so within a fifth or so. BEST keeps the picture as it is and
@@ -199,9 +199,9 @@ Good to know:
 - **Files it writes:** shots and recordings on your Desktop, named like `Shot 2026-11-16 18.30.00.png`,
   `Rec 2026-11-16 18.30.00.mp4` and, from COMPRESS, `Rec 2026-11-16 18.30.00 small.mp4`. The smaller copy of a video
   you drop on the notch, next to that video, or in Downloads when its folder cannot be written to; while it works out
-  the sizes, a few seconds of the video in the Mac's temporary folder, removed at once. Transcripts, as text files
-  named after their recordings, in the folder Scribe saves to: Documents/Scribe, until you choose another in Scribe.
-  A channel's go in a folder of its name there. Nothing else. It keeps no history of what you dictate, read or copy.
+  the sizes, a few seconds of the video in the Mac's temporary folder, removed at once. Transcripts, on your Desktop as
+  `.txt` files named after their recordings (and in a folder of the channel's or playlist's name on your Desktop for a
+  collection). Nothing else. It keeps no history of what you dictate, read or copy.
 - **The Mac's log.** When something fails, such as a window that will not move or a recording that stops, Notch
   writes one line to the Mac's own log: what failed, and macOS's number for why. Never what you dictate, copy or
   read, nor the name of a window or a file. To see the last day's lines, run in Terminal:
@@ -323,8 +323,8 @@ app in Applications (or as the `scribe` command its installer leaves), and TRANS
 **TRANSCRIBE says UPDATE SCRIBE, or NEEDS YT-DLP.** A channel or a playlist needs a Scribe that can list one; update
 Scribe. Links need yt-dlp: in Terminal, `brew install yt-dlp`. Files on your Mac need neither.
 
-**Where did my transcript go?** Into the folder Scribe saves to, which the card names (SAVED TO DESKTOP). The card's
-SHOW key finds the file in Finder. Until you choose a folder in Scribe, it is Documents/Scribe.
+**Where did my transcript go?** Straight onto your Desktop as `<Title>.txt` (or inside `<Channel>` on your Desktop for a
+channel or playlist), whether or not you press COPY before the card slides away. The card's SHOW key selects it in Finder.
 
 **Caps Lock does nothing.** Notch was stopped without quitting (a crash, or Force Quit) while CAPS LOCK IS HYPER KEY
 was on. Open Notch again, and Caps Lock works again. Restarting the Mac does it too.

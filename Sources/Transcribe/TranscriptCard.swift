@@ -5,9 +5,9 @@ import SwiftUI
 /// clipboard, OPEN opens the file, SHOW finds it in the Finder, and the × throws it away. After several recordings
 /// the card stands for all their files, and has only SHOW and the ×.
 struct TranscriptCard: View {
-    let files: [URL]            // the text files, in the order they were written
+    let files: [URL]            // the text files saved on the Desktop, in the order they were written
     let title: String           // the recording's name; after several, the channel's or playlist's
-    let folder: URL             // Scribe's folder, where the texts are kept; a channel's are in a folder of its name inside
+    let folder: URL             // Desktop (or the channel's folder on Desktop) where the texts are saved
     let text: String?           // one recording's text, for COPY; nil after several
     let words: Int              // how many words COPY copies
     let say: (String) -> Void   // shows a short line under the notch
@@ -24,6 +24,7 @@ struct TranscriptCard: View {
 
     /// Slides a card in for `files`, in place of any transcript's card still up.
     static func show(_ files: [URL], title: String, folder: URL, text: String?, words: Int, say: @escaping (String) -> Void) {
+        guard !Card.isCompressing else { say("SAVED TO DESKTOP"); return }
         guard let screen = Hardware.notchedScreen ?? NSScreen.screens.first else { return }
         Card.dismissIfIdle()
         Restart.dismiss()
@@ -51,7 +52,12 @@ struct TranscriptCard: View {
                 CardKey { NSWorkspace.shared.activateFileViewerSelecting(files) } label: { name("SHOW") }
                 // To the Trash, so they can be put back. Red under the pointer, as on a shot's card.
                 CardKey(fill: red, width: 40, last: true) {
+                    let desktop = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0].standardizedFileURL
                     files.forEach { try? FileManager.default.trashItem(at: $0, resultingItemURL: nil) }
+                    if folder.standardizedFileURL != desktop,
+                       (try? FileManager.default.contentsOfDirectory(atPath: folder.path))?.isEmpty == true {
+                        try? FileManager.default.trashItem(at: folder, resultingItemURL: nil)
+                    }
                     leave()
                 } label: { Glyph(name: "X") }
             }

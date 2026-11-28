@@ -73,6 +73,13 @@ import Testing
     #expect(Transcript.fileName(String(repeating: "a", count: 300)).count == 110)
 }
 
+@Test func desktopTranscriptNumbersRepeatsInsteadOfOverwriting() {
+    let desktop = URL(filePath: "/tmp/Desktop")
+    #expect(Transcript.target(in: desktop, name: "Talk", taken: { _ in false }) == URL(filePath: "/tmp/Desktop/Talk.txt"))
+    let taken: Set<String> = ["/tmp/Desktop/Talk.txt", "/tmp/Desktop/Talk 2.txt"]
+    #expect(Transcript.target(in: desktop, name: "Talk", taken: { taken.contains($0.path) }) == URL(filePath: "/tmp/Desktop/Talk 3.txt"))
+}
+
 @Test func aFolderIsNamedFromTheHomeFolder() {
     #expect(Transcript.place("/home/pat/Desktop", home: "/home/pat") == "DESKTOP")
     #expect(Transcript.place("/home/pat/Documents/Scribe", home: "/home/pat") == "DOCUMENTS / SCRIBE")

@@ -51,22 +51,12 @@ enum Scribe {
         let status: Int32   // 1: it said why on a line; 2: it did not know what was asked; 130: it was stopped
     }
 
-    /// The name macOS knows Scribe by. Its settings are kept under it.
-    static let id = "local.scribe"
-
     /// Scribe's program, or nil when Scribe is not installed: inside the app in an Applications folder, or the
     /// `scribe` command its installer leaves. Looked for each time, since Scribe can be installed while Notch runs.
     static var program: URL? {
         let apps = FileManager.default.urls(for: .applicationDirectory, in: .allDomainsMask).map { $0.appending(path: "Scribe.app/Contents/MacOS/Scribe") }
         let commands = ["/opt/homebrew/bin/scribe", "/usr/local/bin/scribe"].map { URL(filePath: $0) }
         return (apps + commands).first { FileManager.default.isExecutableFile(atPath: $0.path) }
-    }
-
-    /// Where transcripts are saved: the folder chosen in Scribe itself, or, until one is, Documents/Scribe. The two
-    /// apps keep their texts in one place.
-    static var library: URL {
-        if let chosen = UserDefaults(suiteName: id)?.string(forKey: "library"), !chosen.isEmpty { return URL(filePath: chosen) }
-        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appending(path: "Scribe")
     }
 
     /// The notch's word for what Scribe is doing, by Scribe's number for it.

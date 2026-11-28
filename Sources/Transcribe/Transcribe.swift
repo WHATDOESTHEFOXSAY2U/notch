@@ -3,7 +3,8 @@ import AppKit
 /// TRANSCRIBE: writes down what is said in a video or a sound file. It takes a link pasted from the clipboard, a file
 /// chosen in the panel, or either one dropped on the notch. The work itself is Scribe's, a separate app (see
 /// `Scribe`). This holds the recordings that wait their turn, shows the notch how far the one in hand is, and saves
-/// each text where Scribe would. It lives outside the panel's views, which are thrown away each time the panel closes.
+/// each finished transcript directly on the Desktop (like SHOT and REC) so it stays there even if the card is ignored.
+/// It lives outside the panel's views, which are thrown away each time the panel closes.
 @MainActor @Observable final class Transcribe {
     /// The recording in hand, as the notch shows it.
     struct Working: Equatable {
@@ -42,19 +43,22 @@ import AppKit
 
     /// One thing waiting its turn.
     private enum Entry {
-        case recording(String, title: String?, file: URL?)   // a file's path or a link; where its text goes, when that is already decided
-        case list(String, limit: Int)                          // a channel or a playlist, still to be opened out into its recordings
+        case recording(String, title: String?, folder: URL? = nil, prefix: String = "")   // a file's path or a link, and optional Desktop subfolder/numbering
+        case list(String, limit: Int)                                                      // a channel or a playlist, still to be opened out into its recordings
     }
 
     /// What the recordings taken on since the notch was last idle have come to.
     private struct Run {
         var taken = 0             // recordings started, the one in hand included
-        var saved: [URL] = []     // the text files written
+        var saved: [URL] = []     // the text files written on the Desktop
         var failed = 0
         var last = (title: "", text: "", words: 0)   // the last one saved
         var name: String?         // the channel's or playlist's name, when they came from one
+        var folder: URL?          // the Desktop subfolder for a channel or playlist
         var trouble: String?      // what the notch says of the last failure
     }
+
+    private static var desktop: URL { FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0] }
 
     /// What ALL takes of a channel or a playlist at most: as many as Scribe itself lists.
     static let most = 500
@@ -75,7 +79,7 @@ import AppKit
             return .nothing
         }
         guard !Link.isCollection(link) else { return .many(link, channel: Link.isChannel(link)) }
-        add([.recording(link, title: nil, file: nil)])
+        add([.recording(link, title: nil)])
         return .started
     }
 
@@ -83,7 +87,7 @@ import AppKit
     func take(_ link: String, count: Int?) { add([.list(link, limit: count ?? Transcribe.most)]) }
 
     /// A file picked from CHOOSE FILE's list, or a dropped video once TRANSCRIBE is chosen for it.
-    func take(_ file: URL) { add([.recording(file.path, title: nil, file: nil)]) }
+    func take(_ file: URL) { add([.recording(file.path, title: nil)]) }
 
     /// Whether TRANSCRIBE can be offered at all: switched on, and Scribe on this Mac.
     var ready: Bool { !Prefs.isSwitchedOff("SCRIBE") && Scribe.program != nil }
@@ -131,10 +135,10 @@ import AppKit
     private func entries(on board: NSPasteboard) -> [Entry] {
         let carried = (board.readObjects(forClasses: [NSURL.self]) as? [URL]) ?? []
         let files = carried.filter { $0.isFileURL && Link.isRecording($0) }
-        guard files.isEmpty else { return files.map { .recording($0.path, title: nil, file: nil) } }
+        guard files.isEmpty else { return files.map { .recording($0.path, title: nil) } }
         guard !carried.contains(where: \.isFileURL),
               let link = Link.web(in: carried.first?.absoluteString ?? board.string(forType: .string) ?? "") else { return [] }
-        return [Link.isCollection(link) ? .list(link, limit: Transcribe.usual) : .recording(link, title: nil, file: nil)]
+        return [Link.isCollection(link) ? .list(link, limit: Transcribe.usual) : .recording(link, title: nil)]
     }
 
     /// Puts recordings in line and starts on them, unless one is already in hand.
@@ -149,7 +153,7 @@ import AppKit
             return
         }
         // The notch shows the work at once, a moment before Scribe says anything.
-        if case .recording(let input, _, _) = entries[0] { working = Working(stage: Scribe.stage(input.hasPrefix("/") ? 1 : 0), count: recordingsWaiting) } else { working = Working(stage: "READING LIST") }
+        if case .recording(let input, _, _, _) = entries[0] { working = Working(stage: Scribe.stage(input.hasPrefix("/") ? 1 : 0), count: recordingsWaiting) } else { working = Working(stage: "READING LIST") }
         if job == nil { begin() }   // a stopped job that is still winding up starts on these itself, in `wrapUp`
     }
 
@@ -165,7 +169,7 @@ import AppKit
             while !waiting.isEmpty, !Task.isCancelled {
                 switch waiting.removeFirst() {
                 case .list(let link, let limit): await open(link, limit: limit)
-                case .recording(let input, let title, let file): await transcribe(input, title: title, into: file)
+                case .recording(let input, let title, let folder, let prefix): await transcribe(input, title: title, in: folder, prefix: prefix)
                 }
             }
             ProcessInfo.processInfo.endActivity(awake)
@@ -175,24 +179,25 @@ import AppKit
     }
 
     /// Opens a channel or a playlist out into its recordings, at the front of the line. Their texts go into a folder
-    /// named after it, numbered in its order, as Scribe saves them.
+    /// named after it on the Desktop, numbered in its order.
     private func open(_ link: String, limit: Int) async {
         working = Working(stage: "READING LIST", number: run.taken + 1, count: run.taken + 1 + recordingsWaiting)
         do {
             let list = try await Scribe.list(link, limit: limit)
             let items = list.items ?? [], digits = max(2, String(items.count).count)
-            let folder = Scribe.library.appending(path: Transcript.fileName(list.title ?? "Playlist"))
+            let folder = Transcribe.desktop.appending(path: Transcript.fileName(list.title ?? "Playlist"))
             waiting.insert(contentsOf: items.enumerated().map { place, item in
-                .recording(item.url, title: item.title, file: folder.appending(path: String(format: "%0\(digits)d ", place + 1) + Transcript.fileName(item.title) + ".txt"))
+                .recording(item.url, title: item.title, folder: folder, prefix: String(format: "%0\(digits)d ", place + 1))
             }, at: 0)
             run.name = list.title
+            run.folder = folder
         } catch {
             failed(error)
         }
     }
 
-    /// Has Scribe transcribe one recording, and saves its text: into `file`, or under its own name in Scribe's folder.
-    private func transcribe(_ input: String, title: String?, into file: URL?) async {
+    /// Has Scribe transcribe one recording, and saves its `.txt` file on the Desktop (or inside `folder` for a playlist).
+    private func transcribe(_ input: String, title: String?, in folder: URL?, prefix: String) async {
         run.taken += 1
         let onThisMac = input.hasPrefix("/")   // a file's path; anything else is a link
         working = Working(stage: Scribe.stage(onThisMac ? 1 : 0), title: title ?? (onThisMac ? URL(filePath: input).deletingPathExtension().lastPathComponent : ""),
@@ -200,9 +205,10 @@ import AppKit
         do {
             let transcript = try await Scribe.transcribe(input, speakers: UserDefaults.standard.bool(forKey: Prefs.speakers)) { [weak self] now in self?.show(now) }
             guard transcript.words > 0 else { return fail("NO SPEECH FOUND") }
-            let file = file ?? Scribe.library.appending(path: Transcript.fileName(transcript.title) + ".txt")
+            let destination = folder ?? Transcribe.desktop
+            let file = Transcript.target(in: destination, name: prefix + Transcript.fileName(transcript.title))
             do {
-                try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
                 try transcript.text.write(to: file, atomically: true, encoding: .utf8)
             } catch {
                 Log.failed(.transcribe, "a transcript was not saved", error: error)
@@ -265,7 +271,8 @@ import AppKit
         }
         guard !run.saved.isEmpty else { return }
         let one = run.saved.count == 1
-        TranscriptCard.show(run.saved, title: one ? run.last.title : run.name ?? Transcript.count(run.saved.count, "RECORDING"), folder: Scribe.library,
+        let folder = one ? run.saved[0].deletingLastPathComponent() : (run.folder ?? Transcribe.desktop)
+        TranscriptCard.show(run.saved, title: one ? run.last.title : run.name ?? Transcript.count(run.saved.count, "RECORDING"), folder: folder,
                             text: one ? run.last.text : nil, words: run.last.words) { [weak self] line in self?.say(line) }
     }
 
